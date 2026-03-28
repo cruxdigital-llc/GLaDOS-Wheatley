@@ -14,7 +14,7 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 | Language | TypeScript |
 | Bundler | Vite |
 | Styling | TailwindCSS |
-| State | React Query (server state) + Zustand (UI state) |
+| State | React Query (server state) + React useState/useReducer (local UI state) |
 
 ## Backend
 
@@ -24,7 +24,7 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 | Language | TypeScript |
 | Framework | Fastify |
 | Git (local mode) | simple-git |
-| Git (cloud mode) | GitHub REST API / GitLab REST API (via Octokit / native fetch) |
+| Git (cloud mode) | GitHub REST API via Octokit |
 
 The backend exposes a unified **Git Adapter** interface with two implementations:
 - `LocalGitAdapter` — clones/reads from a filesystem path; used in sidecar mode
@@ -34,7 +34,9 @@ Mode is selected at boot via environment variable (`WHEATLEY_MODE=local|remote`)
 
 ## Storage
 
-No separate database. The target repository's markdown files are the source of truth:
+**No relational database. No cache layer. No separate state.** Git and markdown are the storage layer — this is a deliberate design decision, not a limitation. The tradeoff is speed for simplicity and auditability: every state change is a git commit.
+
+The target repository's markdown files are the source of truth:
 
 | Artifact | Purpose |
 |---|---|
@@ -58,3 +60,22 @@ Both modes are packaged as the same Docker image. A `docker-compose.yml` is prov
 - **Compose**: `docker-compose.yml` for local sidecar boot
 - **Config**: Environment variables only (no config files at runtime)
 - **CI**: GitHub Actions (lint, typecheck, build, test)
+
+## Parsing Contract
+
+Wheatley must parse GLaDOS artifacts reliably. This requires a strict, machine-readable grammar for:
+
+- **ROADMAP.md**: Task items, phase markers, completion status
+- **specs/ directories**: Directory naming convention, phase detection from contents
+- **PROJECT_STATUS.md**: Active task extraction
+
+The parsing grammar is a first-class architectural concern. Fuzzy matching is not acceptable — the contract must be explicit so that two independent parsers would produce identical board state from the same repo. GLaDOS should enforce this format in a "strict mode"; Wheatley should include a standardization workflow for brownfield codebases that don't yet conform.
+
+## Source Watching & Sync
+
+Wheatley must detect repo changes and refresh board state. Architecture:
+
+- **Local mode**: Watch `.git/` directory (e.g., `HEAD`, `refs/`) for changes via filesystem events
+- **Cloud mode**: Poll the API on a configurable interval
+- **Debounce**: Rapid commits must be coalesced — a fast-moving repo should not trigger per-commit re-renders
+- **Full re-sync**: Periodic or on-demand full re-parse as a fallback to catch anything the watcher missed

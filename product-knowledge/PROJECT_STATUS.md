@@ -15,7 +15,7 @@ Wheatley is a lightweight, local-first (and cloud-capable) project board that re
 
 ## Architecture
 
-**Frontend**: React 18 + TypeScript, Vite, TailwindCSS, React Query + Zustand
+**Frontend**: React 18 + TypeScript, Vite, TailwindCSS, React Query
 **Backend**: Node.js + TypeScript, Fastify
 **Git Layer**: Unified adapter — `LocalGitAdapter` (simple-git, sidecar mode) and `RemoteGitAdapter` (GitHub/GitLab REST API, cloud mode)
 **Storage**: Target repo's markdown files (`ROADMAP.md`, `specs/`, `PROJECT_STATUS.md`, `claims.md`)
@@ -35,6 +35,8 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [ ] **Branch selector**: Switch which branch the board reads from
 - [ ] **Git adapter**: Unified interface with local (simple-git) and remote (API) implementations
 - [ ] **Docker packaging**: Single image supporting both `local` and `remote` boot modes
+- [ ] **Parsing grammar**: Strict, machine-readable contract for extracting tasks from ROADMAP.md, specs/, and PROJECT_STATUS.md
+- [ ] **Source watching & sync**: `.git/` watcher (local), API polling (cloud), debounce, full re-sync fallback
 
 ### 2. Backlog / Upcoming
 
@@ -50,3 +52,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 ## Recent Changes
 
 - 2026-03-28: Project initialized. Mission, roadmap, and tech stack defined.
+- 2026-03-28: PR #1 review feedback incorporated — removed Zustand, reinforced no-database stance, added parsing grammar and sync architecture as Phase 1 items.

@@ -18,7 +18,10 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 - [ ] Branch selector dropdown — switch which branch the board reads from
 - [ ] Configurable coordination branch setting (default: `main`)
 - [ ] Local sidecar mode: serve from Docker container with volume-mounted repo
-- [ ] Cloud mode: connect to a remote repo via GitHub/GitLab API
+- [ ] Cloud mode: connect to a remote repo via GitHub REST API (Octokit)
+- [ ] Define parsing grammar for ROADMAP.md, specs/ directories, and PROJECT_STATUS.md — strict, machine-readable contract (no fuzzy matching)
+- [ ] Standardization workflow for brownfield codebases that don't conform to the parsing contract
+- [ ] File watching and sync: `.git/` directory watcher (local mode), API polling (cloud mode), debounce for rapid commits, full re-sync fallback
 
 ## Phase 2: Claims & Assignment
 
