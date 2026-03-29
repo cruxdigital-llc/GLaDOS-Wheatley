@@ -35,7 +35,7 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [ ] **Branch selector**: Switch which branch the board reads from
 - [ ] **Git adapter**: Unified interface with local (simple-git) and remote (API) implementations
 - [ ] **Docker packaging**: Single image supporting both `local` and `remote` boot modes
-- [ ] **Parsing grammar**: Strict, machine-readable contract for extracting tasks from ROADMAP.md, specs/, and PROJECT_STATUS.md
+- [x] **Parsing grammar**: Strict, machine-readable contract for extracting tasks from ROADMAP.md, specs/, and PROJECT_STATUS.md
 - [ ] **Source watching & sync**: `.git/` watcher (local), API polling (cloud), debounce, full re-sync fallback
 
 ### 2. Backlog / Upcoming

@@ -9,6 +9,9 @@ services:
       - WHEATLEY_MODE=local
       - WHEATLEY_REPO_PATH=/repo
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./vitest.config.ts:/app/vitest.config.ts
+      - ./package.json:/app/package.json
       - /app/node_modules
       - ${WHEATLEY_REPO_PATH:-.}:/repo:ro

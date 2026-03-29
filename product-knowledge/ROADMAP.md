@@ -12,13 +12,13 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 1.1 Parsing Grammar & Contract
 
-- [ ] 1.1.1 Define the canonical markdown grammar for ROADMAP.md task items (checkbox syntax, phase markers, metadata)
-- [ ] 1.1.2 Define the canonical directory naming convention for `specs/` (e.g., `specs/YYYY-MM-DD_feature-name/`)
-- [ ] 1.1.3 Define the canonical structure within each spec directory (README.md, plan.md, requirements.md, etc.)
-- [ ] 1.1.4 Define how phase is determined from spec directory contents (which files present = which phase)
-- [ ] 1.1.5 Define the canonical format for PROJECT_STATUS.md task extraction
-- [ ] 1.1.6 Document the full grammar as a specification in `product-knowledge/standards/`
-- [ ] 1.1.7 Create a validation utility that checks whether a repo's artifacts conform to the grammar
+- [x] 1.1.1 Define the canonical markdown grammar for ROADMAP.md task items (checkbox syntax, phase markers, metadata)
+- [x] 1.1.2 Define the canonical directory naming convention for `specs/` (e.g., `specs/YYYY-MM-DD_feature-name/`)
+- [x] 1.1.3 Define the canonical structure within each spec directory (README.md, plan.md, requirements.md, etc.)
+- [x] 1.1.4 Define how phase is determined from spec directory contents (which files present = which phase)
+- [x] 1.1.5 Define the canonical format for PROJECT_STATUS.md task extraction
+- [x] 1.1.6 Document the full grammar as a specification in `product-knowledge/standards/`
+- [x] 1.1.7 Create a validation utility that checks whether a repo's artifacts conform to the grammar
 
 ### 1.2 Markdown Parsers
 

@@ -5,8 +5,10 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
 
-# Copy source
-COPY . .
+# Copy source and config
+COPY tsconfig.json ./
+COPY vitest.config.ts ./
+COPY src/ ./src/
 
 # Build
 FROM base AS build
@@ -22,7 +24,7 @@ COPY --from=build /app/package.json ./
 EXPOSE 3000
 CMD ["node", "dist/server/index.js"]
 
-# Development
+# Development — used by docker-compose
 FROM base AS development
 EXPOSE 3000
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "test:watch"]
