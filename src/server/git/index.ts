@@ -7,3 +7,4 @@ export { ConflictError } from './types.js';
 export { LocalGitAdapter } from './local-adapter.js';
 export { RemoteGitAdapter } from './remote-adapter.js';
 export { createGitAdapter, configFromEnv } from './factory.js';
+export { WorktreeManager } from './worktree-manager.js';

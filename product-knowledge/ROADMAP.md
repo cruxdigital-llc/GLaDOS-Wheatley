@@ -211,10 +211,10 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 6.1 Worktree Isolation
 
-- [ ] 6.1.1 Use `git worktree` for all write operations so Wheatley never touches the developer's working tree or index
-- [ ] 6.1.2 Dedicated Wheatley worktree lifecycle: auto-create on server start, clean up on shutdown
-- [ ] 6.1.3 All commits (claims, transitions, activity) target the worktree, then push to origin
-- [ ] 6.1.4 Fallback for repos that don't support worktrees (bare repos, older git versions)
+- [x] 6.1.1 Use `git worktree` for all write operations so Wheatley never touches the developer's working tree or index
+- [x] 6.1.2 Dedicated Wheatley worktree lifecycle: auto-create on server start, clean up on shutdown
+- [x] 6.1.3 All commits (claims, transitions, activity) target the worktree, then push to origin
+- [x] 6.1.4 Fallback for repos that don't support worktrees (bare repos, older git versions)
 
 ### 6.2 Dirty State & Conflict Handling
 

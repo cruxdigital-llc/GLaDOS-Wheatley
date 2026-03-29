@@ -74,6 +74,23 @@ export interface GitHubConfig {
   repo: string;
 }
 
+export interface RepoStatus {
+  /** True if the working tree has no uncommitted changes. */
+  clean: boolean;
+  /** Number of modified files. */
+  modified: number;
+  /** Number of untracked files. */
+  untracked: number;
+  /** Number of staged (added) files. */
+  staged: number;
+  /** True if a merge conflict is in progress. */
+  conflicted: boolean;
+  /** Paths with merge conflicts. */
+  conflictedFiles: string[];
+  /** True if the worktree isolation is active (writes are safe). */
+  worktreeActive: boolean;
+}
+
 export interface GitAdapterConfig {
   mode: 'local' | 'remote';
   /** Path to the local repository (required for local mode). */
