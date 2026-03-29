@@ -5,6 +5,7 @@ import {
   validateProjectStatus,
   validateClaims,
   detectPhaseFromFiles,
+  detectPhaseWithContents,
 } from './validator.js';
 
 // --- ROADMAP.md Validation ---
@@ -96,6 +97,21 @@ Last Updated: 2026-03-28
     expect(result.errors.some((e) => e.rule === 'TASK_ITEM.format')).toBe(true);
   });
 
+  it('flags uppercase X in checkbox as malformed', () => {
+    const content = `# Roadmap
+
+## Phase 1: Test
+
+**Goal**: Test.
+
+### 1.1 Section
+
+- [X] 1.1.1 Uppercase checkbox
+`;
+    const result = validateRoadmap(content);
+    expect(result.errors.some((e) => e.rule === 'TASK_ITEM.format')).toBe(true);
+  });
+
   it('handles CRLF line endings', () => {
     const content = VALID_ROADMAP.replace(/\n/g, '\r\n');
     const result = validateRoadmap(content);
@@ -115,6 +131,69 @@ Last Updated: 2026-03-28
 `;
     const result = validateRoadmap(content);
     expect(result.valid).toBe(true);
+  });
+
+  it('flags a phase missing its goal', () => {
+    const content = `# Roadmap
+
+## Phase 1: No Goal
+
+### 1.1 Section
+
+- [ ] 1.1.1 A task
+`;
+    const result = validateRoadmap(content);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.rule === 'PHASE.goal_required')).toBe(true);
+  });
+
+  it('flags cross-phase section mismatch as error', () => {
+    const content = `# Roadmap
+
+## Phase 1: First
+
+**Goal**: Test.
+
+### 2.1 Wrong phase section
+
+- [ ] 2.1.1 A task
+`;
+    const result = validateRoadmap(content);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.rule === 'SECTION.phase_mismatch')).toBe(true);
+  });
+
+  it('warns on out-of-sequence item numbering', () => {
+    const content = `# Roadmap
+
+## Phase 1: Test
+
+**Goal**: Test.
+
+### 1.1 Section
+
+- [ ] 1.1.1 First
+- [ ] 1.1.5 Skipped to five
+`;
+    const result = validateRoadmap(content);
+    expect(result.valid).toBe(true); // warnings don't fail validation
+    expect(result.warnings.some((w) => w.message.includes('expected 2'))).toBe(true);
+  });
+
+  it('flags item ID that does not match current section', () => {
+    const content = `# Roadmap
+
+## Phase 1: Test
+
+**Goal**: Test.
+
+### 1.1 Section
+
+- [ ] 1.2.1 Wrong section reference
+`;
+    const result = validateRoadmap(content);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.rule === 'ITEM_ID.section_mismatch')).toBe(true);
   });
 });
 
@@ -183,6 +262,10 @@ describe('detectPhaseFromFiles', () => {
     expect(detectPhaseFromFiles(['README.md'])).toBe('unclaimed');
   });
 
+  it('returns unclaimed for empty file list', () => {
+    expect(detectPhaseFromFiles([])).toBe('unclaimed');
+  });
+
   it('returns planning when plan.md exists', () => {
     expect(detectPhaseFromFiles(['README.md', 'plan.md'])).toBe('planning');
   });
@@ -203,6 +286,40 @@ describe('detectPhaseFromFiles', () => {
     expect(
       detectPhaseFromFiles(['README.md', 'plan.md', 'spec.md', 'tasks.md']),
     ).toBe('implementing');
+  });
+});
+
+describe('detectPhaseWithContents', () => {
+  it('returns implementing when tasks.md exists with incomplete tasks', () => {
+    const tasks = '- [ ] Task 1\n- [x] Task 2\n';
+    expect(
+      detectPhaseWithContents(['README.md', 'tasks.md'], tasks),
+    ).toBe('implementing');
+  });
+
+  it('returns verifying when all tasks are complete', () => {
+    const tasks = '- [x] Task 1\n- [x] Task 2\n';
+    expect(
+      detectPhaseWithContents(['README.md', 'tasks.md'], tasks),
+    ).toBe('verifying');
+  });
+
+  it('returns done when all tasks complete and README has verify log', () => {
+    const tasks = '- [x] Task 1\n- [x] Task 2\n';
+    const readme = '# Feature\n\n## Trace\n\n### Verify session\nAll verified.';
+    expect(
+      detectPhaseWithContents(['README.md', 'tasks.md'], tasks, readme),
+    ).toBe('done');
+  });
+
+  it('falls back to file-only detection when no content provided', () => {
+    expect(
+      detectPhaseWithContents(['README.md', 'tasks.md']),
+    ).toBe('implementing');
+  });
+
+  it('returns unclaimed for empty files', () => {
+    expect(detectPhaseWithContents([])).toBe('unclaimed');
   });
 });
 
@@ -309,6 +426,66 @@ None.
     expect(result.errors.some((e) => e.rule === 'STATUS.task_line_format')).toBe(true);
   });
 
+  it('warns on malformed change entries', () => {
+    const content = `# Status
+
+## Project Overview
+
+Text.
+
+## Architecture
+
+Text.
+
+## Current Focus
+
+### 1. Active
+
+- [ ] **Task**: Do something
+
+## Known Issues / Technical Debt
+
+None.
+
+## Recent Changes
+
+- No date here, just text
+`;
+    const result = validateProjectStatus(content);
+    expect(result.warnings.some((w) => w.message.includes('Change entry'))).toBe(true);
+  });
+
+  it('warns on malformed lead lines', () => {
+    const content = `# Status
+
+## Project Overview
+
+Text.
+
+## Architecture
+
+Text.
+
+## Current Focus
+
+### 1. Active
+
+*Lead: Missing closing asterisk
+
+- [ ] **Task**: Do something
+
+## Known Issues / Technical Debt
+
+None.
+
+## Recent Changes
+
+- 2026-03-28: Init.
+`;
+    const result = validateProjectStatus(content);
+    expect(result.warnings.some((w) => w.message.includes('lead line'))).toBe(true);
+  });
+
   it('handles CRLF line endings', () => {
     const content = VALID_STATUS.replace(/\n/g, '\r\n');
     const result = validateProjectStatus(content);
@@ -363,5 +540,17 @@ GLaDOS-MANAGED DOCUMENT
 `;
     const result = validateClaims(content);
     expect(result.valid).toBe(true);
+  });
+
+  it('warns when released/expired claims lack release timestamp', () => {
+    const content = `# Claims
+
+- [released] 1.1.1 | agent-1 | 2026-03-28T18:00:00Z
+- [expired] 1.2.1 | agent-2 | 2026-03-27T10:00:00Z
+`;
+    const result = validateClaims(content);
+    expect(result.valid).toBe(true); // warnings don't fail validation
+    expect(result.warnings).toHaveLength(2);
+    expect(result.warnings[0].message).toContain('missing a release timestamp');
   });
 });

@@ -57,8 +57,11 @@ export function validateRoadmap(content: string): ValidationResult {
 
   let expectedPhase = 1;
   let currentPhase = 0;
+  let currentSectionNum = 0;
   let expectedSection = 1;
   let expectedItem = 1;
+  let hasGoalForCurrentPhase = false;
+  let phaseStartLine = 0;
 
   for (let i = titleLine + 1; i < lines.length; i++) {
     const line = lines[i].trimEnd();
@@ -67,6 +70,16 @@ export function validateRoadmap(content: string): ValidationResult {
     // Phase heading
     const phaseMatch = line.match(PHASE_HEADING_RE);
     if (phaseMatch) {
+      // Check that the previous phase had a goal (if there was a previous phase)
+      if (currentPhase > 0 && !hasGoalForCurrentPhase) {
+        errors.push({
+          file,
+          line: phaseStartLine,
+          message: `Phase ${currentPhase} is missing a "**Goal**:" line`,
+          rule: 'PHASE.goal_required',
+        });
+      }
+
       const phaseNum = parseInt(phaseMatch[1], 10);
       if (phaseNum !== expectedPhase) {
         errors.push({
@@ -79,11 +92,15 @@ export function validateRoadmap(content: string): ValidationResult {
       expectedPhase = phaseNum + 1;
       currentPhase = phaseNum;
       expectedSection = 1;
+      expectedItem = 1;
+      hasGoalForCurrentPhase = false;
+      phaseStartLine = lineNum;
       continue;
     }
 
     // Goal line
     if (GOAL_RE.test(line)) {
+      hasGoalForCurrentPhase = true;
       continue;
     }
 
@@ -91,8 +108,18 @@ export function validateRoadmap(content: string): ValidationResult {
     const sectionMatch = line.match(SECTION_HEADING_RE);
     if (sectionMatch) {
       const sectionId = sectionMatch[1];
+      const [sectionPhase] = sectionId.split('.').map(Number);
       const expectedId = `${currentPhase}.${expectedSection}`;
-      if (sectionId !== expectedId) {
+
+      // Cross-phase mismatch is an error, not a warning
+      if (sectionPhase !== currentPhase) {
+        errors.push({
+          file,
+          line: lineNum,
+          message: `Section "${sectionId}" belongs to Phase ${sectionPhase}, but appears under Phase ${currentPhase}`,
+          rule: 'SECTION.phase_mismatch',
+        });
+      } else if (sectionId !== expectedId) {
         warnings.push({
           file,
           line: lineNum,
@@ -100,6 +127,7 @@ export function validateRoadmap(content: string): ValidationResult {
           suggestion: `Renumber to ${expectedId}`,
         });
       }
+      currentSectionNum = parseInt(sectionId.split('.')[1], 10);
       expectedSection++;
       expectedItem = 1;
       continue;
@@ -114,15 +142,34 @@ export function validateRoadmap(content: string): ValidationResult {
         errors.push({
           file,
           line: lineNum,
-          message: `Malformed item ID "${itemId}" — expected X.Y.Z format`,
+          message: `Malformed item ID "${itemId}" �� expected X.Y.Z format`,
           rule: 'ITEM_ID.format',
         });
+      } else {
+        // Validate item numbering is sequential
+        const [itemPhase, itemSection, itemNum] = parts;
+        if (itemPhase !== currentPhase || itemSection !== currentSectionNum) {
+          errors.push({
+            file,
+            line: lineNum,
+            message: `Item "${itemId}" doesn't match current section ${currentPhase}.${currentSectionNum}`,
+            rule: 'ITEM_ID.section_mismatch',
+          });
+        } else if (itemNum !== expectedItem) {
+          warnings.push({
+            file,
+            line: lineNum,
+            message: `Item number ${itemNum} — expected ${expectedItem}`,
+            suggestion: `Renumber to ${currentPhase}.${currentSectionNum}.${expectedItem}`,
+          });
+        }
+        expectedItem++;
       }
       continue;
     }
 
-    // Check for malformed checkboxes
-    if (line.match(/^- \[[ x]?\]/)) {
+    // Check for malformed checkboxes (including uppercase X)
+    if (line.match(/^- \[[ xX]?\]/i)) {
       if (!line.match(/^- \[([ x])\] \d+\.\d+\.\d+ /)) {
         errors.push({
           file,
@@ -132,6 +179,16 @@ export function validateRoadmap(content: string): ValidationResult {
         });
       }
     }
+  }
+
+  // Check goal for the last phase
+  if (currentPhase > 0 && !hasGoalForCurrentPhase) {
+    errors.push({
+      file,
+      line: phaseStartLine,
+      message: `Phase ${currentPhase} is missing a "**Goal**:" line`,
+      rule: 'PHASE.goal_required',
+    });
   }
 
   if (currentPhase === 0) {
@@ -149,13 +206,54 @@ export function validateRoadmap(content: string): ValidationResult {
 
 const SPEC_DIR_RE = /^(\d{4}-\d{2}-\d{2})_(feature|fix|mission-statement|plan-product)_([a-z0-9]+(-[a-z0-9]+)*)$/;
 
-const PHASE_FILES: Record<string, BoardPhase> = {
-  'tasks.md': 'implementing',
-  'spec.md': 'speccing',
-  'plan.md': 'planning',
-  'requirements.md': 'planning',
-  'README.md': 'unclaimed',
-};
+/**
+ * Detect the phase of a spec directory from its file listing.
+ *
+ * Note: This function can only detect up to 'implementing' from file names alone.
+ * Detecting 'verifying' and 'done' requires reading file contents (task completion
+ * status and README verify log). Full phase detection including those phases is
+ * handled by the parsers in feature 1.2.
+ */
+export function detectPhaseFromFiles(files: string[]): Exclude<BoardPhase, 'verifying' | 'done'> {
+  const has = (f: string) => files.includes(f);
+
+  if (has('tasks.md')) return 'implementing';
+  if (has('spec.md')) return 'speccing';
+  if (has('plan.md') || has('requirements.md')) return 'planning';
+  return 'unclaimed';
+}
+
+/**
+ * Full phase detection that also checks file contents.
+ * Can detect all 6 phases including 'verifying' and 'done'.
+ */
+export function detectPhaseWithContents(
+  files: string[],
+  tasksContent?: string,
+  readmeContent?: string,
+): BoardPhase {
+  const has = (f: string) => files.includes(f);
+
+  if (has('tasks.md')) {
+    if (!tasksContent) {
+      // No content provided — can't determine completion, assume implementing
+      return 'implementing';
+    }
+    const taskLines = tasksContent.split('\n').filter((l) => l.match(/^- \[([ x])\]/));
+    const allComplete = taskLines.length > 0 && taskLines.every((l) => l.includes('[x]'));
+
+    if (allComplete && readmeContent && /verify/i.test(readmeContent)) {
+      return 'done';
+    }
+    if (allComplete) {
+      return 'verifying';
+    }
+    return 'implementing';
+  }
+  if (has('spec.md')) return 'speccing';
+  if (has('plan.md') || has('requirements.md')) return 'planning';
+  return 'unclaimed';
+}
 
 export function validateSpecDirectory(
   dirName: string,
@@ -207,26 +305,12 @@ export function validateSpecDirectory(
   return { valid: errors.length === 0, errors, warnings };
 }
 
-export function detectPhaseFromFiles(files: string[]): BoardPhase {
-  const has = (f: string) => files.includes(f);
-
-  if (has('tasks.md')) {
-    // Would need to check task completion for verifying/done,
-    // but that requires reading file contents — beyond this validator's scope.
-    // Parsers (feature 1.2) will handle the full detection.
-    return 'implementing';
-  }
-  if (has('spec.md')) return 'speccing';
-  if (has('plan.md') || has('requirements.md')) return 'planning';
-  return 'unclaimed';
-}
-
 // --- PROJECT_STATUS.md Validator ---
 
-const FOCUS_SECTION_RE = /^### \d+\. .+$/;
 const TASK_LINE_RE = /^- \[([ x])\] \*\*(.+?)\*\*: (.+)$/;
 const LEAD_RE = /^\*Lead: (.+)\*$/;
 const CHANGE_LINE_RE = /^- \d{4}-\d{2}-\d{2}: .+$/;
+const FOCUS_SECTION_RE = /^### \d+\. .+$/;
 
 export function validateProjectStatus(content: string): ValidationResult {
   const errors: ValidationError[] = [];
@@ -267,28 +351,72 @@ export function validateProjectStatus(content: string): ValidationResult {
     }
   }
 
-  // Validate task lines in Current Focus
+  // Validate task lines in Current Focus, lead lines, and change entries
   let inFocus = false;
+  let inChanges = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trimEnd();
     const lineNum = i + 1;
 
     if (line === '## Current Focus') {
       inFocus = true;
+      inChanges = false;
       continue;
     }
-    if (inFocus && line.startsWith('## ')) {
+    if (line === '## Recent Changes') {
+      inChanges = true;
       inFocus = false;
       continue;
     }
+    if (line.startsWith('## ')) {
+      inFocus = false;
+      inChanges = false;
+      continue;
+    }
 
-    if (inFocus && line.startsWith('- [')) {
-      if (!TASK_LINE_RE.test(line)) {
-        errors.push({
+    // Validate focus section contents
+    if (inFocus) {
+      // Validate focus section headings
+      if (line.startsWith('### ') && !FOCUS_SECTION_RE.test(line)) {
+        warnings.push({
           file,
           line: lineNum,
-          message: `Malformed task line: "${line}"`,
-          rule: 'STATUS.task_line_format',
+          message: `Focus section heading doesn't match "### N. Title" format: "${line}"`,
+          suggestion: 'Use format: ### 1. Section Title',
+        });
+      }
+
+      // Validate lead lines
+      if (line.startsWith('*Lead:') && !LEAD_RE.test(line)) {
+        warnings.push({
+          file,
+          line: lineNum,
+          message: `Malformed lead line: "${line}"`,
+          suggestion: 'Use format: *Lead: Name*',
+        });
+      }
+
+      // Validate task lines
+      if (line.startsWith('- [')) {
+        if (!TASK_LINE_RE.test(line)) {
+          errors.push({
+            file,
+            line: lineNum,
+            message: `Malformed task line: "${line}"`,
+            rule: 'STATUS.task_line_format',
+          });
+        }
+      }
+    }
+
+    // Validate Recent Changes entries
+    if (inChanges && line.startsWith('- ')) {
+      if (!CHANGE_LINE_RE.test(line)) {
+        warnings.push({
+          file,
+          line: lineNum,
+          message: `Change entry doesn't match "- YYYY-MM-DD: description" format: "${line}"`,
+          suggestion: 'Use format: - 2026-03-28: Description of change',
         });
       }
     }
@@ -332,13 +460,26 @@ export function validateClaims(content: string): ValidationResult {
     if (line === '') continue;
 
     if (line.startsWith('- [')) {
-      if (!CLAIM_ENTRY_RE.test(line)) {
+      const match = line.match(CLAIM_ENTRY_RE);
+      if (!match) {
         errors.push({
           file,
           line: lineNum,
           message: `Malformed claim entry: "${line}"`,
           rule: 'CLAIMS.entry_format',
         });
+      } else {
+        const status = match[1];
+        const hasReleaseTs = !!match[6];
+        // Warn if released/expired entries lack a release timestamp
+        if ((status === 'released' || status === 'expired') && !hasReleaseTs) {
+          warnings.push({
+            file,
+            line: lineNum,
+            message: `${status} claim entry is missing a release timestamp`,
+            suggestion: `Add a release timestamp: ... | YYYY-MM-DDTHH:MM:SSZ`,
+          });
+        }
       }
     }
   }
