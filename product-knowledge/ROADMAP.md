@@ -125,30 +125,30 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 3.1 Phase Transition Engine
 
-- [ ] 3.1.1 Define valid phase transitions (Unclaimed → Planning → Speccing → Implementing → Verifying → Done)
-- [ ] 3.1.2 Transition logic: determine which markdown files to create/update for each phase change
-- [ ] 3.1.3 Commit generation: produce a well-formed commit for each transition
-- [ ] 3.1.4 Transition validation: prevent invalid transitions (e.g., Unclaimed → Done)
+- [x] 3.1.1 Define valid phase transitions (Unclaimed → Planning → Speccing → Implementing → Verifying → Done)
+- [x] 3.1.2 Transition logic: determine which markdown files to create/update for each phase change
+- [x] 3.1.3 Commit generation: produce a well-formed commit for each transition
+- [x] 3.1.4 Transition validation: prevent invalid transitions (e.g., Unclaimed → Done)
 
 ### 3.2 Drag-and-Drop UI
 
-- [ ] 3.2.1 Drag-and-drop library integration for card movement between columns
-- [ ] 3.2.2 Drop zone validation: highlight valid target columns, reject invalid transitions
-- [ ] 3.2.3 Optimistic UI update with rollback on commit failure
-- [ ] 3.2.4 Confirmation dialog for transitions that create files (e.g., entering Planning creates spec directory)
+- [x] 3.2.1 Drag-and-drop library integration for card movement between columns
+- [x] 3.2.2 Drop zone validation: highlight valid target columns, reject invalid transitions
+- [x] 3.2.3 Optimistic UI update with rollback on commit failure
+- [x] 3.2.4 Confirmation dialog for transitions that create files (e.g., entering Planning creates spec directory)
 
 ### 3.3 GLaDOS Workflow Integration
 
-- [ ] 3.3.1 "Start Planning" action: trigger `/glados/plan-feature` (open terminal, queue for agent, or API call)
-- [ ] 3.3.2 "Start Spec" action: trigger `/glados/spec-feature`
-- [ ] 3.3.3 Define integration mechanism: terminal launch, agent queue, or webhook
-- [ ] 3.3.4 Status feedback: show when a GLaDOS workflow is in progress for a card
+- [x] 3.3.1 "Start Planning" action: trigger `/glados/plan-feature` (open terminal, queue for agent, or API call)
+- [x] 3.3.2 "Start Spec" action: trigger `/glados/spec-feature`
+- [x] 3.3.3 Define integration mechanism: terminal launch, agent queue, or webhook
+- [x] 3.3.4 Status feedback: show when a GLaDOS workflow is in progress for a card
 
 ### 3.4 Status Writeback
 
-- [ ] 3.4.1 Update PROJECT_STATUS.md on phase transitions
-- [ ] 3.4.2 Update spec directory contents to reflect new phase (e.g., create plan.md when entering Planning)
-- [ ] 3.4.3 Commit message conventions for phase transitions (machine-parseable for audit trail)
+- [x] 3.4.1 Update PROJECT_STATUS.md on phase transitions
+- [x] 3.4.2 Update spec directory contents to reflect new phase (e.g., create plan.md when entering Planning)
+- [x] 3.4.3 Commit message conventions for phase transitions (machine-parseable for audit trail)
 
 ## Phase 4: Multi-Branch Awareness
 

@@ -2,19 +2,43 @@
  * Board Component
  *
  * Main Kanban board layout with columns for each GLaDOS phase.
- * Includes user identity input, filter controls, and claim conflict handling.
+ * Includes user identity input, filter controls, claim conflict handling,
+ * and HTML5 drag-and-drop for phase transitions.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { BoardCard, BoardColumn } from '../../shared/grammar/types.js';
+import type { BoardCard, BoardColumn, BoardPhase } from '../../shared/grammar/types.js';
+import { VALID_TRANSITIONS } from '../../shared/transitions/types.js';
 import { useBoard, useCardDetail } from '../hooks/use-board.js';
+import { useExecuteTransition } from '../hooks/use-transitions.js';
 import { Column } from './Column.js';
 import { CardDetail } from './CardDetail.js';
 import { BranchSelector } from './BranchSelector.js';
 import { ConflictModal } from './ConflictModal.js';
+import { ConfirmTransitionModal } from './ConfirmTransitionModal.js';
 
 type FilterMode = 'all' | 'unclaimed' | 'mine';
+
+/** Transitions that create files and require a confirmation dialog. */
+const FILE_CREATING_TRANSITIONS = new Set([
+  'unclaimed→planning',
+  'planning→speccing',
+  'speccing→implementing',
+  'unclaimed→implementing',
+]);
+
+interface DragState {
+  cardId: string;
+  fromPhase: BoardPhase;
+}
+
+interface PendingTransition {
+  cardId: string;
+  cardTitle: string;
+  from: BoardPhase;
+  to: BoardPhase;
+}
 
 export function Board() {
   const queryClient = useQueryClient();
@@ -28,8 +52,18 @@ export function Board() {
   const [conflictInfo, setConflictInfo] = useState<{ claimedBy: string } | null>(null);
   const [userNameWarning, setUserNameWarning] = useState<string | null>(null);
 
+  // Drag state
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  // Pending transition awaiting confirmation
+  const [pendingTransition, setPendingTransition] = useState<PendingTransition | null>(null);
+  // Optimistic column override: board columns with card moved locally
+  const [optimisticColumns, setOptimisticColumns] = useState<BoardColumn[] | null>(null);
+  // Transition error
+  const [transitionError, setTransitionError] = useState<string | null>(null);
+
   const { data: board, isLoading, error } = useBoard(branch);
   const { data: cardDetail } = useCardDetail(selectedCardId, branch);
+  const transitionMutation = useExecuteTransition(branch);
 
   const handleCardClick = (card: BoardCard) => {
     setSelectedCardId(card.id);
@@ -73,15 +107,120 @@ export function Board() {
     setConflictInfo(null);
   };
 
+  // ---------------------------------------------------------------------------
+  // Drag-and-drop handlers
+  // ---------------------------------------------------------------------------
+
+  const handleDragStart = useCallback((cardId: string, fromPhase: BoardPhase) => {
+    setDragState({ cardId, fromPhase });
+    setTransitionError(null);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDragState(null);
+  }, []);
+
+  /** Move a card from one column to another in the given column list. */
+  const moveCardOptimistically = useCallback(
+    (columns: BoardColumn[], cardId: string, toPhase: BoardPhase): BoardColumn[] => {
+      let movedCard: BoardCard | undefined;
+      const updated = columns.map((col) => ({
+        ...col,
+        cards: col.cards.filter((c) => {
+          if (c.id === cardId) {
+            movedCard = { ...c, phase: toPhase };
+            return false;
+          }
+          return true;
+        }),
+      }));
+      if (!movedCard) return columns;
+      return updated.map((col) =>
+        col.phase === toPhase ? { ...col, cards: [...col.cards, movedCard!] } : col,
+      );
+    },
+    [],
+  );
+
+  const executeTransitionNow = useCallback(
+    (cardId: string, from: BoardPhase, to: BoardPhase, originalColumns: BoardColumn[]) => {
+      // Apply optimistic update
+      setOptimisticColumns(moveCardOptimistically(originalColumns, cardId, to));
+
+      transitionMutation.mutate(
+        { itemId: cardId, from, to },
+        {
+          onSuccess: () => {
+            // Server state wins; clear optimistic override
+            setOptimisticColumns(null);
+          },
+          onError: (err) => {
+            // Roll back
+            setOptimisticColumns(null);
+            setTransitionError((err as Error).message ?? 'Transition failed');
+          },
+        },
+      );
+    },
+    [transitionMutation, moveCardOptimistically],
+  );
+
+  const handleColumnDrop = useCallback(
+    (cardId: string, fromPhase: BoardPhase, toPhase: BoardPhase) => {
+      setDragState(null);
+      const sourceColumns = optimisticColumns ?? board?.columns ?? [];
+      const card = sourceColumns.flatMap((c) => c.cards).find((c) => c.id === cardId);
+      const transitionKey = `${fromPhase}→${toPhase}`;
+
+      if (FILE_CREATING_TRANSITIONS.has(transitionKey)) {
+        setPendingTransition({
+          cardId,
+          cardTitle: card?.title ?? cardId,
+          from: fromPhase,
+          to: toPhase,
+        });
+        return;
+      }
+
+      executeTransitionNow(cardId, fromPhase, toPhase, sourceColumns);
+    },
+    [board, optimisticColumns, executeTransitionNow],
+  );
+
+  const handleConfirmTransition = useCallback(() => {
+    if (!pendingTransition) return;
+    const { cardId, from, to } = pendingTransition;
+    const sourceColumns = optimisticColumns ?? board?.columns ?? [];
+    setPendingTransition(null);
+    executeTransitionNow(cardId, from, to, sourceColumns);
+  }, [pendingTransition, board, optimisticColumns, executeTransitionNow]);
+
+  const handleCancelTransition = useCallback(() => {
+    setPendingTransition(null);
+  }, []);
+
+  /** Valid drop target phases for the card currently being dragged. */
+  const validDropTargets = useMemo<Set<BoardPhase>>(() => {
+    if (!dragState) return new Set();
+    return new Set(VALID_TRANSITIONS.get(dragState.fromPhase) ?? []);
+  }, [dragState]);
+
+  // ---------------------------------------------------------------------------
+  // Filtered columns
+  // ---------------------------------------------------------------------------
+
+  /** Base columns: server data overridden by optimistic local state. */
+  const baseColumns = optimisticColumns ?? board?.columns ?? [];
+
   const filteredColumns = useMemo<BoardColumn[]>(() => {
-    if (!board) return [];
+    if (!board && !optimisticColumns) return [];
 
     if (filter === 'unclaimed') {
-      return board.columns.filter((col) => col.phase === 'unclaimed');
+      return baseColumns.filter((col) => col.phase === 'unclaimed');
     }
 
     if (filter === 'mine') {
-      return board.columns
+      return baseColumns
         .map((col) => ({
           ...col,
           cards: col.cards.filter(
@@ -91,8 +230,9 @@ export function Board() {
         .filter((col) => col.cards.length > 0);
     }
 
-    return board.columns;
-  }, [board, filter, currentUser]);
+    return baseColumns;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board, optimisticColumns, filter, currentUser]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -159,7 +299,21 @@ export function Board() {
           </div>
         )}
 
-        {board && (
+        {/* Transition error toast */}
+        {transitionError && (
+          <div className="mb-3 flex items-center justify-between gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <span>{transitionError}</span>
+            <button
+              type="button"
+              onClick={() => setTransitionError(null)}
+              className="text-red-400 hover:text-red-600"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {(board || optimisticColumns) && (
           <div className="flex gap-4 min-h-[calc(100vh-120px)]">
             {filteredColumns.map((column) => (
               <Column
@@ -169,6 +323,11 @@ export function Board() {
                 currentUser={currentUser}
                 branch={branch}
                 onConflict={handleConflict}
+                validDropTargets={validDropTargets}
+                draggingCardId={dragState?.cardId}
+                onDrop={handleColumnDrop}
+                onCardDragStart={handleDragStart}
+                onCardDragEnd={handleDragEnd}
               />
             ))}
           </div>
@@ -197,6 +356,18 @@ export function Board() {
           claimedBy={conflictInfo.claimedBy}
           onRefresh={handleConflictRefresh}
           onClose={handleConflictClose}
+        />
+      )}
+
+      {/* Confirm Transition Modal */}
+      {pendingTransition && (
+        <ConfirmTransitionModal
+          cardId={pendingTransition.cardId}
+          cardTitle={pendingTransition.cardTitle}
+          from={pendingTransition.from}
+          to={pendingTransition.to}
+          onConfirm={handleConfirmTransition}
+          onCancel={handleCancelTransition}
         />
       )}
     </div>

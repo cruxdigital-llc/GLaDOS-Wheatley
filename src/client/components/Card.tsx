@@ -3,11 +3,13 @@
  *
  * Displays a single task card with title, phase badge, claim info,
  * and Claim/Release action buttons when a user identity is set.
+ * Supports HTML5 drag-and-drop for phase transitions.
  */
 
 import React from 'react';
-import type { BoardCard } from '../../shared/grammar/types.js';
+import type { BoardCard, BoardPhase } from '../../shared/grammar/types.js';
 import { useClaimItem, useReleaseItem } from '../hooks/use-claims.js';
+import { useWorkflowStatus } from '../hooks/use-workflow-status.js';
 import { ClaimConflictError } from '../api.js';
 
 const PHASE_COLORS: Record<string, string> = {
@@ -28,6 +30,12 @@ interface CardProps {
    *  an indicator is shown on cards that have an active claim. */
   coordinationBranch?: string;
   onConflict?: (claimedBy: string) => void;
+  /** Called when drag starts on this card. */
+  onDragStart?: (cardId: string, fromPhase: BoardPhase) => void;
+  /** Called when drag ends (dropped or cancelled). */
+  onDragEnd?: () => void;
+  /** True when this card is being dragged (shows reduced opacity). */
+  isDragging?: boolean;
 }
 
 function formatClaimTime(iso: string): string {
@@ -43,11 +51,22 @@ function formatClaimTime(iso: string): string {
   }
 }
 
-export function Card({ card, onClick, currentUser, branch, coordinationBranch, onConflict }: CardProps) {
+export function Card({
+  card,
+  onClick,
+  currentUser,
+  branch,
+  coordinationBranch,
+  onConflict,
+  onDragStart,
+  onDragEnd,
+  isDragging,
+}: CardProps) {
   const phaseColor = PHASE_COLORS[card.phase] ?? 'bg-gray-100 text-gray-700';
 
   const claimMutation = useClaimItem(branch);
   const releaseMutation = useReleaseItem(branch);
+  const { data: workflowStatus } = useWorkflowStatus(card.id);
 
   const isOwnClaim = !!currentUser && card.claim?.claimant === currentUser;
   const isUnclaimed = !card.claim;
@@ -82,7 +101,26 @@ export function Card({ card, onClick, currentUser, branch, coordinationBranch, o
     );
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.setData('cardId', card.id);
+    e.dataTransfer.setData('fromPhase', card.phase);
+    e.dataTransfer.effectAllowed = 'move';
+    onDragStart?.(card.id, card.phase);
+  };
+
+  const handleDragEnd = () => {
+    onDragEnd?.();
+  };
+
+  const isWorkflowRunning = workflowStatus?.status === 'running';
+
   return (
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      className={`transition-opacity ${isDragging ? 'opacity-40' : 'opacity-100'}`}
+    >
     <button
       type="button"
       onClick={() => onClick?.(card)}
@@ -166,6 +204,17 @@ export function Card({ card, onClick, currentUser, branch, coordinationBranch, o
           {card.statusTask.description}
         </div>
       )}
+
+      {/* GLaDOS workflow status badge */}
+      {isWorkflowRunning && (
+        <div className="mt-2">
+          <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 animate-pulse">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-500" />
+            GLaDOS Running...
+          </span>
+        </div>
+      )}
     </button>
+    </div>
   );
 }
