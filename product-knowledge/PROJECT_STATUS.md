@@ -88,20 +88,25 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Labels, Priority & Due Dates**: YAML frontmatter metadata, priority badges (P0-P3), overdue highlighting, sort controls
 - [x] **Board Navigation & UX**: Keyboard shortcuts with overlay, column collapse/expand, horizontal scroll indicators, card timeline
 
-### 9. Backlog / Upcoming
+### 9. Phase 9 — GitHub Integration & GLaDOS Workflows
 
-- [ ] Phase 9: GitHub Integration & GLaDOS Workflows (4 features, 22 items)
+- [x] **PR/MR Visibility**: Platform abstraction (GitHub/GitLab/null), PR link service, PR detail panel with state/CI badges
+- [x] **PR/MR Management**: Create, merge (merge/squash/rebase), request review from board
+- [x] **GLaDOS Workflow Triggers**: Subprocess runner, phase-aware buttons, terminal output streaming, cancel support
+- [x] **Parser Flexibility**: Config schema with 3 presets (glados/flat/jira), wheatley.config.json, ReDoS validation, ETag caching
+
+### 10. Backlog / Upcoming
+
 - [ ] Phase 10: Authentication, Teams & Multi-Project (4 features, 18 items)
 - [ ] Phase 11: Views, Bulk Operations & Production Polish (6 features, 23 items)
 
 ## Known Issues / Technical Debt
 
-- Roadmap parser hardcoded to GLaDOS numbering format (X.Y.Z)
 - Card editing limited to allowlisted spec files (no arbitrary path editing)
-- No PR/MR visibility or management
 - No auth for cloud deployments
 - Button-in-button HTML nesting in Card component (accessibility/validity issue)
 - Search results show markdown bold markers as literal text (should render as HTML bold)
+- GitLab requestReview requires numeric user IDs (currently logs warning)
 
 ## Recent Changes
 
@@ -116,3 +121,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-29: **PHASE 6 COMPLETE** — 416 tests passing, 21/21 roadmap items done. Worktree isolation, dirty state detection, git identity, SSE, event log.
 - 2026-03-29: **PHASE 7 COMPLETE** — 416 tests passing, 20/20 roadmap items done. Card CRUD, inline spec editing, comments, task checkboxes. MR review: fixed path traversal, injection, error handling.
 - 2026-03-29: **PHASE 8 COMPLETE** — 416 tests passing, 17/17 roadmap items done. Full-text search, YAML frontmatter metadata, keyboard shortcuts, column collapse, scroll indicators, card timeline. MR review: fixed branch validation, label injection, concurrent array mutation.
+- 2026-03-29: **PHASE 9 COMPLETE** — 416 tests passing, 25/25 roadmap items done. GitHub/GitLab platform adapters, PR panels, GLaDOS workflow subprocess runner, parser config presets, ETag caching. MR review: fixed SSRF guard, specDir validation, memory leak, API mismatches.
