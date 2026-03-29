@@ -3,6 +3,7 @@
  *
  * GET /api/board — full board state (optional ?branch= query param)
  * GET /api/board/card/:id — card detail with spec contents
+ * GET /api/board/consolidated — merged board across all (or filtered) branches
  *
  * Claims are always read from the coordination branch (resolved via ClaimService),
  * while roadmap, specs, and status are read from the requested view branch.
@@ -11,11 +12,15 @@
 import type { FastifyInstance } from 'fastify';
 import type { BoardService } from '../board-service.js';
 import type { ClaimService } from '../claim-service.js';
+import { BranchScanner, type BranchScanConfig } from '../branch-scanner.js';
+import { mergeBoards } from '../../../shared/consolidation/merge.js';
+import type { GitAdapter } from '../../git/types.js';
 
 export function boardRoutes(
   app: FastifyInstance,
   boardService: BoardService,
   claimService: ClaimService,
+  adapter?: GitAdapter,
 ): void {
   app.get<{ Querystring: { branch?: string } }>('/api/board', async (request) => {
     const branch = request.query.branch || undefined;
@@ -51,5 +56,37 @@ export function boardRoutes(
     }
 
     return result;
+  });
+
+  // ---------------------------------------------------------------------------
+  // GET /api/board/consolidated
+  // ---------------------------------------------------------------------------
+
+  app.get<{
+    Querystring: {
+      include?: string;
+      exclude?: string;
+      prefixes?: string;
+    };
+  }>('/api/board/consolidated', async (request) => {
+    if (!adapter) {
+      // Return an empty consolidated state when no adapter is injected
+      return {
+        columns: [],
+        metadata: { totalCards: 0, claimedCount: 0, completedCount: 0, branchCount: 0 },
+        branches: [],
+      };
+    }
+
+    const { include, exclude, prefixes } = request.query;
+
+    const config: BranchScanConfig = {};
+    if (include) config.include = include.split(',').map((p) => new RegExp(p.trim()));
+    if (exclude) config.exclude = exclude.split(',').map((p) => new RegExp(p.trim()));
+    if (prefixes) config.prefixes = prefixes.split(',').map((p) => p.trim());
+
+    const scanner = new BranchScanner(adapter);
+    const results = await scanner.scanAllBranches(config);
+    return mergeBoards(results);
   });
 }

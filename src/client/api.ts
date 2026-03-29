@@ -5,6 +5,8 @@
  */
 
 import type { BoardState, ClaimEntry } from '../shared/grammar/types.js';
+import type { ConsolidatedBoardState } from '../shared/consolidation/merge.js';
+import type { BranchHealth } from '../server/api/branch-health.js';
 
 const API_BASE = '/api';
 
@@ -132,6 +134,40 @@ export async function executeTransition(
     }
     throw new Error(message);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Consolidated board
+// ---------------------------------------------------------------------------
+
+export interface ConsolidatedBoardQuery {
+  include?: string;
+  exclude?: string;
+  prefixes?: string;
+}
+
+export async function fetchConsolidatedBoard(
+  query?: ConsolidatedBoardQuery,
+): Promise<ConsolidatedBoardState> {
+  const params = new URLSearchParams();
+  if (query?.include) params.set('include', query.include);
+  if (query?.exclude) params.set('exclude', query.exclude);
+  if (query?.prefixes) params.set('prefixes', query.prefixes);
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return fetchJson<ConsolidatedBoardState>(`${API_BASE}/board/consolidated${qs}`);
+}
+
+// ---------------------------------------------------------------------------
+// Branch health
+// ---------------------------------------------------------------------------
+
+export interface BranchHealthResponse {
+  health: BranchHealth[];
+}
+
+export async function fetchBranchHealth(base?: string): Promise<BranchHealthResponse> {
+  const params = base ? `?base=${encodeURIComponent(base)}` : '';
+  return fetchJson<BranchHealthResponse>(`${API_BASE}/branches/health${params}`);
 }
 
 // ---------------------------------------------------------------------------

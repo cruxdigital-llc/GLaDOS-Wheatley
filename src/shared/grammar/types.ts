@@ -160,6 +160,11 @@ export interface BoardCard {
    * on the viewed branch. Indicates the claim may be orphaned or premature.
    */
   stale?: boolean;
+  /**
+   * When populated, this card appears on multiple branches (consolidated view).
+   * Lists the branch names this card was found on.
+   */
+  branches?: string[];
 }
 
 export interface BoardColumn {

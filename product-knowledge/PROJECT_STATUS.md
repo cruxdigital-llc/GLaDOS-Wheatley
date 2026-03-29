@@ -54,9 +54,14 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **GLaDOS Workflow Integration**: webhook system, workflow status polling, "GLaDOS Running..." UI feedback
 - [x] **Status Writeback**: PROJECT_STATUS.md updates, spec directory file creation, machine-parseable commits
 
-### 4. Backlog / Upcoming
+### 4. Phase 4 — Multi-Branch Awareness
 
-- [ ] Phase 4: Multi-Branch Awareness
+- [x] **Branch Enumeration & Scanning**: configurable include/exclude filters, SHA-based caching, independent per-branch parsing
+- [x] **Consolidated Board View**: mergeBoards deduplication, branch badges, single/consolidated view toggle
+- [x] **Branch Diff & Health**: commits-behind indicator, last commit date, unique specs, conflict risk detection
+
+### 5. Backlog / Upcoming
+
 - [ ] Phase 5: Team & Agent Coordination
 
 ## Known Issues / Technical Debt
@@ -75,3 +80,5 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-28: Feature 3.1 (Phase Transition Engine) complete — 307 tests, validation, actions, service, API.
 - 2026-03-28: Features 3.2-3.4 complete — drag-and-drop, GLaDOS webhooks, status writeback.
 - 2026-03-28: **PHASE 3 COMPLETE** — 316 tests passing, 15/15 roadmap items done.
+- 2026-03-28: Features 4.1-4.3 complete — branch scanning, consolidated view, branch health.
+- 2026-03-28: **PHASE 4 COMPLETE** — 339 tests passing, 12/12 roadmap items done.

@@ -10,15 +10,17 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { BoardCard, BoardColumn, BoardPhase } from '../../shared/grammar/types.js';
 import { VALID_TRANSITIONS } from '../../shared/transitions/types.js';
-import { useBoard, useCardDetail } from '../hooks/use-board.js';
+import { useBoard, useCardDetail, useConsolidatedBoard, useBranchHealth } from '../hooks/use-board.js';
 import { useExecuteTransition } from '../hooks/use-transitions.js';
 import { Column } from './Column.js';
 import { CardDetail } from './CardDetail.js';
 import { BranchSelector } from './BranchSelector.js';
 import { ConflictModal } from './ConflictModal.js';
 import { ConfirmTransitionModal } from './ConfirmTransitionModal.js';
+import { BranchHealthPanel } from './BranchHealthPanel.js';
 
 type FilterMode = 'all' | 'unclaimed' | 'mine';
+type ViewMode = 'single' | 'consolidated';
 
 /** Transitions that create files and require a confirmation dialog. */
 const FILE_CREATING_TRANSITIONS = new Set([
@@ -44,6 +46,8 @@ export function Board() {
   const queryClient = useQueryClient();
 
   const [branch, setBranch] = useState<string | undefined>();
+  const [viewMode, setViewMode] = useState<ViewMode>('single');
+  const [showHealthPanel, setShowHealthPanel] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string>(
     () => localStorage.getItem('wheatley_claimant') ?? '',
@@ -61,9 +65,18 @@ export function Board() {
   // Transition error
   const [transitionError, setTransitionError] = useState<string | null>(null);
 
-  const { data: board, isLoading, error } = useBoard(branch);
+  const { data: board, isLoading, error } = useBoard(viewMode === 'single' ? branch : undefined);
+  const { data: consolidatedBoard, isLoading: consolidatedLoading } = useConsolidatedBoard(
+    undefined,
+    viewMode === 'consolidated',
+  );
+  const { data: healthData } = useBranchHealth(undefined, showHealthPanel);
   const { data: cardDetail } = useCardDetail(selectedCardId, branch);
   const transitionMutation = useExecuteTransition(branch);
+
+  // Active board data depending on view mode
+  const activeBoard = viewMode === 'consolidated' ? consolidatedBoard : board;
+  const activeLoading = viewMode === 'consolidated' ? consolidatedLoading : isLoading;
 
   const handleCardClick = (card: BoardCard) => {
     setSelectedCardId(card.id);
@@ -168,7 +181,7 @@ export function Board() {
   const handleColumnDrop = useCallback(
     (cardId: string, fromPhase: BoardPhase, toPhase: BoardPhase) => {
       setDragState(null);
-      const sourceColumns = optimisticColumns ?? board?.columns ?? [];
+      const sourceColumns = optimisticColumns ?? activeBoard?.columns ?? [];
       const card = sourceColumns.flatMap((c) => c.cards).find((c) => c.id === cardId);
       const transitionKey = `${fromPhase}→${toPhase}`;
 
@@ -184,16 +197,16 @@ export function Board() {
 
       executeTransitionNow(cardId, fromPhase, toPhase, sourceColumns);
     },
-    [board, optimisticColumns, executeTransitionNow],
+    [activeBoard, optimisticColumns, executeTransitionNow],
   );
 
   const handleConfirmTransition = useCallback(() => {
     if (!pendingTransition) return;
     const { cardId, from, to } = pendingTransition;
-    const sourceColumns = optimisticColumns ?? board?.columns ?? [];
+    const sourceColumns = optimisticColumns ?? activeBoard?.columns ?? [];
     setPendingTransition(null);
     executeTransitionNow(cardId, from, to, sourceColumns);
-  }, [pendingTransition, board, optimisticColumns, executeTransitionNow]);
+  }, [pendingTransition, activeBoard, optimisticColumns, executeTransitionNow]);
 
   const handleCancelTransition = useCallback(() => {
     setPendingTransition(null);
@@ -210,10 +223,10 @@ export function Board() {
   // ---------------------------------------------------------------------------
 
   /** Base columns: server data overridden by optimistic local state. */
-  const baseColumns = optimisticColumns ?? board?.columns ?? [];
+  const baseColumns = optimisticColumns ?? activeBoard?.columns ?? [];
 
   const filteredColumns = useMemo<BoardColumn[]>(() => {
-    if (!board && !optimisticColumns) return [];
+    if (!activeBoard && !optimisticColumns) return [];
 
     if (filter === 'unclaimed') {
       return baseColumns.filter((col) => col.phase === 'unclaimed');
@@ -232,7 +245,7 @@ export function Board() {
 
     return baseColumns;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [board, optimisticColumns, filter, currentUser]);
+  }, [activeBoard, optimisticColumns, filter, currentUser]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -244,11 +257,14 @@ export function Board() {
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
-            {board && (
+            {activeBoard && (
               <div className="text-xs text-gray-500">
-                {board.metadata.totalCards} cards &middot;{' '}
-                {board.metadata.completedCount} done &middot;{' '}
-                {board.metadata.claimedCount} claimed
+                {activeBoard.metadata.totalCards} cards &middot;{' '}
+                {activeBoard.metadata.completedCount} done &middot;{' '}
+                {activeBoard.metadata.claimedCount} claimed
+                {'branchCount' in activeBoard.metadata && (
+                  <> &middot; {activeBoard.metadata.branchCount} branches</>
+                )}
               </div>
             )}
 
@@ -277,20 +293,49 @@ export function Board() {
               <option value="mine">My Claims</option>
             </select>
 
-            <BranchSelector selectedBranch={branch} onBranchChange={setBranch} />
+            {/* View mode toggle */}
+            <div className="flex rounded border border-gray-300 overflow-hidden text-sm">
+              <button
+                type="button"
+                onClick={() => setViewMode('single')}
+                className={`px-2 py-1 ${viewMode === 'single' ? 'bg-blue-50 text-blue-700 font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                Single
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('consolidated')}
+                className={`px-2 py-1 border-l border-gray-300 ${viewMode === 'consolidated' ? 'bg-blue-50 text-blue-700 font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                All Branches
+              </button>
+            </div>
+
+            {/* Branch health button */}
+            <button
+              type="button"
+              onClick={() => setShowHealthPanel((v) => !v)}
+              className={`text-sm px-2 py-1 rounded border ${showHealthPanel ? 'bg-teal-50 text-teal-700 border-teal-300' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+            >
+              Health
+            </button>
+
+            {viewMode === 'single' && (
+              <BranchSelector selectedBranch={branch} onBranchChange={setBranch} />
+            )}
           </div>
         </div>
       </header>
 
       {/* Board */}
       <main className="p-4 overflow-x-auto">
-        {isLoading && (
+        {activeLoading && (
           <div className="flex items-center justify-center h-64">
             <div className="text-gray-400 text-lg">Loading board…</div>
           </div>
         )}
 
-        {error && (
+        {error && viewMode === 'single' && (
           <div className="flex items-center justify-center h-64">
             <div className="text-red-500 text-center">
               <p className="text-lg font-medium">Failed to load board</p>
@@ -313,7 +358,7 @@ export function Board() {
           </div>
         )}
 
-        {(board || optimisticColumns) && (
+        {(activeBoard || optimisticColumns) && (
           <div className="flex gap-4 min-h-[calc(100vh-120px)]">
             {filteredColumns.map((column) => (
               <Column
@@ -333,7 +378,7 @@ export function Board() {
           </div>
         )}
 
-        {board && board.metadata.totalCards === 0 && (
+        {activeBoard && activeBoard.metadata.totalCards === 0 && (
           <div className="flex items-center justify-center h-64">
             <div className="text-gray-400 text-center">
               <p className="text-lg font-medium">No tasks found</p>
@@ -368,6 +413,14 @@ export function Board() {
           to={pendingTransition.to}
           onConfirm={handleConfirmTransition}
           onCancel={handleCancelTransition}
+        />
+      )}
+
+      {/* Branch Health Panel */}
+      {showHealthPanel && (
+        <BranchHealthPanel
+          health={healthData?.health ?? []}
+          onClose={() => setShowHealthPanel(false)}
         />
       )}
     </div>
