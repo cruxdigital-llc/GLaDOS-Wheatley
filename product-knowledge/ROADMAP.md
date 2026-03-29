@@ -59,17 +59,17 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 1.6 Frontend: Board View
 
-- [ ] 1.6.1 React + Vite + TypeScript project scaffold
-- [ ] 1.6.2 TailwindCSS setup and base theme
-- [ ] 1.6.3 React Query configuration and API client
-- [ ] 1.6.4 Board layout: columns for each GLaDOS phase (Unclaimed, Planning, Speccing, Implementing, Verifying, Done)
-- [ ] 1.6.5 Card component: title, phase badge, assignee (if claimed), spec link
-- [ ] 1.6.6 Card detail panel: render README, spec, plan, and requirements from the feature's spec directory
-- [ ] 1.6.7 Markdown renderer for card detail content
-- [ ] 1.6.8 Branch selector dropdown in the header
-- [ ] 1.6.9 Auto-refresh on repo change events (via polling or SSE from the API)
-- [ ] 1.6.10 Empty state: helpful messaging when no tasks are found or repo doesn't conform
-- [ ] 1.6.11 Loading and error states for all data-fetching views
+- [x] 1.6.1 React + Vite + TypeScript project scaffold
+- [x] 1.6.2 TailwindCSS setup and base theme
+- [x] 1.6.3 React Query configuration and API client
+- [x] 1.6.4 Board layout: columns for each GLaDOS phase (Unclaimed, Planning, Speccing, Implementing, Verifying, Done)
+- [x] 1.6.5 Card component: title, phase badge, assignee (if claimed), spec link
+- [x] 1.6.6 Card detail panel: render README, spec, plan, and requirements from the feature's spec directory
+- [x] 1.6.7 Markdown renderer for card detail content
+- [x] 1.6.8 Branch selector dropdown in the header
+- [x] 1.6.9 Auto-refresh on repo change events (via polling or SSE from the API)
+- [x] 1.6.10 Empty state: helpful messaging when no tasks are found or repo doesn't conform
+- [x] 1.6.11 Loading and error states for all data-fetching views
 
 ### 1.7 Brownfield Standardization
 

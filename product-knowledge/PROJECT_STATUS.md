@@ -30,6 +30,7 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 *Lead: TBD*
 
 - [x] **Repo parser**: Extract unclaimed items from `ROADMAP.md`, phase from `specs/` directories, active tasks from `PROJECT_STATUS.md`
+- [x] **API Server**: Fastify with board, branch, health endpoints
 - [ ] **Kanban board UI**: Column-based view mapping GLaDOS phases to columns
 - [ ] **Card detail view**: Show README, spec, plan, and requirements from a feature's `specs/` directory
 - [ ] **Branch selector**: Switch which branch the board reads from
@@ -57,3 +58,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-28: Feature 1.2 (Markdown Parsers) complete — 88 tests total, section-level spec matching, shared utils.
 - 2026-03-28: Feature 1.3 (Git Adapter) complete — 130 tests total, path traversal protection, dual-mode adapter.
 - 2026-03-28: Feature 1.4 (Source Watching) complete — 172 tests total, SHA-based polling, debounce, event bus.
+- 2026-03-28: Feature 1.5 (API Server) complete — 189 tests total, stateless branch API, graceful shutdown.
