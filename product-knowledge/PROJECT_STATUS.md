@@ -9,7 +9,7 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 ## Project Overview
 
 **Mission**: [product-knowledge/MISSION.md](MISSION.md)
-**Current Phase**: Planning
+**Current Phase**: Implementing
 
 Wheatley is a lightweight, local-first (and cloud-capable) project board that renders a Kanban view of a GLaDOS-managed repo's markdown files. No external database — the repo is the board.
 
@@ -53,3 +53,5 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 
 - 2026-03-28: Project initialized. Mission, roadmap, and tech stack defined.
 - 2026-03-28: PR #1 review feedback incorporated — removed Zustand, reinforced no-database stance, added parsing grammar and sync architecture as Phase 1 items.
+- 2026-03-28: Feature 1.1 (Parsing Grammar) complete — 44 validator tests, phase detection, grammar spec.
+- 2026-03-28: Feature 1.2 (Markdown Parsers) complete — 88 tests total, section-level spec matching, shared utils.
