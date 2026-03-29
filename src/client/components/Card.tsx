@@ -131,9 +131,11 @@ export function Card({
       onDragEnd={handleDragEnd}
       className={`transition-opacity ${isDragging ? 'opacity-40' : 'opacity-100'}`}
     >
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onClick?.(card)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(card); } }}
       className={`w-full text-left bg-white rounded-lg shadow-sm border p-3 hover:shadow-md transition-shadow cursor-pointer ${isFocused ? 'border-blue-500 ring-2 ring-blue-400' : 'border-gray-200'}`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -268,7 +270,7 @@ export function Card({
           </span>
         </div>
       )}
-    </button>
+    </div>
     </div>
   );
 }
