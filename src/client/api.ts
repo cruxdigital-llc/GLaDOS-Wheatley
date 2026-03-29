@@ -546,3 +546,111 @@ export interface RepoInfo {
 export async function fetchRepos(): Promise<{ repos: RepoInfo[]; defaultRepo: string }> {
   return fetchJson<{ repos: RepoInfo[]; defaultRepo: string }>(`${API_BASE}/repos`);
 }
+
+// ---------------------------------------------------------------------------
+// Bulk Operations
+// ---------------------------------------------------------------------------
+
+export interface BulkResult {
+  id: string;
+  success: boolean;
+  error?: string;
+}
+
+export async function bulkMove(
+  cardIds: string[],
+  from: string,
+  to: string,
+  branch?: string,
+): Promise<{ results: BulkResult[] }> {
+  return fetchJson<{ results: BulkResult[] }>(`${API_BASE}/bulk/move`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardIds, from, to, branch }),
+  });
+}
+
+export async function bulkAssign(
+  cardIds: string[],
+  claimant: string,
+): Promise<{ results: BulkResult[] }> {
+  return fetchJson<{ results: BulkResult[] }>(`${API_BASE}/bulk/assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardIds, claimant }),
+  });
+}
+
+export async function bulkUpdateMetadata(
+  cardIds: string[],
+  metadata: { labels?: string[]; priority?: string; due?: string },
+  branch?: string,
+): Promise<{ results: BulkResult[] }> {
+  return fetchJson<{ results: BulkResult[] }>(`${API_BASE}/bulk/metadata`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardIds, ...metadata, branch }),
+  });
+}
+
+export async function bulkDelete(
+  cardIds: string[],
+  branch?: string,
+): Promise<{ results: BulkResult[] }> {
+  return fetchJson<{ results: BulkResult[] }>(`${API_BASE}/bulk/delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardIds, branch }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Card Relationships
+// ---------------------------------------------------------------------------
+
+export interface CardRelationshipsResponse {
+  cardId: string;
+  parent: string | null;
+  children: string[];
+  blocks: string[];
+  blockedBy: string[];
+}
+
+export async function fetchCardRelationships(
+  cardId: string,
+  branch?: string,
+): Promise<CardRelationshipsResponse> {
+  const params = branch ? `?branch=${encodeURIComponent(branch)}` : '';
+  return fetchJson<CardRelationshipsResponse>(
+    `${API_BASE}/cards/${encodeURIComponent(cardId)}/relationships${params}`,
+  );
+}
+
+export async function updateCardRelationships(
+  cardId: string,
+  relationships: {
+    parent?: string | null;
+    children?: string[];
+    blocks?: string[];
+    blockedBy?: string[];
+  },
+  branch?: string,
+): Promise<{ updated: boolean }> {
+  return fetchJson<{ updated: boolean }>(
+    `${API_BASE}/cards/${encodeURIComponent(cardId)}/relationships`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...relationships, branch }),
+    },
+  );
+}
+
+export async function detectRelationshipCycles(
+  branch?: string,
+): Promise<{ hasCycles: boolean; cycleCardIds: string[] }> {
+  const params = branch ? `?branch=${encodeURIComponent(branch)}` : '';
+  return fetchJson<{ hasCycles: boolean; cycleCardIds: string[] }>(
+    `${API_BASE}/relationships/cycles${params}`,
+  );
+}

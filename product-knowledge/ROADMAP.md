@@ -399,45 +399,45 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 11.1 Multiple Views
 
-- [ ] 11.1.1 List view: table layout with sortable columns (title, phase, assignee, priority, due date, last activity)
-- [ ] 11.1.2 Timeline view: horizontal Gantt-style chart showing card lifespans across phases
-- [ ] 11.1.3 View switcher in the header (Board / List / Timeline)
-- [ ] 11.1.4 Calendar view: cards plotted by due date on a month/week calendar grid
+- [x] 11.1.1 List view: table layout with sortable columns (title, phase, assignee, priority, due date, last activity)
+- [x] 11.1.2 Timeline view: horizontal Gantt-style chart showing card lifespans across phases
+- [x] 11.1.3 View switcher in the header (Board / List / Timeline)
+- [x] 11.1.4 Calendar view: cards plotted by due date on a month/week calendar grid
 
 ### 11.2 Bulk Operations
 
-- [ ] 11.2.1 Multi-select mode: Shift+Click or checkbox to select multiple cards
-- [ ] 11.2.2 Bulk move: transition all selected cards to a target phase
-- [ ] 11.2.3 Bulk assign: claim or reassign all selected cards to a user
-- [ ] 11.2.4 Bulk label/priority: apply labels or priority to all selected cards
-- [ ] 11.2.5 Bulk delete/archive: remove or archive selected cards
+- [x] 11.2.1 Multi-select mode: Shift+Click or checkbox to select multiple cards
+- [x] 11.2.2 Bulk move: transition all selected cards to a target phase
+- [x] 11.2.3 Bulk assign: claim or reassign all selected cards to a user
+- [x] 11.2.4 Bulk label/priority: apply labels or priority to all selected cards
+- [x] 11.2.5 Bulk delete/archive: remove or archive selected cards
 
 ### 11.3 Card Relationships
 
-- [ ] 11.3.1 Parent/child relationships: nest sub-tasks under a parent card (stored as frontmatter references)
-- [ ] 11.3.2 Blocks/blocked-by relationships: flag dependencies between cards
-- [ ] 11.3.3 Dependency visualization: show blocked cards with a chain icon, tooltip listing blockers
-- [ ] 11.3.4 Cycle detection: prevent circular dependency chains
+- [x] 11.3.1 Parent/child relationships: nest sub-tasks under a parent card (stored as frontmatter references)
+- [x] 11.3.2 Blocks/blocked-by relationships: flag dependencies between cards
+- [x] 11.3.3 Dependency visualization: show blocked cards with a chain icon, tooltip listing blockers
+- [x] 11.3.4 Cycle detection: prevent circular dependency chains
 
 ### 11.4 UI Polish
 
-- [ ] 11.4.1 Dark mode theme with system preference detection and manual toggle
-- [ ] 11.4.2 Responsive design for tablet and mobile viewports
-- [ ] 11.4.3 Frontend virtualized lists for boards with 100+ cards (react-window or similar)
-- [ ] 11.4.4 Undo/redo for recent board actions (in-memory action stack with revert-commit support)
-- [ ] 11.4.5 Drag-and-drop polish: smooth animations, ghost preview, touch support
+- [x] 11.4.1 Dark mode theme with system preference detection and manual toggle
+- [x] 11.4.2 Responsive design for tablet and mobile viewports
+- [x] 11.4.3 Frontend virtualized lists for boards with 100+ cards (react-window or similar)
+- [x] 11.4.4 Undo/redo for recent board actions (in-memory action stack with revert-commit support)
+- [x] 11.4.5 Drag-and-drop polish: smooth animations, ghost preview, touch support
 
 ### 11.5 Operational Tooling
 
-- [ ] 11.5.1 Structured JSON logging with configurable log levels (debug, info, warn, error)
-- [ ] 11.5.2 Prometheus metrics endpoint (`/metrics`): request latency, git operation duration, active connections
-- [ ] 11.5.3 Startup self-test: validate git connectivity, permissions, repo conformance, and required env vars
-- [ ] 11.5.4 Graceful shutdown: drain in-flight requests, close SSE connections, flush event log
+- [x] 11.5.1 Structured JSON logging with configurable log levels (debug, info, warn, error)
+- [x] 11.5.2 Prometheus metrics endpoint (`/metrics`): request latency, git operation duration, active connections
+- [x] 11.5.3 Startup self-test: validate git connectivity, permissions, repo conformance, and required env vars
+- [x] 11.5.4 Graceful shutdown: drain in-flight requests, close SSE connections, flush event log
 
 ### 11.6 Testing & Quality
 
-- [ ] 11.6.1 End-to-end tests with Playwright: board load, claim, release, transition, drag-drop, edit, search
-- [ ] 11.6.2 Load testing: concurrent claim/release/edit under contention (k6 or Artillery)
-- [ ] 11.6.3 Snapshot tests for all UI components
-- [ ] 11.6.4 API contract tests: OpenAPI spec generation and request/response validation
-- [ ] 11.6.5 Git edge-case test suite: dirty tree, merge conflicts, detached HEAD, shallow clones, missing remote
+- [x] 11.6.1 End-to-end tests with Playwright: board load, claim, release, transition, drag-drop, edit, search
+- [x] 11.6.2 Load testing: concurrent claim/release/edit under contention (k6 or Artillery)
+- [x] 11.6.3 Snapshot tests for all UI components
+- [x] 11.6.4 API contract tests: OpenAPI spec generation and request/response validation
+- [x] 11.6.5 Git edge-case test suite: dirty tree, merge conflicts, detached HEAD, shallow clones, missing remote

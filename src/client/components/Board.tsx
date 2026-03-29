@@ -28,10 +28,16 @@ import { ScrollIndicators } from './ScrollIndicators.js';
 import { ShortcutOverlay } from './ShortcutOverlay.js';
 import { NotificationBell } from './NotificationBell.js';
 import { RepoSelector } from './RepoSelector.js';
+import ListView from './ListView.js';
+import TimelineView from './TimelineView.js';
+import CalendarView from './CalendarView.js';
+import { BulkActionBar } from './BulkActionBar.js';
+import { DarkModeToggle } from './DarkModeToggle.js';
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts.js';
 import type { ShortcutDef } from '../hooks/use-keyboard-shortcuts.js';
 
 type ViewMode = 'single' | 'consolidated';
+type BoardView = 'board' | 'list' | 'timeline' | 'calendar';
 type SortMode = 'default' | 'priority' | 'due' | 'newest' | 'activity';
 
 interface CompoundFilter {
@@ -123,6 +129,8 @@ export function Board() {
   const [branch, setBranch] = useState<string | undefined>();
   const [currentRepo, setCurrentRepo] = useState<string>('default');
   const [viewMode, setViewMode] = useState<ViewMode>('single');
+  const [boardView, setBoardView] = useState<BoardView>('board');
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [showHealthPanel, setShowHealthPanel] = useState(false);
   const [showActivityFeed, setShowActivityFeed] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -195,7 +203,20 @@ export function Board() {
   const activeBoard = isConsolidated ? consolidatedBoard : board;
   const activeLoading = isConsolidated ? consolidatedLoading : isLoading;
 
-  const handleCardClick = (card: BoardCard) => {
+  const handleCardClick = (card: BoardCard, event?: React.MouseEvent) => {
+    // Multi-select with Shift+Click
+    if (event?.shiftKey) {
+      setSelectedCards((prev) => {
+        const next = new Set(prev);
+        if (next.has(card.id)) {
+          next.delete(card.id);
+        } else {
+          next.add(card.id);
+        }
+        return next;
+      });
+      return;
+    }
     setSelectedCardId(card.id);
   };
 
@@ -552,9 +573,9 @@ export function Board() {
   useKeyboardShortcuts(shortcuts);
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       {/* Header */}
-      <header className="bg-white border-b shadow-sm">
+      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm">
         <div className="max-w-full mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">Wheatley</h1>
@@ -634,23 +655,40 @@ export function Board() {
               <option value="activity">Sort: Last Activity</option>
             </select>
 
-            {/* View mode toggle */}
-            <div className="flex rounded border border-gray-300 overflow-hidden text-sm">
+            {/* View type switcher (Board / List / Timeline / Calendar) */}
+            <div className="flex rounded border border-gray-300 dark:border-gray-600 overflow-hidden text-sm">
+              {(['board', 'list', 'timeline', 'calendar'] as BoardView[]).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setBoardView(v)}
+                  className={`px-2 py-1 capitalize ${v !== 'board' ? 'border-l border-gray-300 dark:border-gray-600' : ''} ${boardView === v ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+
+            {/* Branch mode toggle */}
+            <div className="flex rounded border border-gray-300 dark:border-gray-600 overflow-hidden text-sm">
               <button
                 type="button"
                 onClick={() => setViewMode('single')}
-                className={`px-2 py-1 ${viewMode === 'single' ? 'bg-blue-50 text-blue-700 font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                className={`px-2 py-1 ${viewMode === 'single' ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
               >
                 Single
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('consolidated')}
-                className={`px-2 py-1 border-l border-gray-300 ${viewMode === 'consolidated' ? 'bg-blue-50 text-blue-700 font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                className={`px-2 py-1 border-l border-gray-300 dark:border-gray-600 ${viewMode === 'consolidated' ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
               >
                 All Branches
               </button>
             </div>
+
+            {/* Dark mode toggle */}
+            <DarkModeToggle />
 
             {/* Sync button */}
             <button
@@ -882,7 +920,7 @@ export function Board() {
           </div>
         )}
 
-        {(activeBoard || optimisticColumns) && (
+        {(activeBoard || optimisticColumns) && boardView === 'board' && (
           <ScrollIndicators>
             <div className="flex gap-4 min-h-[calc(100vh-120px)]">
               {filteredColumns.map((column) => (
@@ -906,6 +944,28 @@ export function Board() {
               ))}
             </div>
           </ScrollIndicators>
+        )}
+
+        {(activeBoard || optimisticColumns) && boardView === 'list' && (
+          <ListView
+            columns={filteredColumns}
+            onCardClick={handleCardClick}
+            currentUser={currentUser}
+          />
+        )}
+
+        {(activeBoard || optimisticColumns) && boardView === 'timeline' && (
+          <TimelineView
+            columns={filteredColumns}
+            onCardClick={handleCardClick}
+          />
+        )}
+
+        {(activeBoard || optimisticColumns) && boardView === 'calendar' && (
+          <CalendarView
+            columns={filteredColumns}
+            onCardClick={handleCardClick}
+          />
         )}
 
         {activeBoard && activeBoard.metadata.totalCards === 0 && (
@@ -984,6 +1044,18 @@ export function Board() {
           }}
         />
       )}
+
+      {/* Bulk Action Bar (multi-select mode) */}
+      <BulkActionBar
+        selectedIds={selectedCards}
+        currentUser={currentUser}
+        branch={branch}
+        onDone={() => {
+          setSelectedCards(new Set());
+          void queryClient.invalidateQueries({ queryKey: ['board'] });
+        }}
+        onClearSelection={() => setSelectedCards(new Set())}
+      />
     </div>
   );
 }
