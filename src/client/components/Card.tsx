@@ -24,6 +24,9 @@ interface CardProps {
   onClick?: (card: BoardCard) => void;
   currentUser?: string;
   branch?: string;
+  /** The coordination branch claims are read from. When it differs from `branch`,
+   *  an indicator is shown on cards that have an active claim. */
+  coordinationBranch?: string;
   onConflict?: (claimedBy: string) => void;
 }
 
@@ -40,7 +43,7 @@ function formatClaimTime(iso: string): string {
   }
 }
 
-export function Card({ card, onClick, currentUser, branch, onConflict }: CardProps) {
+export function Card({ card, onClick, currentUser, branch, coordinationBranch, onConflict }: CardProps) {
   const phaseColor = PHASE_COLORS[card.phase] ?? 'bg-gray-100 text-gray-700';
 
   const claimMutation = useClaimItem(branch);
@@ -116,6 +119,21 @@ export function Card({ card, onClick, currentUser, branch, onConflict }: CardPro
             {isOwnClaim ? 'You' : card.claim.claimant}
           </span>
           <span className="text-xs text-gray-400">{formatClaimTime(card.claim.claimedAt)}</span>
+          {/* Cross-branch indicator: shown when the claim comes from a different branch */}
+          {coordinationBranch && branch && coordinationBranch !== branch && (
+            <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 w-fit">
+              coordination branch
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Stale claim warning: claim exists but no spec or status activity on viewed branch */}
+      {card.stale && (
+        <div className="mt-1">
+          <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
+            stale claim
+          </span>
         </div>
       )}
 

@@ -115,9 +115,9 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 2.4 Cross-Branch Claim Visibility
 
-- [ ] 2.4.1 Board always reads claims from the coordination branch, regardless of selected view branch
-- [ ] 2.4.2 Visual distinction between coordination-branch claims and viewed-branch spec state
-- [ ] 2.4.3 Stale claim detection: flag claims where no matching spec activity exists
+- [x] 2.4.1 Board always reads claims from the coordination branch, regardless of selected view branch
+- [x] 2.4.2 Visual distinction between coordination-branch claims and viewed-branch spec state
+- [x] 2.4.3 Stale claim detection: flag claims where no matching spec activity exists
 
 ## Phase 3: Phase Transitions & Workflow Triggers
 

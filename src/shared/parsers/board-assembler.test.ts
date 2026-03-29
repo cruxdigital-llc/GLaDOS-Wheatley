@@ -298,6 +298,113 @@ describe('assembleBoardState', () => {
     }
   });
 
+  it('marks a claim as stale when the card has no spec entry and no status task', () => {
+    const roadmap = makeRoadmap([
+      {
+        sectionId: '2.1',
+        sectionTitle: 'Some Feature',
+        items: [{ id: '2.1.1', title: 'Build thing' }],
+      },
+    ]);
+    const claim: ClaimEntry = {
+      status: 'claimed',
+      itemId: '2.1.1',
+      claimant: 'agent',
+      claimedAt: '2026-03-28T10:00:00Z',
+    };
+    const claims: ParsedClaims = {
+      entries: [claim],
+      activeClaims: new Map([['2.1.1', claim]]),
+    };
+    // No specs and no status tasks on the viewed branch
+    const result = assembleBoardState(roadmap, [], EMPTY_STATUS, claims);
+
+    const card = result.columns.flatMap((c) => c.cards).find((c) => c.id === '2.1.1');
+    expect(card?.claim).toBeDefined();
+    expect(card?.stale).toBe(true);
+  });
+
+  it('does NOT mark a claim as stale when the card has a spec entry', () => {
+    const roadmap = makeRoadmap([
+      {
+        sectionId: '2.1',
+        sectionTitle: 'Some Feature',
+        items: [{ id: '2.1.1', title: 'Build thing' }],
+      },
+    ]);
+    const specs: SpecEntry[] = [
+      {
+        dirName: '2026-03-28_feature_some-feature',
+        date: '2026-03-28',
+        prefix: 'feature',
+        name: 'some-feature',
+        phase: 'implementing',
+        files: ['README.md', 'tasks.md'],
+      },
+    ];
+    const claim: ClaimEntry = {
+      status: 'claimed',
+      itemId: '2.1.1',
+      claimant: 'agent',
+      claimedAt: '2026-03-28T10:00:00Z',
+    };
+    const claims: ParsedClaims = {
+      entries: [claim],
+      activeClaims: new Map([['2.1.1', claim]]),
+    };
+    const result = assembleBoardState(roadmap, specs, EMPTY_STATUS, claims);
+
+    const card = result.columns.flatMap((c) => c.cards).find((c) => c.id === '2.1.1');
+    expect(card?.claim).toBeDefined();
+    expect(card?.stale).toBeUndefined();
+  });
+
+  it('does NOT mark a claim as stale when the card has a matching status task', () => {
+    const roadmap = makeRoadmap([
+      {
+        sectionId: '2.1',
+        sectionTitle: 'Some Feature',
+        items: [{ id: '2.1.1', title: 'Build thing' }],
+      },
+    ]);
+    const claim: ClaimEntry = {
+      status: 'claimed',
+      itemId: '2.1.1',
+      claimant: 'agent',
+      claimedAt: '2026-03-28T10:00:00Z',
+    };
+    const claims: ParsedClaims = {
+      entries: [claim],
+      activeClaims: new Map([['2.1.1', claim]]),
+    };
+    const status: ParsedProjectStatus = {
+      activeTasks: [
+        { label: 'Some Feature', description: 'In progress', completed: false, section: 'Focus' },
+      ],
+      backlog: [],
+    };
+    const result = assembleBoardState(roadmap, [], status, claims);
+
+    const card = result.columns.flatMap((c) => c.cards).find((c) => c.id === '2.1.1');
+    expect(card?.claim).toBeDefined();
+    expect(card?.stale).toBeUndefined();
+  });
+
+  it('does NOT set stale on unclaimed cards', () => {
+    const roadmap = makeRoadmap([
+      {
+        sectionId: '2.1',
+        sectionTitle: 'Some Feature',
+        items: [{ id: '2.1.1', title: 'Build thing' }],
+      },
+    ]);
+    const result = assembleBoardState(roadmap, [], EMPTY_STATUS, EMPTY_CLAIMS);
+
+    const card = result.columns.flatMap((c) => c.cards).find((c) => c.id === '2.1.1');
+    expect(card?.claim).toBeUndefined();
+    expect(card?.stale).toBeUndefined();
+  });
+
   it('does not false-positive match status tasks with substring overlap', () => {
     const roadmap = makeRoadmap([
       {

@@ -136,6 +136,13 @@ export function assembleBoardState(
     }
   }
 
+  // 4a. Mark stale claims: claimed items with no spec activity on the viewed branch
+  for (const card of cardMap.values()) {
+    if (card.claim && !card.specEntry && !card.statusTask) {
+      card.stale = true;
+    }
+  }
+
   // 5. Organize into columns (using Map for O(1) lookup)
   const columnMap = new Map<BoardPhase, BoardColumn>();
   const columns: BoardColumn[] = PHASE_ORDER.map((phase) => {

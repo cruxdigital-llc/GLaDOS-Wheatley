@@ -100,6 +100,67 @@ describe('BoardService', () => {
     expect(adapter.getCurrentBranch).toHaveBeenCalled();
   });
 
+  it('reads claims from coordinationBranch when it differs from the viewed branch', async () => {
+    const adapter = createMockAdapter({
+      readFile: vi.fn().mockImplementation((path: string, ref: string | undefined) => {
+        if (path === 'product-knowledge/claims.md' && ref === 'main') {
+          return Promise.resolve(
+            '# Claims\n\n- [claimed] 1.1.1 | agent | 2026-03-28T10:00:00Z\n',
+          );
+        }
+        if (path === 'product-knowledge/ROADMAP.md') {
+          return Promise.resolve(
+            '# Roadmap\n\n## Phase 1: MVP\n\n**Goal**: Build it.\n\n### 1.1 Feature\n\n- [ ] 1.1.1 Task\n',
+          );
+        }
+        return Promise.resolve(null);
+      }),
+    });
+
+    const service = new BoardService(adapter);
+    const state = await service.getBoardState('feature/foo', 'main');
+
+    // The claim from the coordination branch should appear on the card
+    const allCards = state.columns.flatMap((c) => c.cards);
+    const claimedCard = allCards.find((c) => c.id === '1.1.1');
+    expect(claimedCard?.claim).toBeDefined();
+    expect(claimedCard?.claim?.claimant).toBe('agent');
+  });
+
+  it('reads claims from coordination branch, not viewed branch', async () => {
+    const readFileMock = vi.fn().mockImplementation((path: string, ref: string | undefined) => {
+      if (path === 'product-knowledge/ROADMAP.md') {
+        return Promise.resolve(
+          '# Roadmap\n\n## Phase 1: MVP\n\n**Goal**: Build it.\n\n### 1.1 Feature\n\n- [ ] 1.1.1 Task\n',
+        );
+      }
+      return Promise.resolve(null);
+    });
+
+    const adapter = createMockAdapter({ readFile: readFileMock });
+    const service = new BoardService(adapter);
+
+    await service.getBoardState('feature/foo', 'main');
+
+    // Roadmap and status should be read from the viewed branch ('feature/foo')
+    expect(readFileMock).toHaveBeenCalledWith('product-knowledge/ROADMAP.md', 'feature/foo');
+    expect(readFileMock).toHaveBeenCalledWith('product-knowledge/PROJECT_STATUS.md', 'feature/foo');
+
+    // Claims should be read from the coordination branch ('main')
+    expect(readFileMock).toHaveBeenCalledWith('product-knowledge/claims.md', 'main');
+  });
+
+  it('reads claims from viewed branch when coordinationBranch is not provided', async () => {
+    const readFileMock = vi.fn().mockResolvedValue(null);
+    const adapter = createMockAdapter({ readFile: readFileMock });
+    const service = new BoardService(adapter);
+
+    await service.getBoardState('feature/foo');
+
+    // All files including claims should use the same ref when no coordinationBranch given
+    expect(readFileMock).toHaveBeenCalledWith('product-knowledge/claims.md', 'feature/foo');
+  });
+
   it('reads spec directory contents for card detail', async () => {
     const files: Record<string, string> = {
       'product-knowledge/ROADMAP.md': '# Roadmap\n\n## Phase 1: MVP\n\n**Goal**: Build it.\n\n### 1.1 Feature\n\n- [ ] 1.1.1 Task\n',
