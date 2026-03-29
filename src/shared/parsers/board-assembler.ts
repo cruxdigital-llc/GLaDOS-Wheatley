@@ -44,7 +44,11 @@ function matchSpecToRoadmapSection(
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
 
-      if (specName === sectionKebab || specName.includes(sectionKebab)) {
+      if (
+        specName === sectionKebab ||
+        specName.includes(sectionKebab) ||
+        sectionKebab.includes(specName)
+      ) {
         return section;
       }
     }

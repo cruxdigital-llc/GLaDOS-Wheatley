@@ -8,7 +8,7 @@ RUN npm install
 
 # Copy source and config
 COPY tsconfig.json ./
-COPY vitest.config.ts ./
+COPY vite.config.ts ./
 COPY index.html ./
 COPY src/ ./src/
 

@@ -297,18 +297,10 @@ describe('detectPhaseWithContents', () => {
     ).toBe('implementing');
   });
 
-  it('returns verifying when all tasks are complete', () => {
+  it('returns done when all tasks are complete', () => {
     const tasks = '- [x] Task 1\n- [x] Task 2\n';
     expect(
       detectPhaseWithContents(['README.md', 'tasks.md'], tasks),
-    ).toBe('verifying');
-  });
-
-  it('returns done when all tasks complete and README has verify log', () => {
-    const tasks = '- [x] Task 1\n- [x] Task 2\n';
-    const readme = '# Feature\n\n## Trace\n\n### Verify session\nAll verified.';
-    expect(
-      detectPhaseWithContents(['README.md', 'tasks.md'], tasks, readme),
     ).toBe('done');
   });
 

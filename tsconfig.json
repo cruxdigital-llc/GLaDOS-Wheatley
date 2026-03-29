@@ -11,6 +11,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "jsx": "react-jsx",
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": ".",
@@ -20,6 +21,6 @@
       "@client/*": ["src/client/*"]
     }
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.test.tsx"]
 }

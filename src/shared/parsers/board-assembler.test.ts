@@ -267,6 +267,37 @@ describe('assembleBoardState', () => {
     expect(card?.statusTask?.label).toBe('Parsing Grammar');
   });
 
+  it('matches spec to section when section name contains spec name (bidirectional)', () => {
+    const roadmap = makeRoadmap([
+      {
+        sectionId: '1.4',
+        sectionTitle: 'Source Watching & Sync',
+        items: [
+          { id: '1.4.1', title: 'File watcher' },
+          { id: '1.4.2', title: 'Poller' },
+        ],
+      },
+    ]);
+    const specs: SpecEntry[] = [
+      {
+        dirName: '2026-03-28_feature_source-watching',
+        date: '2026-03-28',
+        prefix: 'feature',
+        name: 'source-watching',
+        phase: 'implementing',
+        files: ['README.md', 'tasks.md'],
+      },
+    ];
+    const result = assembleBoardState(roadmap, specs, EMPTY_STATUS, EMPTY_CLAIMS);
+
+    // "source-watching" should match "Source Watching & Sync" via bidirectional containment
+    const implCards = result.columns.find((c) => c.phase === 'implementing')?.cards;
+    expect(implCards).toHaveLength(2);
+    for (const card of implCards ?? []) {
+      expect(card.specEntry).toBeDefined();
+    }
+  });
+
   it('does not false-positive match status tasks with substring overlap', () => {
     const roadmap = makeRoadmap([
       {

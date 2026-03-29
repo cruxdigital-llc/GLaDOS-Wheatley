@@ -242,11 +242,8 @@ export function detectPhaseWithContents(
     const taskLines = tasksContent.split('\n').filter((l) => l.match(/^- \[([ x])\]/));
     const allComplete = taskLines.length > 0 && taskLines.every((l) => l.includes('[x]'));
 
-    if (allComplete && readmeContent && /verify/i.test(readmeContent)) {
-      return 'done';
-    }
     if (allComplete) {
-      return 'verifying';
+      return 'done';
     }
     return 'implementing';
   }

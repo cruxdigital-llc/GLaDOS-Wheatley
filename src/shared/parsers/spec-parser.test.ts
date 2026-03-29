@@ -37,7 +37,7 @@ describe('parseSpecDirectories', () => {
     expect(result[0].phase).toBe('implementing');
   });
 
-  it('detects verifying phase when all tasks complete', () => {
+  it('detects done phase when all tasks complete', () => {
     const result = parseSpecDirectories([
       {
         dirName: '2026-03-28_feature_complete',
@@ -45,10 +45,10 @@ describe('parseSpecDirectories', () => {
         tasksContent: '- [x] Task 1\n- [x] Task 2\n',
       },
     ]);
-    expect(result[0].phase).toBe('verifying');
+    expect(result[0].phase).toBe('done');
   });
 
-  it('detects done phase when verified', () => {
+  it('detects done phase with readme content too', () => {
     const result = parseSpecDirectories([
       {
         dirName: '2026-03-28_feature_done',
