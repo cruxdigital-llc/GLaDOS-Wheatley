@@ -152,6 +152,9 @@ export class RemoteGitAdapter implements GitAdapter {
       if (status === 409) {
         throw new ConflictError(`GitHub API returned 409: conflict on ${path}`);
       }
+      if (status === 422) {
+        throw new ConflictError(`GitHub API returned 422: conflict on ${path}`);
+      }
       throw err;
     }
   }

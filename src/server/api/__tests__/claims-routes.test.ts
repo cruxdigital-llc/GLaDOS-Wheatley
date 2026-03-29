@@ -117,6 +117,36 @@ describe('POST /api/claims', () => {
     expect(response.statusCode).toBe(400);
   });
 
+  it('returns 400 for claimant with newline character', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/claims',
+      body: { itemId: '1.1.1', claimant: 'agent\nhack' },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('returns 400 for claimant with carriage return', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/claims',
+      body: { itemId: '1.1.1', claimant: 'agent\rhack' },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('returns 400 for claimant with control character (tab)', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/claims',
+      body: { itemId: '1.1.1', claimant: 'agent\thack' },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
   it('returns 400 when body is missing fields', async () => {
     const response = await app.inject({
       method: 'POST',

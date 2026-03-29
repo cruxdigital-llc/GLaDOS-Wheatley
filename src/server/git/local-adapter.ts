@@ -17,10 +17,19 @@ const SAFE_REF_RE = /^[a-zA-Z0-9_./-]+$/;
 export class LocalGitAdapter implements GitAdapter {
   private readonly git: SimpleGit;
   private readonly repoPath: string;
+  private writeLock: Promise<void> = Promise.resolve();
 
   constructor(repoPath: string) {
     this.repoPath = resolve(repoPath);
     this.git = simpleGit(this.repoPath);
+  }
+
+  private acquireWriteLock(): Promise<() => void> {
+    let release: () => void;
+    const next = new Promise<void>(resolve => { release = resolve; });
+    const prev = this.writeLock;
+    this.writeLock = next;
+    return prev.then(() => release!);
   }
 
   /** Resolve a path within the repo, preventing path traversal attacks. */
@@ -127,8 +136,23 @@ export class LocalGitAdapter implements GitAdapter {
   }
 
   async writeFile(path: string, content: string, message: string, branch?: string): Promise<void> {
+    const release = await this.acquireWriteLock();
+    try {
+      await this._writeFileImpl(path, content, message, branch);
+    } finally {
+      release();
+    }
+  }
+
+  private async _writeFileImpl(path: string, content: string, message: string, branch?: string): Promise<void> {
     const targetBranch = branch ?? (await this.getDefaultBranch());
     const originalBranch = await this.getCurrentBranch();
+
+    // Assert working tree is clean before checkout
+    const status = await this.git.status();
+    if (!status.isClean()) {
+      throw new Error('Working tree is not clean; cannot write file');
+    }
 
     // Checkout coordination branch
     await this.git.checkout(targetBranch);
@@ -148,6 +172,12 @@ export class LocalGitAdapter implements GitAdapter {
       } catch (pushErr) {
         const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
         if (msg.includes('non-fast-forward') || msg.includes('rejected')) {
+          // Reset local branch to origin to discard orphaned commit
+          try {
+            await this.git.reset(['--hard', `origin/${targetBranch}`]);
+          } catch {
+            // Best-effort reset — ignore secondary failures
+          }
           throw new ConflictError(`Push rejected: non-fast-forward conflict on ${path}`);
         }
         throw pushErr;

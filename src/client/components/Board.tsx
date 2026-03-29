@@ -26,6 +26,7 @@ export function Board() {
   );
   const [filter, setFilter] = useState<FilterMode>('all');
   const [conflictInfo, setConflictInfo] = useState<{ claimedBy: string } | null>(null);
+  const [userNameWarning, setUserNameWarning] = useState<string | null>(null);
 
   const { data: board, isLoading, error } = useBoard(branch);
   const { data: cardDetail } = useCardDetail(selectedCardId, branch);
@@ -38,10 +39,25 @@ export function Board() {
     setSelectedCardId(null);
   };
 
+  const validateUserName = (name: string): string | null => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    if (trimmed.length > 100) return 'Name must be 100 characters or fewer';
+    if (trimmed.includes('|')) return 'Name must not contain a pipe character (|)';
+    for (let i = 0; i < trimmed.length; i++) {
+      if (trimmed.charCodeAt(i) < 32) return 'Name must not contain newlines or control characters';
+    }
+    return null;
+  };
+
   const handleUserChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
     setCurrentUser(name);
-    localStorage.setItem('wheatley_claimant', name);
+    const warning = validateUserName(name);
+    setUserNameWarning(warning);
+    if (!warning) {
+      localStorage.setItem('wheatley_claimant', name);
+    }
   };
 
   const handleConflict = (claimedBy: string) => {
@@ -97,13 +113,18 @@ export function Board() {
             )}
 
             {/* User identity input */}
-            <input
-              type="text"
-              value={currentUser}
-              onChange={handleUserChange}
-              placeholder="Your name…"
-              className="text-sm border border-gray-300 rounded px-2 py-1 w-36 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="flex flex-col items-start">
+              <input
+                type="text"
+                value={currentUser}
+                onChange={handleUserChange}
+                placeholder="Your name…"
+                className={`text-sm border rounded px-2 py-1 w-36 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${userNameWarning ? 'border-yellow-400 focus:ring-yellow-400' : 'border-gray-300'}`}
+              />
+              {userNameWarning && (
+                <span className="text-xs text-yellow-600 mt-0.5">{userNameWarning}</span>
+              )}
+            </div>
 
             {/* Filter dropdown */}
             <select

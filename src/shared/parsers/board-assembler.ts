@@ -136,10 +136,17 @@ export function assembleBoardState(
     }
   }
 
-  // 4a. Mark stale claims: claimed items with no spec activity on the viewed branch
+  // 4a. Mark stale claims: claimed items with no spec activity on the viewed branch,
+  //     but only if the claim is more than 24 hours old.
+  const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
   for (const card of cardMap.values()) {
     if (card.claim && !card.specEntry && !card.statusTask) {
-      card.stale = true;
+      const claimedAt = new Date(card.claim.claimedAt);
+      const ageMs = now - claimedAt.getTime();
+      if (ageMs > STALE_THRESHOLD_MS) {
+        card.stale = true;
+      }
     }
   }
 

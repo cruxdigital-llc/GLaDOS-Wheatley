@@ -24,6 +24,14 @@ function stripHeader(content: string): string {
   return content.replace(/^<!--[\s\S]*?-->\s*\n?/, '');
 }
 
+/** Returns true if the string contains any control character (charCode < 32). */
+function hasControlChar(s: string): boolean {
+  for (let i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) < 32) return true;
+  }
+  return false;
+}
+
 // --- ROADMAP.md Validator ---
 
 const PHASE_HEADING_RE = /^## Phase (\d+): (.+)$/;
@@ -475,11 +483,11 @@ export function validateClaims(content: string): ValidationResult {
               message: `Invalid item ID "${itemId}": must match \\d+\\.\\d+\\.\\d+`,
               rule: 'CLAIMS.item_id_format',
             });
-          } else if (!claimant || claimant.includes('|')) {
+          } else if (!claimant || claimant.includes('|') || hasControlChar(claimant)) {
             errors.push({
               file,
               line: lineNum,
-              message: `Invalid claimant "${claimant}": must be non-empty and contain no pipe character`,
+              message: `Invalid claimant "${claimant}": must be non-empty and contain no pipe or control characters`,
               rule: 'CLAIMS.claimant_format',
             });
           } else {
@@ -518,11 +526,11 @@ export function validateClaims(content: string): ValidationResult {
         }
 
         // Check claimant_format
-        if (!claimant || claimant.includes('|')) {
+        if (!claimant || claimant.includes('|') || hasControlChar(claimant)) {
           errors.push({
             file,
             line: lineNum,
-            message: `Invalid claimant "${claimant}": must be non-empty and contain no pipe character`,
+            message: `Invalid claimant "${claimant}": must be non-empty and contain no pipe or control characters`,
             rule: 'CLAIMS.claimant_format',
           });
         }

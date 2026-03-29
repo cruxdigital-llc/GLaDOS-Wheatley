@@ -603,6 +603,15 @@ GLaDOS-MANAGED DOCUMENT
     expect(result.errors.some((e) => e.rule === 'CLAIMS.claimant_format')).toBe(false);
   });
 
+  it('flags a claimant containing a tab character (control char < 32)', () => {
+    // A tab (charCode 9) stays on the same line, so the entry is structurally
+    // parseable but contains a disallowed control character in the claimant field.
+    const content = '# Claims\n\n- [claimed] 1.1.1 | bad\tname | 2026-03-28T20:00:00Z\n';
+    const result = validateClaims(content);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.rule === 'CLAIMS.claimant_format')).toBe(true);
+  });
+
   // --- CLAIMS.item_id_format ---
 
   it('flags an item ID with only two segments', () => {

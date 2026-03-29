@@ -54,6 +54,11 @@ function validateClaimant(claimant: string): void {
   if (!claimant.trim() || claimant.includes('|')) {
     throw new Error('Invalid claimant: must be non-empty and must not contain a pipe character');
   }
+  for (let i = 0; i < claimant.length; i++) {
+    if (claimant.charCodeAt(i) < 32) {
+      throw new Error('Invalid claimant: must not contain newlines or control characters');
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -116,12 +121,24 @@ export class ClaimService {
     const entryLine = `- [claimed] ${itemId} | ${claimant} | ${claimedAt}`;
     const newContent = buildClaimsContent(existingContent, entryLine);
 
-    await this.adapter.writeFile(
-      'product-knowledge/claims.md',
-      newContent,
-      `claim: ${itemId} by ${claimant}`,
-      branch,
-    );
+    try {
+      await this.adapter.writeFile(
+        'product-knowledge/claims.md',
+        newContent,
+        `claim: ${itemId} by ${claimant}`,
+        branch,
+      );
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        // Re-read the file to check whether a concurrent writer claimed this item
+        const freshContent = await this.adapter.readFile('product-knowledge/claims.md', branch);
+        const { activeClaims: freshClaims } = parseClaims(freshContent ?? '');
+        if (freshClaims.has(itemId)) {
+          throw new AlreadyClaimedError(freshClaims.get(itemId)!);
+        }
+      }
+      throw err;
+    }
 
     return { itemId, claimant, claimedAt, status: 'claimed' };
   }
