@@ -31,12 +31,12 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 1.3 Git Adapter
 
-- [ ] 1.3.1 Define `GitAdapter` TypeScript interface (readFile, listDirectory, listBranches, getCurrentBranch)
-- [ ] 1.3.2 Implement `LocalGitAdapter` using simple-git (filesystem reads from a volume-mounted repo)
-- [ ] 1.3.3 Implement `RemoteGitAdapter` using Octokit (GitHub REST API: contents, branches, trees)
-- [ ] 1.3.4 Adapter factory: select implementation based on `WHEATLEY_MODE` environment variable
-- [ ] 1.3.5 Integration tests for `LocalGitAdapter` against a fixture repo
-- [ ] 1.3.6 Integration tests for `RemoteGitAdapter` against a test GitHub repo
+- [x] 1.3.1 Define `GitAdapter` TypeScript interface (readFile, listDirectory, listBranches, getCurrentBranch)
+- [x] 1.3.2 Implement `LocalGitAdapter` using simple-git (filesystem reads from a volume-mounted repo)
+- [x] 1.3.3 Implement `RemoteGitAdapter` using Octokit (GitHub REST API: contents, branches, trees)
+- [x] 1.3.4 Adapter factory: select implementation based on `WHEATLEY_MODE` environment variable
+- [x] 1.3.5 Integration tests for `LocalGitAdapter` against a fixture repo
+- [x] 1.3.6 Integration tests for `RemoteGitAdapter` against a test GitHub repo
 
 ### 1.4 Source Watching & Sync
 
