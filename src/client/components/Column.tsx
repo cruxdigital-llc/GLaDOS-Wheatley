@@ -20,9 +20,12 @@ const COLUMN_HEADER_COLORS: Record<string, string> = {
 interface ColumnProps {
   column: BoardColumnType;
   onCardClick?: (card: BoardCard) => void;
+  currentUser?: string;
+  branch?: string;
+  onConflict?: (claimedBy: string) => void;
 }
 
-export function Column({ column, onCardClick }: ColumnProps) {
+export function Column({ column, onCardClick, currentUser, branch, onConflict }: ColumnProps) {
   const borderColor = COLUMN_HEADER_COLORS[column.phase] ?? 'border-t-gray-400';
 
   return (
@@ -39,7 +42,14 @@ export function Column({ column, onCardClick }: ColumnProps) {
           <p className="text-xs text-gray-400 text-center py-4">No items</p>
         ) : (
           column.cards.map((card) => (
-            <Card key={card.id} card={card} onClick={onCardClick} />
+            <Card
+              key={card.id}
+              card={card}
+              onClick={onCardClick}
+              currentUser={currentUser}
+              branch={branch}
+              onConflict={onConflict}
+            />
           ))
         )}
       </div>

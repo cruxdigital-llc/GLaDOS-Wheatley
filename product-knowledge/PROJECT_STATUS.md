@@ -40,27 +40,29 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Parsing grammar**: Strict, machine-readable contract for extracting tasks from ROADMAP.md, specs/, and PROJECT_STATUS.md
 - [x] **Source watching & sync**: `.git/` watcher (local), API polling (cloud), debounce, full re-sync fallback
 
-### 2. Backlog / Upcoming
+### 2. Phase 2 — Claims & Assignment
 
-- [ ] Phase 2: Claims & Assignment
+- [x] **Claims Data Model**: claims.md format spec, lifecycle states, validator rules (3 new rules, 8 new tests)
+- [x] **Claim Operations (Backend)**: GitAdapter write ops, POST/DELETE /api/claims, ConflictError, coordination branch
+- [x] **Claim Operations (Frontend)**: Claim/Release buttons, conflict modal, filter dropdown, user identity
+- [x] **Cross-Branch Claim Visibility**: Coordination branch claim reads, stale claim detection, visual indicators
+
+### 3. Backlog / Upcoming
+
 - [ ] Phase 3: Phase Transitions & Workflow Triggers
 - [ ] Phase 4: Multi-Branch Awareness
 - [ ] Phase 5: Team & Agent Coordination
 
 ## Known Issues / Technical Debt
 
-*None yet — project is in planning.*
+*None critical.*
 
 ## Recent Changes
 
 - 2026-03-28: Project initialized. Mission, roadmap, and tech stack defined.
-- 2026-03-28: PR #1 review feedback incorporated — removed Zustand, reinforced no-database stance, added parsing grammar and sync architecture as Phase 1 items.
-- 2026-03-28: Feature 1.1 (Parsing Grammar) complete — 44 validator tests, phase detection, grammar spec.
-- 2026-03-28: Feature 1.2 (Markdown Parsers) complete — 88 tests total, section-level spec matching, shared utils.
-- 2026-03-28: Feature 1.3 (Git Adapter) complete — 130 tests total, path traversal protection, dual-mode adapter.
-- 2026-03-28: Feature 1.4 (Source Watching) complete — 172 tests total, SHA-based polling, debounce, event bus.
-- 2026-03-28: Feature 1.5 (API Server) complete — 189 tests total, stateless branch API, graceful shutdown.
-- 2026-03-28: Feature 1.6 (Frontend) complete — React + TailwindCSS Kanban board.
-- 2026-03-28: Feature 1.7 (Brownfield) complete — conformance analyzer + API endpoint.
-- 2026-03-28: Feature 1.8 (Docker) complete — multi-stage Dockerfile with health check.
-- 2026-03-28: **PHASE 1 COMPLETE** — 194 tests passing, 48/48 roadmap items done.
+- 2026-03-28: **PHASE 1 COMPLETE** — 194 tests passing, 51/51 roadmap items done.
+- 2026-03-28: Feature 2.1 (Claims Data Model) complete — 202 tests, grammar spec, lifecycle states, 3 new validator rules.
+- 2026-03-28: Feature 2.2 (Claim Operations Backend) complete — 234 tests, GitAdapter write ops, claim/release API, conflict detection.
+- 2026-03-28: Feature 2.3 (Claim Operations Frontend) complete — Claim/Release UI, conflict modal, filters.
+- 2026-03-28: Feature 2.4 (Cross-Branch Claims) complete — 241 tests, coordination branch reads, stale detection.
+- 2026-03-28: **PHASE 2 COMPLETE** — 241 tests passing, 18/18 roadmap items done.

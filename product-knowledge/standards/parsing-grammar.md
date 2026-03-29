@@ -119,22 +119,73 @@ Sections titled "Backlog / Upcoming" are treated as backlog items, not active ta
 
 ## 4. claims.md
 
+For extended detail, annotated examples, and the full lifecycle specification, see `product-knowledge/standards/claims-format.md`.
+
 ### Structure
 
 ```
-CLAIMS_DOC   := HEADER "# Claims" BLANK_LINE CLAIM_ENTRY*
-HEADER       := HTML_COMMENT? BLANK_LINE*
-CLAIM_ENTRY  := "- [" CLAIM_STATUS "] " ITEM_ID " | " CLAIMANT " | " TIMESTAMP (" | " TIMESTAMP)? NEWLINE
-CLAIM_STATUS := "claimed" | "released" | "expired"
-ITEM_ID      := /\d+\.\d+\.\d+/
-CLAIMANT     := TEXT (no | allowed)
-TIMESTAMP    := ISO_8601 (e.g., "2026-03-28T20:00:00Z")
+CLAIMS_DOC     := HEADER TITLE BLANK_LINE CLAIM_ENTRY*
+HEADER         := HTML_COMMENT? BLANK_LINE*
+HTML_COMMENT   := "<!--" TEXT "-->"  (may span multiple lines)
+TITLE          := "# Claims" NEWLINE
+BLANK_LINE     := /^\s*$/ NEWLINE
+CLAIM_ENTRY    := "- [" CLAIM_STATUS "] " ITEM_ID " | " CLAIMANT " | " CLAIMED_AT RELEASE_TS? NEWLINE
+CLAIM_STATUS   := "claimed" | "released" | "expired"
+ITEM_ID        := /\d+\.\d+\.\d+/
+CLAIMANT       := /[^|\n]+/  (non-empty, no pipe character)
+CLAIMED_AT     := ISO_8601
+RELEASE_TS     := " | " ISO_8601
+ISO_8601       := /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/
+NEWLINE        := "\n" | "\r\n"
+```
+
+This grammar matches exactly the regex implemented in `claims-parser.ts`:
+
+```
+/^- \[(claimed|released|expired)\] (\d+\.\d+\.\d+) \| (.+?) \| (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)( \| (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z))?$/
 ```
 
 ### Rules
-- The second timestamp (if present) is the release/expiry time
-- Multiple entries for the same ITEM_ID may exist; the last entry wins
-- Only entries with status `claimed` represent active claims
+
+| Rule | Severity | Condition |
+|---|---|---|
+| `CLAIMS.title` | Error | File is non-empty but does not contain `# Claims` as a top-level heading |
+| `CLAIMS.entry_format` | Error | A line starting with `- [` does not match the full claim entry pattern and no more specific rule applies |
+| `CLAIMS.release_ts_required` | Warning | A `released` or `expired` entry lacks a `RELEASE_TS` field |
+| `CLAIMS.timestamp_order` | Error | `RELEASE_TS` is present but is not strictly after `CLAIMED_AT` |
+| `CLAIMS.claimant_format` | Error | Claimant field is empty or contains a pipe character |
+| `CLAIMS.item_id_format` | Error | Item ID field does not match `\d+\.\d+\.\d+` |
+
+Specific field rules (`CLAIMS.claimant_format`, `CLAIMS.item_id_format`) take priority over the general `CLAIMS.entry_format` rule when the line structure is recognizable but a single field is malformed.
+
+### Lifecycle States
+
+| State | Meaning |
+|---|---|
+| `claimed` | Item is actively held by the claimant |
+| `released` | Claimant voluntarily released the item |
+| `expired` | Claim was revoked (TTL exceeded or operator force-released) |
+
+Transitions: `(new epoch) → claimed → released` or `claimed → expired`. `released` and `expired` are terminal within a claim epoch; re-claiming the same item starts a new entry.
+
+### Active Claim Resolution
+
+Process all entries in document order. For each entry:
+- If status is `claimed`: set this entry as the active claim for `ITEM_ID`
+- If status is `released` or `expired`: remove the active claim for `ITEM_ID`
+
+Last entry wins when duplicates exist. The `activeClaims` map after full processing reflects current board state.
+
+### Extraction
+
+Each `CLAIM_ENTRY` maps to a `ClaimEntry` record with:
+- `itemId` = ITEM_ID
+- `claimant` = CLAIMANT
+- `status` = CLAIM_STATUS
+- `claimedAt` = CLAIMED_AT (parsed as `Date`)
+- `releasedAt` = RELEASE_TS if present (parsed as `Date`), otherwise `undefined`
+
+The `ParsedClaims` result also exposes `activeClaims: Map<itemId, ClaimEntry>` representing the resolved active board state.
 
 ## 5. Common Definitions
 

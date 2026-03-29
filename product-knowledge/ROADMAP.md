@@ -91,33 +91,33 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 2.1 Claims Data Model
 
-- [ ] 2.1.1 Define `claims.md` format: structured entries with task ID, claimant, timestamp, status
-- [ ] 2.1.2 Define claim lifecycle states: claimed, released, expired
-- [ ] 2.1.3 Extend the parsing grammar specification to cover `claims.md`
+- [x] 2.1.1 Define `claims.md` format: structured entries with task ID, claimant, timestamp, status
+- [x] 2.1.2 Define claim lifecycle states: claimed, released, expired
+- [x] 2.1.3 Extend the parsing grammar specification to cover `claims.md`
 
 ### 2.2 Claim Operations (Backend)
 
-- [ ] 2.2.1 Extend `GitAdapter` interface with write operations (commitFile, push)
-- [ ] 2.2.2 Implement write operations in `LocalGitAdapter` (commit to coordination branch)
-- [ ] 2.2.3 Implement write operations in `RemoteGitAdapter` (create/update file via API, target coordination branch)
-- [ ] 2.2.4 `POST /api/claims` — claim a task (append to claims.md, commit to coordination branch)
-- [ ] 2.2.5 `DELETE /api/claims/:id` — release a claim (update claims.md, commit)
-- [ ] 2.2.6 Conflict detection: catch failed commits (someone else claimed first), return conflict response
-- [ ] 2.2.7 Coordination branch configuration: configurable target branch for claim commits (default: `main`)
+- [x] 2.2.1 Extend `GitAdapter` interface with write operations (commitFile, push)
+- [x] 2.2.2 Implement write operations in `LocalGitAdapter` (commit to coordination branch)
+- [x] 2.2.3 Implement write operations in `RemoteGitAdapter` (create/update file via API, target coordination branch)
+- [x] 2.2.4 `POST /api/claims` — claim a task (append to claims.md, commit to coordination branch)
+- [x] 2.2.5 `DELETE /api/claims/:id` — release a claim (update claims.md, commit)
+- [x] 2.2.6 Conflict detection: catch failed commits (someone else claimed first), return conflict response
+- [x] 2.2.7 Coordination branch configuration: configurable target branch for claim commits (default: `main`)
 
 ### 2.3 Claim Operations (Frontend)
 
-- [ ] 2.3.1 "Claim" button on unclaimed card components
-- [ ] 2.3.2 "Release" button on cards claimed by the current user
-- [ ] 2.3.3 Claim conflict modal: show who claimed it, offer to refresh
-- [ ] 2.3.4 Visual indicators on cards: claimant name/avatar, claim timestamp
-- [ ] 2.3.5 Filter/sort: view by claimant, show only unclaimed items
+- [x] 2.3.1 "Claim" button on unclaimed card components
+- [x] 2.3.2 "Release" button on cards claimed by the current user
+- [x] 2.3.3 Claim conflict modal: show who claimed it, offer to refresh
+- [x] 2.3.4 Visual indicators on cards: claimant name/avatar, claim timestamp
+- [x] 2.3.5 Filter/sort: view by claimant, show only unclaimed items
 
 ### 2.4 Cross-Branch Claim Visibility
 
-- [ ] 2.4.1 Board always reads claims from the coordination branch, regardless of selected view branch
-- [ ] 2.4.2 Visual distinction between coordination-branch claims and viewed-branch spec state
-- [ ] 2.4.3 Stale claim detection: flag claims where no matching spec activity exists
+- [x] 2.4.1 Board always reads claims from the coordination branch, regardless of selected view branch
+- [x] 2.4.2 Visual distinction between coordination-branch claims and viewed-branch spec state
+- [x] 2.4.3 Stale claim detection: flag claims where no matching spec activity exists
 
 ## Phase 3: Phase Transitions & Workflow Triggers
 
