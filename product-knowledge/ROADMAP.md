@@ -48,14 +48,14 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 1.5 API Server
 
-- [ ] 1.5.1 Fastify server scaffold with TypeScript
-- [ ] 1.5.2 `GET /api/board` — return full board state (columns, cards, metadata)
-- [ ] 1.5.3 `GET /api/board/card/:id` — return detail for a single card (spec contents, plan, requirements)
-- [ ] 1.5.4 `GET /api/branches` — list available branches
-- [ ] 1.5.5 `POST /api/branch` — switch the active branch the board reads from
-- [ ] 1.5.6 `GET /api/health` — health check endpoint
-- [ ] 1.5.7 Error handling middleware: structured error responses
-- [ ] 1.5.8 CORS configuration for local dev (frontend on Vite dev server)
+- [x] 1.5.1 Fastify server scaffold with TypeScript
+- [x] 1.5.2 `GET /api/board` — return full board state (columns, cards, metadata)
+- [x] 1.5.3 `GET /api/board/card/:id` — return detail for a single card (spec contents, plan, requirements)
+- [x] 1.5.4 `GET /api/branches` — list available branches
+- [x] 1.5.5 `POST /api/branch` — switch the active branch the board reads from
+- [x] 1.5.6 `GET /api/health` — health check endpoint
+- [x] 1.5.7 Error handling middleware: structured error responses
+- [x] 1.5.8 CORS configuration for local dev (frontend on Vite dev server)
 
 ### 1.6 Frontend: Board View
 
