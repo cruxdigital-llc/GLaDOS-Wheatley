@@ -8,6 +8,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import type { CardService } from '../card-service.js';
+import { CardNotFoundError } from '../card-service.js';
 import type { BoardPhase } from '../../../shared/grammar/types.js';
 import { PHASE_ORDER } from '../../../shared/grammar/types.js';
 
@@ -87,7 +88,14 @@ export function cardRoutes(app: FastifyInstance, cardService: CardService): void
       return reply.status(400).send({ error: `title must be ${TITLE_MAX_LENGTH} characters or fewer` });
     }
 
-    await cardService.renameCard(id, title.trim(), typeof branch === 'string' ? branch : undefined);
+    try {
+      await cardService.renameCard(id, title.trim(), typeof branch === 'string' ? branch : undefined);
+    } catch (err) {
+      if (err instanceof CardNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      throw err;
+    }
     return reply.status(200).send({ renamed: true, id, title: title.trim() });
   });
 
@@ -103,7 +111,14 @@ export function cardRoutes(app: FastifyInstance, cardService: CardService): void
       return reply.status(400).send({ error: 'Invalid card ID format' });
     }
 
-    await cardService.deleteCard(id, branch);
+    try {
+      await cardService.deleteCard(id, branch);
+    } catch (err) {
+      if (err instanceof CardNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      throw err;
+    }
     return reply.status(200).send({ deleted: true, id });
   });
 }

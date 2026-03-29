@@ -12,7 +12,11 @@ const ALLOWED_FILES = new Set([
   'README.md', 'spec.md', 'plan.md', 'requirements.md', 'tasks.md', 'comments.md',
 ]);
 
-const SAFE_DIR_RE = /^[a-zA-Z0-9_-]+$/;
+/** Directory name must be alphanumeric with hyphens, underscores, and dots only. */
+const SAFE_DIR_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
+
+/** Maximum content size: 100 KB. */
+const MAX_CONTENT_LENGTH = 100_000;
 
 export function specRoutes(app: FastifyInstance, adapter: GitAdapter): void {
   app.put<{
@@ -22,8 +26,17 @@ export function specRoutes(app: FastifyInstance, adapter: GitAdapter): void {
     const { specDir, fileName } = request.params;
     const { content, branch } = request.body ?? {};
 
-    // Validate specDir (prevent path traversal)
-    if (!SAFE_DIR_RE.test(specDir.replace(/[._]/g, ''))) {
+    // Reject path traversal sequences before any other processing
+    if (specDir.includes('..') || specDir.includes('/') || specDir.includes('\\')) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Invalid spec directory name',
+      });
+    }
+
+    // Validate specDir format
+    if (!SAFE_DIR_RE.test(specDir)) {
       return reply.status(400).send({
         statusCode: 400,
         error: 'Bad Request',
@@ -44,6 +57,14 @@ export function specRoutes(app: FastifyInstance, adapter: GitAdapter): void {
         statusCode: 400,
         error: 'Bad Request',
         message: 'content must be a string',
+      });
+    }
+
+    if (content.length > MAX_CONTENT_LENGTH) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: `Content too large (max ${MAX_CONTENT_LENGTH} bytes)`,
       });
     }
 

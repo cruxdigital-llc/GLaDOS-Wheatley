@@ -8,13 +8,24 @@
 import type { FastifyInstance } from 'fastify';
 import type { GitAdapter } from '../../git/types.js';
 
-const SAFE_DIR_RE = /^[a-zA-Z0-9_.-]+$/;
+const SAFE_DIR_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
 const MAX_COMMENT_LENGTH = 5000;
+const MAX_AUTHOR_LENGTH = 100;
 
 interface Comment {
   author: string;
   timestamp: string;
   body: string;
+}
+
+/** Strip markdown formatting characters that could break comment parsing. */
+function sanitizeMarkdown(value: string): string {
+  return value.replace(/[*_`~\[\]]/g, '');
+}
+
+/** Sanitize for commit messages. */
+function sanitizeForCommit(value: string): string {
+  return value.replace(/[\r\n\x00-\x1f]/g, ' ').trim().slice(0, 100);
 }
 
 function parseComments(content: string): Comment[] {
@@ -45,7 +56,7 @@ export function commentRoutes(app: FastifyInstance, adapter: GitAdapter): void {
     Querystring: { branch?: string };
   }>('/api/specs/:specDir/comments', async (request, reply) => {
     const { specDir } = request.params;
-    if (!SAFE_DIR_RE.test(specDir)) {
+    if (specDir.includes('..') || !SAFE_DIR_RE.test(specDir)) {
       return reply.status(400).send({ error: 'Invalid spec directory' });
     }
 
@@ -62,11 +73,14 @@ export function commentRoutes(app: FastifyInstance, adapter: GitAdapter): void {
     const { specDir } = request.params;
     const { author, body, branch } = request.body ?? {};
 
-    if (!SAFE_DIR_RE.test(specDir)) {
+    if (specDir.includes('..') || !SAFE_DIR_RE.test(specDir)) {
       return reply.status(400).send({ error: 'Invalid spec directory' });
     }
     if (typeof author !== 'string' || !author.trim()) {
       return reply.status(400).send({ error: 'author is required' });
+    }
+    if (author.length > MAX_AUTHOR_LENGTH) {
+      return reply.status(400).send({ error: `Author name too long (max ${MAX_AUTHOR_LENGTH} chars)` });
     }
     if (typeof body !== 'string' || !body.trim()) {
       return reply.status(400).send({ error: 'body is required' });
@@ -75,18 +89,19 @@ export function commentRoutes(app: FastifyInstance, adapter: GitAdapter): void {
       return reply.status(400).send({ error: `Comment too long (max ${MAX_COMMENT_LENGTH} chars)` });
     }
 
+    const safeAuthor = sanitizeMarkdown(author.trim());
     const filePath = `specs/${specDir}/comments.md`;
     const branchStr = typeof branch === 'string' ? branch : undefined;
 
     const existing = await adapter.readFile(filePath, branchStr);
     const header = '# Comments\n';
     const base = existing?.trim() || header.trimEnd();
-    const newContent = base + formatComment(author.trim(), body);
+    const newContent = base + formatComment(safeAuthor, body);
 
     await adapter.writeFile(
       filePath,
       newContent,
-      `wheatley: comment on ${specDir} by ${author.trim()}`,
+      `wheatley: comment on ${specDir} by ${sanitizeForCommit(safeAuthor)}`,
       branchStr,
     );
 

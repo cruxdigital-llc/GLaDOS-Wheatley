@@ -30,16 +30,21 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
   const [editingFile, setEditingFile] = useState<string | null>(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameTitle, setRenameTitle] = useState(card.title);
+  const [error, setError] = useState<string | null>(null);
 
   const specDir = card.specEntry?.dirName;
 
   const handleSave = useCallback(async (fileName: string, content: string) => {
     if (!specDir) return;
-    await saveSpecFile(specDir, fileName, content, branch);
-    // Invalidate queries to refresh
-    void queryClient.invalidateQueries({ queryKey: ['card'] });
-    void queryClient.invalidateQueries({ queryKey: ['board'] });
-    setEditingFile(null);
+    setError(null);
+    try {
+      await saveSpecFile(specDir, fileName, content, branch);
+      void queryClient.invalidateQueries({ queryKey: ['card'] });
+      void queryClient.invalidateQueries({ queryKey: ['board'] });
+      setEditingFile(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save file');
+    }
   }, [specDir, branch, queryClient]);
 
   const handleCheckboxToggle = useCallback(async (fileName: string, lineIndex: number, fileContent: string) => {
@@ -57,10 +62,15 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
       return;
     }
 
-    const newContent = lines.join('\n');
-    await saveSpecFile(specDir, fileName, newContent, branch);
-    void queryClient.invalidateQueries({ queryKey: ['card'] });
-    void queryClient.invalidateQueries({ queryKey: ['board'] });
+    setError(null);
+    try {
+      const newContent = lines.join('\n');
+      await saveSpecFile(specDir, fileName, newContent, branch);
+      void queryClient.invalidateQueries({ queryKey: ['card'] });
+      void queryClient.invalidateQueries({ queryKey: ['board'] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to toggle checkbox');
+    }
   }, [specDir, branch, queryClient]);
 
   const renderContent = (fileName: string, content: string) => {
@@ -111,12 +121,17 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
                   className="flex items-center gap-2"
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    if (renameTitle.trim() && renameTitle !== card.title) {
-                      await renameCard(card.id, renameTitle.trim(), branch);
-                      void queryClient.invalidateQueries({ queryKey: ['board'] });
-                      void queryClient.invalidateQueries({ queryKey: ['card'] });
+                    setError(null);
+                    try {
+                      if (renameTitle.trim() && renameTitle !== card.title) {
+                        await renameCard(card.id, renameTitle.trim(), branch);
+                        void queryClient.invalidateQueries({ queryKey: ['board'] });
+                        void queryClient.invalidateQueries({ queryKey: ['card'] });
+                      }
+                      setIsRenaming(false);
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : 'Failed to rename card');
                     }
-                    setIsRenaming(false);
                   }}
                 >
                   <input
@@ -147,9 +162,14 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
                 type="button"
                 onClick={async () => {
                   if (confirm(`Delete card "${card.title}"?`)) {
-                    await deleteCard(card.id, branch);
-                    void queryClient.invalidateQueries({ queryKey: ['board'] });
-                    onClose();
+                    setError(null);
+                    try {
+                      await deleteCard(card.id, branch);
+                      void queryClient.invalidateQueries({ queryKey: ['board'] });
+                      onClose();
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : 'Failed to delete card');
+                    }
                   }
                 }}
                 className="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50"
@@ -167,6 +187,14 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
             </div>
           </div>
         </div>
+
+        {/* Error banner */}
+        {error && (
+          <div className="mx-6 mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-600 flex items-center justify-between">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} className="text-red-400 hover:text-red-600 ml-2">&times;</button>
+          </div>
+        )}
 
         {/* Spec contents */}
         <div className="flex-1 px-6 py-4 space-y-6">

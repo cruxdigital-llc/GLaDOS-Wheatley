@@ -27,6 +27,7 @@ export function CommentThread({ specDir, branch, currentUser }: Props) {
   const queryClient = useQueryClient();
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { data } = useQuery({
     queryKey: ['comments', specDir, branch],
@@ -39,12 +40,13 @@ export function CommentThread({ specDir, branch, currentUser }: Props) {
     e.preventDefault();
     if (!newComment.trim() || !currentUser) return;
     setSubmitting(true);
+    setError(null);
     try {
       await addComment(specDir, currentUser, newComment.trim(), branch);
       setNewComment('');
       void queryClient.invalidateQueries({ queryKey: ['comments', specDir] });
-    } catch {
-      // Silently fail
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to post comment');
     } finally {
       setSubmitting(false);
     }
@@ -69,6 +71,10 @@ export function CommentThread({ specDir, branch, currentUser }: Props) {
           </div>
         ))}
       </div>
+
+      {error && (
+        <p className="text-xs text-red-500 mb-2">{error}</p>
+      )}
 
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input

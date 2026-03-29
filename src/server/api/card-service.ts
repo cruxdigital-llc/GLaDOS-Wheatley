@@ -10,6 +10,19 @@ import { parseRoadmap } from '../../shared/parsers/roadmap-parser.js';
 
 const ROADMAP_FILE = 'product-knowledge/ROADMAP.md';
 
+/** Sanitize a string for use in git commit messages (strip newlines and control chars). */
+function sanitizeForCommit(value: string): string {
+  return value.replace(/[\r\n\x00-\x1f]/g, ' ').trim().slice(0, 200);
+}
+
+/** Error thrown when a card is not found. */
+export class CardNotFoundError extends Error {
+  constructor(itemId: string) {
+    super(`Item ${itemId} not found in ROADMAP.md`);
+    this.name = 'CardNotFoundError';
+  }
+}
+
 export interface CreateCardInput {
   title: string;
   phase?: BoardPhase;
@@ -56,7 +69,7 @@ export class CardService {
       await this.adapter.writeFile(
         ROADMAP_FILE,
         newContent,
-        `wheatley: add card "${input.title}" (${newId})`,
+        `wheatley: add card "${sanitizeForCommit(input.title)}" (${newId})`,
         input.branch,
       );
 
@@ -68,7 +81,7 @@ export class CardService {
         await this.adapter.writeFile(
           `${specDir}/README.md`,
           readme,
-          `wheatley: create spec for "${input.title}" (${newId})`,
+          `wheatley: create spec for "${sanitizeForCommit(input.title)}" (${newId})`,
           input.branch,
         );
 
@@ -76,7 +89,7 @@ export class CardService {
         await this.adapter.writeFile(
           `${specDir}/tasks.md`,
           tasks,
-          `wheatley: add tasks for "${input.title}" (${newId})`,
+          `wheatley: add tasks for "${sanitizeForCommit(input.title)}" (${newId})`,
           input.branch,
         );
       }
@@ -188,14 +201,14 @@ export class CardService {
       const escapedId = itemId.replace(/\./g, '\\.');
       const re = new RegExp(`^(- \\[[x ]\\] ${escapedId}) .+$`, 'm');
       const match = content.match(re);
-      if (!match) throw new Error(`Item ${itemId} not found in ROADMAP.md`);
+      if (!match) throw new CardNotFoundError(itemId);
 
       const newContent = content.replace(re, `$1 ${newTitle}`);
 
       await this.adapter.writeFile(
         ROADMAP_FILE,
         newContent,
-        `wheatley: rename ${itemId} to "${newTitle}"`,
+        `wheatley: rename ${itemId} to "${sanitizeForCommit(newTitle)}"`,
         branch,
       );
     } finally {
@@ -214,7 +227,7 @@ export class CardService {
 
       const escapedId = itemId.replace(/\./g, '\\.');
       const re = new RegExp(`^- \\[[x ]\\] ${escapedId} .+\\n?`, 'm');
-      if (!re.test(content)) throw new Error(`Item ${itemId} not found in ROADMAP.md`);
+      if (!re.test(content)) throw new CardNotFoundError(itemId);
 
       const newContent = content.replace(re, '');
 
@@ -224,28 +237,6 @@ export class CardService {
         `wheatley: archive ${itemId}`,
         branch,
       );
-    } finally {
-      release();
-    }
-  }
-
-  /**
-   * Undo the last Wheatley commit using git revert.
-   * Only reverts commits whose message starts with "wheatley:".
-   */
-  async undoLastEdit(branch?: string): Promise<{ reverted: string }> {
-    const release = await this.acquireWriteLock();
-    try {
-      // Get latest SHA
-      const sha = await this.adapter.getLatestSha(branch);
-      if (!sha) throw new Error('Could not determine latest commit');
-
-      // Read the commit content to verify it's a Wheatley commit
-      // For now, we just revert HEAD — the adapter's writeFile handles the git ops
-      // The actual git revert would need to be done at the adapter level
-      // For simplicity, we'll use a write-back approach
-
-      return { reverted: sha.slice(0, 8) };
     } finally {
       release();
     }
