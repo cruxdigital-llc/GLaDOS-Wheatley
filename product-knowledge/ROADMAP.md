@@ -91,9 +91,9 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 2.1 Claims Data Model
 
-- [ ] 2.1.1 Define `claims.md` format: structured entries with task ID, claimant, timestamp, status
-- [ ] 2.1.2 Define claim lifecycle states: claimed, released, expired
-- [ ] 2.1.3 Extend the parsing grammar specification to cover `claims.md`
+- [x] 2.1.1 Define `claims.md` format: structured entries with task ID, claimant, timestamp, status
+- [x] 2.1.2 Define claim lifecycle states: claimed, released, expired
+- [x] 2.1.3 Extend the parsing grammar specification to cover `claims.md`
 
 ### 2.2 Claim Operations (Backend)
 

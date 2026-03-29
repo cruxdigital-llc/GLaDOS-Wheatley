@@ -545,4 +545,93 @@ GLaDOS-MANAGED DOCUMENT
     expect(result.warnings).toHaveLength(2);
     expect(result.warnings[0].message).toContain('missing a release timestamp');
   });
+
+  // --- CLAIMS.timestamp_order ---
+
+  it('flags released entry where RELEASE_TS equals CLAIMED_AT', () => {
+    const content = `# Claims
+
+- [released] 1.1.1 | agent-1 | 2026-03-28T20:00:00Z | 2026-03-28T20:00:00Z
+`;
+    const result = validateClaims(content);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.rule === 'CLAIMS.timestamp_order')).toBe(true);
+  });
+
+  it('flags released entry where RELEASE_TS is before CLAIMED_AT', () => {
+    const content = `# Claims
+
+- [released] 1.1.1 | agent-1 | 2026-03-28T20:00:00Z | 2026-03-28T19:00:00Z
+`;
+    const result = validateClaims(content);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.rule === 'CLAIMS.timestamp_order')).toBe(true);
+  });
+
+  it('accepts released entry where RELEASE_TS is strictly after CLAIMED_AT', () => {
+    const content = `# Claims
+
+- [released] 1.1.1 | agent-1 | 2026-03-28T18:00:00Z | 2026-03-28T21:00:00Z
+`;
+    const result = validateClaims(content);
+    expect(result.valid).toBe(true);
+    expect(result.errors.some((e) => e.rule === 'CLAIMS.timestamp_order')).toBe(false);
+  });
+
+  // --- CLAIMS.claimant_format ---
+
+  it('flags a claimant with an embedded pipe character', () => {
+    // Use a line that is close-to-valid but has a pipe in the claimant field.
+    // The CLAIM_ENTRY_RE will not match because the claimant regex (.+?) stops
+    // at the first pipe, so the loose match path triggers the claimant check.
+    const content = `# Claims
+
+- [claimed] 1.1.1 | bad|name | 2026-03-28T20:00:00Z
+`;
+    const result = validateClaims(content);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.rule === 'CLAIMS.claimant_format')).toBe(true);
+  });
+
+  it('accepts a valid claimant without a pipe character', () => {
+    const content = `# Claims
+
+- [claimed] 1.1.1 | valid-claimant | 2026-03-28T20:00:00Z
+`;
+    const result = validateClaims(content);
+    expect(result.valid).toBe(true);
+    expect(result.errors.some((e) => e.rule === 'CLAIMS.claimant_format')).toBe(false);
+  });
+
+  // --- CLAIMS.item_id_format ---
+
+  it('flags an item ID with only two segments', () => {
+    const content = `# Claims
+
+- [claimed] 1.1 | agent-1 | 2026-03-28T20:00:00Z
+`;
+    const result = validateClaims(content);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.rule === 'CLAIMS.item_id_format')).toBe(true);
+  });
+
+  it('flags an item ID with non-numeric characters', () => {
+    const content = `# Claims
+
+- [claimed] 1.a.1 | agent-1 | 2026-03-28T20:00:00Z
+`;
+    const result = validateClaims(content);
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.rule === 'CLAIMS.item_id_format')).toBe(true);
+  });
+
+  it('accepts a valid three-segment numeric item ID', () => {
+    const content = `# Claims
+
+- [claimed] 2.1.3 | agent-1 | 2026-03-28T20:00:00Z
+`;
+    const result = validateClaims(content);
+    expect(result.valid).toBe(true);
+    expect(result.errors.some((e) => e.rule === 'CLAIMS.item_id_format')).toBe(false);
+  });
 });
