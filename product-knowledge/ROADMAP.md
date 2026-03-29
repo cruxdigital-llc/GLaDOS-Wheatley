@@ -107,11 +107,11 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 2.3 Claim Operations (Frontend)
 
-- [ ] 2.3.1 "Claim" button on unclaimed card components
-- [ ] 2.3.2 "Release" button on cards claimed by the current user
-- [ ] 2.3.3 Claim conflict modal: show who claimed it, offer to refresh
-- [ ] 2.3.4 Visual indicators on cards: claimant name/avatar, claim timestamp
-- [ ] 2.3.5 Filter/sort: view by claimant, show only unclaimed items
+- [x] 2.3.1 "Claim" button on unclaimed card components
+- [x] 2.3.2 "Release" button on cards claimed by the current user
+- [x] 2.3.3 Claim conflict modal: show who claimed it, offer to refresh
+- [x] 2.3.4 Visual indicators on cards: claimant name/avatar, claim timestamp
+- [x] 2.3.5 Filter/sort: view by claimant, show only unclaimed items
 
 ### 2.4 Cross-Branch Claim Visibility
 
