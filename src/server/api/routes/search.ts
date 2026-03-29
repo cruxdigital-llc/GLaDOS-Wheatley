@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import type { SearchService } from '../search-service.js';
 
 const MAX_QUERY_LENGTH = 200;
+const SAFE_BRANCH_RE = /^[a-zA-Z0-9][a-zA-Z0-9._\/-]*$/;
 
 export function searchRoutes(app: FastifyInstance, searchService: SearchService): void {
   app.get<{
@@ -28,6 +29,14 @@ export function searchRoutes(app: FastifyInstance, searchService: SearchService)
         statusCode: 400,
         error: 'Bad Request',
         message: `Query too long (max ${MAX_QUERY_LENGTH} chars)`,
+      });
+    }
+
+    if (branch && (!SAFE_BRANCH_RE.test(branch) || branch.includes('..'))) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Invalid branch name',
       });
     }
 

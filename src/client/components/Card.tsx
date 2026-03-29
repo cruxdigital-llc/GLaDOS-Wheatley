@@ -173,7 +173,7 @@ export function Card({
           {card.metadata.due && (
             <span
               className={`text-xs px-1.5 py-0.5 rounded ${
-                card.metadata.due < '2026-03-29'
+                card.metadata.due < new Date().toISOString().slice(0, 10)
                   ? 'bg-red-50 text-red-600 border border-red-200'
                   : 'text-gray-500'
               }`}

@@ -72,7 +72,7 @@ export class SearchService {
     const results: SearchResult[] = [];
 
     // Collect all async work for spec/comment searches
-    const asyncWork: Array<Promise<void>> = [];
+    const asyncWork: Array<Promise<SearchResult[]>> = [];
 
     for (const card of cards) {
       // 1. Title matches
@@ -83,16 +83,19 @@ export class SearchService {
 
       // 3. Spec file content matches (async)
       if (card.specEntry) {
-        asyncWork.push(this.matchSpecFiles(card, pattern, branch, results));
+        asyncWork.push(this.matchSpecFiles(card, pattern, branch));
       }
 
       // 4. Comment matches (async)
       if (card.specEntry) {
-        asyncWork.push(this.matchComments(card, pattern, branch, results));
+        asyncWork.push(this.matchComments(card, pattern, branch));
       }
     }
 
-    await Promise.all(asyncWork);
+    const asyncResults = await Promise.all(asyncWork);
+    for (const batch of asyncResults) {
+      results.push(...batch);
+    }
 
     // Sort by score descending, then limit
     results.sort((a, b) => b.score - a.score);
@@ -137,10 +140,10 @@ export class SearchService {
     card: BoardCard,
     pattern: RegExp,
     branch: string | undefined,
-    results: SearchResult[],
-  ): Promise<void> {
+  ): Promise<SearchResult[]> {
     const specEntry = card.specEntry!;
     const filesToCheck = SPEC_FILES.filter((f) => specEntry.files.includes(f));
+    const matched: SearchResult[] = [];
 
     const contents = await Promise.all(
       filesToCheck.map(async (fileName) => {
@@ -152,12 +155,12 @@ export class SearchService {
       }),
     );
 
-    for (const { fileName, content } of contents) {
+    for (const { content } of contents) {
       if (!content) continue;
       pattern.lastIndex = 0;
       const match = pattern.exec(content);
       if (match) {
-        results.push({
+        matched.push({
           cardId: card.id,
           title: card.title,
           phase: card.phase,
@@ -165,35 +168,37 @@ export class SearchService {
           matchContext: extractContext(content, match.index, match[0].length),
           score: 7,
         });
-        // One result per card per file is enough; break after first match per file
       }
     }
+
+    return matched;
   }
 
   private async matchComments(
     card: BoardCard,
     pattern: RegExp,
     branch: string | undefined,
-    results: SearchResult[],
-  ): Promise<void> {
+  ): Promise<SearchResult[]> {
     const specEntry = card.specEntry!;
     const content = await this.adapter.readFile(
       `specs/${specEntry.dirName}/comments.md`,
       branch,
     );
-    if (!content) return;
+    if (!content) return [];
 
     pattern.lastIndex = 0;
     const match = pattern.exec(content);
     if (match) {
-      results.push({
+      return [{
         cardId: card.id,
         title: card.title,
         phase: card.phase,
         matchType: 'comment',
         matchContext: extractContext(content, match.index, match[0].length),
         score: 3,
-      });
+      }];
     }
+
+    return [];
   }
 }

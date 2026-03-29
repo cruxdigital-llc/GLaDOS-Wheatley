@@ -13,6 +13,10 @@ const VALID_PRIORITIES = new Set(['P0', 'P1', 'P2', 'P3']);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_LABELS = 20;
 const MAX_LABEL_LENGTH = 50;
+/** Labels must be plain alphanumeric with hyphens/spaces (no YAML-breaking chars). */
+const SAFE_LABEL_RE = /^[a-zA-Z0-9][a-zA-Z0-9 _-]*$/;
+/** Branch name must not contain shell metacharacters, null bytes, or `..`. */
+const SAFE_BRANCH_RE = /^[a-zA-Z0-9][a-zA-Z0-9._\/-]*$/;
 
 /** Directory name must be alphanumeric with hyphens, underscores, and dots only. */
 const SAFE_DIR_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
@@ -115,10 +119,26 @@ export function metadataRoutes(app: FastifyInstance, adapter: GitAdapter): void 
             message: `Each label must be ${MAX_LABEL_LENGTH} characters or fewer`,
           });
         }
+        if (!SAFE_LABEL_RE.test(label.trim())) {
+          return reply.status(400).send({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'Labels must contain only letters, numbers, spaces, hyphens, and underscores',
+          });
+        }
       }
     }
 
     const branchStr = typeof branch === 'string' ? branch : undefined;
+
+    // Validate branch name
+    if (branchStr && (!SAFE_BRANCH_RE.test(branchStr) || branchStr.includes('..'))) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Invalid branch name',
+      });
+    }
 
     // Find the spec directory for this card
     const specDir = await findSpecDir(adapter, id, branchStr);
