@@ -73,17 +73,17 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 1.7 Brownfield Standardization
 
-- [ ] 1.7.1 CLI command or API endpoint to analyze a repo's conformance to the parsing grammar
-- [ ] 1.7.2 Report: list non-conforming files with specific violations
-- [ ] 1.7.3 Auto-fix mode: rewrite non-conforming files to match the grammar (with git commit)
+- [x] 1.7.1 CLI command or API endpoint to analyze a repo's conformance to the parsing grammar
+- [x] 1.7.2 Report: list non-conforming files with specific violations
+- [x] 1.7.3 Auto-fix mode: rewrite non-conforming files to match the grammar (with git commit)
 
 ### 1.8 Docker & Deployment
 
-- [ ] 1.8.1 Multi-stage Dockerfile (dev target with hot reload, production target with built assets)
-- [ ] 1.8.2 docker-compose.yml for local sidecar (volume-mounted repo, WHEATLEY_MODE=local)
-- [ ] 1.8.3 Environment variable documentation (WHEATLEY_MODE, WHEATLEY_REPO_PATH, GITHUB_TOKEN, WHEATLEY_REPO)
-- [ ] 1.8.4 Startup validation: fail fast with clear errors if required env vars are missing
-- [ ] 1.8.5 Cloud deployment example (standalone Docker run with WHEATLEY_MODE=remote)
+- [x] 1.8.1 Multi-stage Dockerfile (dev target with hot reload, production target with built assets)
+- [x] 1.8.2 docker-compose.yml for local sidecar (volume-mounted repo, WHEATLEY_MODE=local)
+- [x] 1.8.3 Environment variable documentation (WHEATLEY_MODE, WHEATLEY_REPO_PATH, GITHUB_TOKEN, WHEATLEY_REPO)
+- [x] 1.8.4 Startup validation: fail fast with clear errors if required env vars are missing
+- [x] 1.8.5 Cloud deployment example (standalone Docker run with WHEATLEY_MODE=remote)
 
 ## Phase 2: Claims & Assignment
 

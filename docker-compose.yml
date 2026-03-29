@@ -12,6 +12,7 @@ services:
       - ./src:/app/src
       - ./tsconfig.json:/app/tsconfig.json
       - ./vitest.config.ts:/app/vitest.config.ts
+      - ./index.html:/app/index.html
       - ./package.json:/app/package.json
       - /app/node_modules
       - ${WHEATLEY_REPO_PATH:-.}:/repo:ro

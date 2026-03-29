@@ -9,6 +9,7 @@ RUN npm install
 # Copy source and config
 COPY tsconfig.json ./
 COPY vitest.config.ts ./
+COPY index.html ./
 COPY src/ ./src/
 
 # Build
@@ -22,6 +23,10 @@ WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:3000/api/health || exit 1
 
 EXPOSE 3000
 CMD ["node", "dist/server/index.js"]

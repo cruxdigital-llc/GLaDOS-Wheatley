@@ -31,11 +31,12 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 
 - [x] **Repo parser**: Extract unclaimed items from `ROADMAP.md`, phase from `specs/` directories, active tasks from `PROJECT_STATUS.md`
 - [x] **API Server**: Fastify with board, branch, health endpoints
-- [ ] **Kanban board UI**: Column-based view mapping GLaDOS phases to columns
-- [ ] **Card detail view**: Show README, spec, plan, and requirements from a feature's `specs/` directory
-- [ ] **Branch selector**: Switch which branch the board reads from
+- [x] **Kanban board UI**: Column-based view mapping GLaDOS phases to columns
+- [x] **Card detail view**: Show README, spec, plan, and requirements from a feature's `specs/` directory
+- [x] **Branch selector**: Switch which branch the board reads from
+- [x] **Conformance analyzer**: GET /api/conformance for brownfield repos
 - [x] **Git adapter**: Unified interface with local (simple-git) and remote (API) implementations
-- [ ] **Docker packaging**: Single image supporting both `local` and `remote` boot modes
+- [x] **Docker packaging**: Single image supporting both `local` and `remote` boot modes
 - [x] **Parsing grammar**: Strict, machine-readable contract for extracting tasks from ROADMAP.md, specs/, and PROJECT_STATUS.md
 - [x] **Source watching & sync**: `.git/` watcher (local), API polling (cloud), debounce, full re-sync fallback
 
@@ -59,3 +60,7 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-28: Feature 1.3 (Git Adapter) complete — 130 tests total, path traversal protection, dual-mode adapter.
 - 2026-03-28: Feature 1.4 (Source Watching) complete — 172 tests total, SHA-based polling, debounce, event bus.
 - 2026-03-28: Feature 1.5 (API Server) complete — 189 tests total, stateless branch API, graceful shutdown.
+- 2026-03-28: Feature 1.6 (Frontend) complete — React + TailwindCSS Kanban board.
+- 2026-03-28: Feature 1.7 (Brownfield) complete — conformance analyzer + API endpoint.
+- 2026-03-28: Feature 1.8 (Docker) complete — multi-stage Dockerfile with health check.
+- 2026-03-28: **PHASE 1 COMPLETE** — 194 tests passing, 48/48 roadmap items done.

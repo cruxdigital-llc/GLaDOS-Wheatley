@@ -12,6 +12,7 @@ import { errorHandler } from './error-handler.js';
 import { healthRoutes } from './routes/health.js';
 import { boardRoutes } from './routes/board.js';
 import { branchRoutes } from './routes/branches.js';
+import { conformanceRoutes } from './routes/conformance.js';
 
 export interface ServerOptions {
   adapter: GitAdapter;
@@ -41,6 +42,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   healthRoutes(app);
   boardRoutes(app, boardService);
   branchRoutes(app, options.adapter, boardService);
+  conformanceRoutes(app, options.adapter);
 
   return app;
 }
