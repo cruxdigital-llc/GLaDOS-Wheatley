@@ -49,6 +49,11 @@ import { PRLinkService } from './pr-link-service.js';
 import { SubprocessRunner } from '../workflows/subprocess-runner.js';
 import { NullRunner } from '../workflows/null-runner.js';
 import type { WorkflowRunner } from '../workflows/types.js';
+import { loadAuthConfig, authMiddleware, requireRole, oauthRoutes, loginPageRoute } from '../auth/index.js';
+import { UserNotificationService } from '../notifications/notification-service.js';
+import { userNotificationRoutes } from './routes/user-notifications.js';
+import { RepoManager } from '../multi-repo/repo-manager.js';
+import { repoRoutes } from './routes/repos.js';
 
 export interface ServerOptions {
   adapter: GitAdapter;
@@ -70,6 +75,18 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
   // Error handler
   app.setErrorHandler(errorHandler);
+
+  // Auth
+  const authConfig = loadAuthConfig();
+  if (authConfig.mode === 'cloud') {
+    // Cloud mode: require authentication on all routes (except health, login, auth callbacks)
+    app.addHook('onRequest', authMiddleware(authConfig));
+    oauthRoutes(app, authConfig);
+    loginPageRoute(app, authConfig);
+  } else {
+    // Local mode: attach a default local user to every request (no auth required)
+    app.addHook('onRequest', authMiddleware(authConfig));
+  }
 
   // Services
   const boardService = new BoardService(options.adapter);
@@ -94,10 +111,41 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const eventBus = new EventBus();
   const eventLogService = new EventLogService(options.adapter, eventBus);
   eventLogService.start();
+  const userNotificationService = new UserNotificationService();
+  const repoManager = new RepoManager(options.adapter);
 
   // Stop event log on server close
   app.addHook('onClose', async () => {
     eventLogService.stop();
+  });
+
+  // Role-based access guards (applied as preHandler so auth has already run)
+  const editorGuard = requireRole('editor');
+  const adminGuard = requireRole('admin');
+
+  // Mutation routes (POST/PUT/DELETE) require at least 'editor' role.
+  // Webhook and config routes require 'admin' role.
+  const ADMIN_PREFIXES = ['/api/webhooks', '/api/config', '/api/notifications/webhooks'];
+  app.addHook('preHandler', async (request, reply) => {
+    const method = request.method;
+    const url = request.url.split('?')[0]; // strip query params
+
+    // Skip auth checks for auth-related and health routes
+    if (url.startsWith('/auth/') || url === '/login' || url === '/api/health') {
+      return;
+    }
+
+    // Admin routes: any method on admin prefixes
+    if (ADMIN_PREFIXES.some((prefix) => url.startsWith(prefix))) {
+      return adminGuard(request, reply);
+    }
+
+    // Mutation routes: POST, PUT, DELETE, PATCH require editor
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+      return editorGuard(request, reply);
+    }
+
+    // GET routes: accessible to any authenticated user (viewer+)
   });
 
   // Routes (all registered as plain function calls for consistency)
@@ -122,6 +170,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   configRoutes(app, options.adapter);
   workflowRunRoutes(app, workflowRunner);
   pullRequestRoutes(app, platformAdapter, prLinkService);
+  userNotificationRoutes(app, userNotificationService);
+  repoRoutes(app, repoManager);
 
   return app;
 }

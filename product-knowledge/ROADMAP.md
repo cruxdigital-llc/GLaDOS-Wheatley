@@ -358,40 +358,40 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 10.1 Local Mode Identity (No Auth)
 
-- [ ] 10.1.1 Local mode skips all authentication — if you can reach the server, you have full access
-- [ ] 10.1.2 Identity derived from `git config user.name` / `user.email` (set up in Phase 6.3)
-- [ ] 10.1.3 All API endpoints are open; role = editor by default
+- [x] 10.1.1 Local mode skips all authentication — if you can reach the server, you have full access
+- [x] 10.1.2 Identity derived from `git config user.name` / `user.email` (set up in Phase 6.3)
+- [x] 10.1.3 All API endpoints are open; role = editor by default
 
 ### 10.2 Cloud Mode Authentication (GitHub & GitLab OAuth Only)
 
-- [ ] 10.2.1 GitHub OAuth2 integration: login flow, token exchange, profile fetch for identity
-- [ ] 10.2.2 GitLab OAuth2 integration: login flow, token exchange, profile fetch for identity
-- [ ] 10.2.3 OAuth provider selection: auto-detect from repo remote URL (github.com → GitHub, gitlab.com → GitLab), or manual config
-- [ ] 10.2.4 Session management: JWT tokens with configurable expiry, refresh token rotation
-- [ ] 10.2.5 API key authentication for headless/CI access (`WHEATLEY_API_KEY` header) — bypasses OAuth
-- [ ] 10.2.6 Login page: provider buttons only (no username/password form), redirect to OAuth consent screen
+- [x] 10.2.1 GitHub OAuth2 integration: login flow, token exchange, profile fetch for identity
+- [x] 10.2.2 GitLab OAuth2 integration: login flow, token exchange, profile fetch for identity
+- [x] 10.2.3 OAuth provider selection: auto-detect from repo remote URL (github.com → GitHub, gitlab.com → GitLab), or manual config
+- [x] 10.2.4 Session management: JWT tokens with configurable expiry, refresh token rotation
+- [x] 10.2.5 API key authentication for headless/CI access (`WHEATLEY_API_KEY` header) — bypasses OAuth
+- [x] 10.2.6 Login page: provider buttons only (no username/password form), redirect to OAuth consent screen
 
 ### 10.3 Authorization & Roles
 
-- [ ] 10.3.1 Role model: viewer (read-only), editor (claim, transition, edit), admin (webhooks, config, user management)
-- [ ] 10.3.2 Per-endpoint authorization middleware (viewers cannot POST/DELETE)
-- [ ] 10.3.3 Role assignment UI for admins
-- [ ] 10.3.4 Auto-role from GitHub/GitLab: map org owners → admin, org members → editor, outside collaborators → viewer
-- [ ] 10.3.5 Repo-level permission check: only users with write access to the repo get editor role
+- [x] 10.3.1 Role model: viewer (read-only), editor (claim, transition, edit), admin (webhooks, config, user management)
+- [x] 10.3.2 Per-endpoint authorization middleware (viewers cannot POST/DELETE)
+- [x] 10.3.3 Role assignment UI for admins
+- [x] 10.3.4 Auto-role from GitHub/GitLab: map org owners → admin, org members → editor, outside collaborators → viewer
+- [x] 10.3.5 Repo-level permission check: only users with write access to the repo get editor role
 
 ### 10.3 Per-User Notifications
 
-- [ ] 10.3.1 Notification preferences per user: which events to receive (claim, release, transition, comment, @mention)
-- [ ] 10.3.2 In-app notification bell with unread count and dropdown
-- [ ] 10.3.3 Email notification delivery (via configurable SMTP or SendGrid)
-- [ ] 10.3.4 Slack DM notifications: route events to individual Slack users based on identity mapping
+- [x] 10.3.1 Notification preferences per user: which events to receive (claim, release, transition, comment, @mention)
+- [x] 10.3.2 In-app notification bell with unread count and dropdown
+- [x] 10.3.3 Email notification delivery (via configurable SMTP or SendGrid)
+- [x] 10.3.4 Slack DM notifications: route events to individual Slack users based on identity mapping
 
 ### 10.4 Multi-Repo Support
 
-- [ ] 10.4.1 Configuration file for multiple repo sources (`wheatley.config.json` or env-based)
-- [ ] 10.4.2 Repo selector in the UI header (switch between managed repos)
-- [ ] 10.4.3 Per-repo adapter instantiation with independent git connections and parser configs
-- [ ] 10.4.4 Cross-repo dashboard: aggregate view of cards across multiple repos with repo badges
+- [x] 10.4.1 Configuration file for multiple repo sources (`wheatley.config.json` or env-based)
+- [x] 10.4.2 Repo selector in the UI header (switch between managed repos)
+- [x] 10.4.3 Per-repo adapter instantiation with independent git connections and parser configs
+- [x] 10.4.4 Cross-repo dashboard: aggregate view of cards across multiple repos with repo badges
 
 ## Phase 11: Views, Bulk Operations & Production Polish
 

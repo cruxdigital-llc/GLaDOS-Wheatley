@@ -26,6 +26,8 @@ import { RepoStatusIndicator } from './RepoStatusIndicator.js';
 import { SearchBar } from './SearchBar.js';
 import { ScrollIndicators } from './ScrollIndicators.js';
 import { ShortcutOverlay } from './ShortcutOverlay.js';
+import { NotificationBell } from './NotificationBell.js';
+import { RepoSelector } from './RepoSelector.js';
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts.js';
 import type { ShortcutDef } from '../hooks/use-keyboard-shortcuts.js';
 
@@ -119,6 +121,7 @@ export function Board() {
   const queryClient = useQueryClient();
 
   const [branch, setBranch] = useState<string | undefined>();
+  const [currentRepo, setCurrentRepo] = useState<string>('default');
   const [viewMode, setViewMode] = useState<ViewMode>('single');
   const [showHealthPanel, setShowHealthPanel] = useState(false);
   const [showActivityFeed, setShowActivityFeed] = useState(false);
@@ -668,6 +671,18 @@ export function Board() {
             >
               {syncing ? 'Syncing…' : 'Sync'}
             </button>
+
+            {/* Notification bell */}
+            <NotificationBell onCardClick={(cardId) => setSelectedCardId(cardId)} />
+
+            {/* Repo selector */}
+            <RepoSelector
+              currentRepo={currentRepo}
+              onRepoChange={(repoId) => {
+                setCurrentRepo(repoId);
+                void queryClient.invalidateQueries({ queryKey: ['board'] });
+              }}
+            />
 
             {/* Activity feed button */}
             <button
