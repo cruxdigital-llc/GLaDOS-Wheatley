@@ -78,14 +78,27 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
   // Auth
   const authConfig = loadAuthConfig();
+
+  // Paths that should be accessible without authentication
+  const PUBLIC_PATHS = new Set(['/api/health', '/login']);
+  const PUBLIC_PREFIXES = ['/auth/'];
+
+  const authHook = authMiddleware(authConfig);
+
   if (authConfig.mode === 'cloud') {
-    // Cloud mode: require authentication on all routes (except health, login, auth callbacks)
-    app.addHook('onRequest', authMiddleware(authConfig));
+    // Cloud mode: require authentication, but skip for public/auth routes
+    app.addHook('onRequest', async (request, reply) => {
+      const url = request.url.split('?')[0];
+      if (PUBLIC_PATHS.has(url) || PUBLIC_PREFIXES.some((p) => url.startsWith(p))) {
+        return; // Skip auth for login, health, and OAuth callback routes
+      }
+      return authHook(request, reply);
+    });
     oauthRoutes(app, authConfig);
     loginPageRoute(app, authConfig);
   } else {
     // Local mode: attach a default local user to every request (no auth required)
-    app.addHook('onRequest', authMiddleware(authConfig));
+    app.addHook('onRequest', authHook);
   }
 
   // Services

@@ -6,6 +6,7 @@
  * - Cloud mode: requires JWT bearer token or API key.
  */
 
+import crypto from 'node:crypto';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { AuthConfig, AuthUser, UserRole } from './types.js';
 import { verifyToken } from './jwt.js';
@@ -61,9 +62,15 @@ export function authMiddleware(config: AuthConfig) {
       }
     }
 
-    // Cloud mode: check for API key
+    // Cloud mode: check for API key (timing-safe comparison)
     const apiKeyHeader = request.headers['x-api-key'];
-    if (apiKeyHeader && config.apiKey && apiKeyHeader === config.apiKey) {
+    if (
+      apiKeyHeader &&
+      typeof apiKeyHeader === 'string' &&
+      config.apiKey &&
+      apiKeyHeader.length === config.apiKey.length &&
+      crypto.timingSafeEqual(Buffer.from(apiKeyHeader), Buffer.from(config.apiKey))
+    ) {
       request.user = {
         id: 'api-key',
         name: 'API Key User',

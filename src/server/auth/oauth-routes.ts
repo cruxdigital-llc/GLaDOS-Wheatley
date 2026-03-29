@@ -9,9 +9,32 @@
  * POST /auth/logout             — no-op (client clears token)
  */
 
+import crypto from 'node:crypto';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { AuthConfig, AuthUser, UserRole } from './types.js';
 import { signToken, verifyToken } from './jwt.js';
+
+/** In-memory store for OAuth state tokens (CSRF protection). TTL: 10 minutes. */
+const pendingStates = new Map<string, number>();
+const STATE_TTL_MS = 10 * 60 * 1000;
+
+function generateState(): string {
+  const state = crypto.randomBytes(24).toString('hex');
+  pendingStates.set(state, Date.now());
+  // Evict expired states
+  const now = Date.now();
+  for (const [key, ts] of pendingStates) {
+    if (now - ts > STATE_TTL_MS) pendingStates.delete(key);
+  }
+  return state;
+}
+
+function consumeState(state: string): boolean {
+  const ts = pendingStates.get(state);
+  if (!ts) return false;
+  pendingStates.delete(state);
+  return Date.now() - ts <= STATE_TTL_MS;
+}
 
 /** Parse WHEATLEY_ADMIN_USERS env var into a Set of lowercase identifiers. */
 function getAdminUsers(): Set<string> {
@@ -45,11 +68,14 @@ function userToPayload(user: AuthUser): Record<string, unknown> {
 export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
   // GET /auth/login — redirect to OAuth provider
   app.get('/auth/login', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const state = generateState();
+
     if (config.github) {
       const params = new URLSearchParams({
         client_id: config.github.clientId,
         redirect_uri: config.github.callbackUrl,
         scope: 'read:user user:email',
+        state,
       });
       return reply.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
     }
@@ -60,6 +86,7 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
         redirect_uri: config.gitlab.callbackUrl,
         response_type: 'code',
         scope: 'read_user',
+        state,
       });
       return reply.redirect(`${config.gitlab.baseUrl}/oauth/authorize?${params.toString()}`);
     }
@@ -72,9 +99,9 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
   });
 
   // GET /auth/callback/github — exchange code for token, fetch profile, issue JWT
-  app.get<{ Querystring: { code?: string } }>(
+  app.get<{ Querystring: { code?: string; state?: string } }>(
     '/auth/callback/github',
-    async (request: FastifyRequest<{ Querystring: { code?: string } }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Querystring: { code?: string; state?: string } }>, reply: FastifyReply) => {
       if (!config.github) {
         return reply.status(400).send({
           statusCode: 400,
@@ -83,7 +110,16 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
         });
       }
 
-      const code = request.query.code;
+      // Validate CSRF state
+      const { code, state } = request.query;
+      if (!state || !consumeState(state)) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'Invalid or expired OAuth state. Please try logging in again.',
+        });
+      }
+
       if (!code) {
         return reply.status(400).send({
           statusCode: 400,
@@ -92,61 +128,70 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
         });
       }
 
-      // Exchange code for access token
-      const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: config.github.clientId,
-          client_secret: config.github.clientSecret,
-          code,
-        }),
-      });
+      try {
+        // Exchange code for access token
+        const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: config.github.clientId,
+            client_secret: config.github.clientSecret,
+            code,
+          }),
+        });
 
-      const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string };
-      if (!tokenData.access_token) {
-        return reply.status(401).send({
-          statusCode: 401,
-          error: 'Unauthorized',
-          message: `GitHub OAuth failed: ${tokenData.error ?? 'no access token returned'}`,
+        const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string };
+        if (!tokenData.access_token) {
+          return reply.status(401).send({
+            statusCode: 401,
+            error: 'Unauthorized',
+            message: `GitHub OAuth failed: ${tokenData.error ?? 'no access token returned'}`,
+          });
+        }
+
+        // Fetch user profile
+        const userRes = await fetch('https://api.github.com/user', {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        });
+        const profile = (await userRes.json()) as {
+          id: number;
+          login: string;
+          name?: string;
+          email?: string;
+          avatar_url?: string;
+        };
+
+        const user: AuthUser = {
+          id: String(profile.id),
+          name: profile.name ?? profile.login,
+          email: profile.email ?? undefined,
+          avatarUrl: profile.avatar_url,
+          provider: 'github',
+          role: resolveRole(profile.login, profile.email ?? undefined),
+        };
+
+        const jwt = signToken(userToPayload(user), config.jwtSecret, config.jwtExpirySeconds);
+
+        // Return a page that stores the token and redirects
+        return reply.type('text/html').send(callbackHtml(jwt));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        return reply.status(502).send({
+          statusCode: 502,
+          error: 'Bad Gateway',
+          message: `GitHub OAuth exchange failed: ${message}`,
         });
       }
-
-      // Fetch user profile
-      const userRes = await fetch('https://api.github.com/user', {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` },
-      });
-      const profile = (await userRes.json()) as {
-        id: number;
-        login: string;
-        name?: string;
-        email?: string;
-        avatar_url?: string;
-      };
-
-      const user: AuthUser = {
-        id: String(profile.id),
-        name: profile.name ?? profile.login,
-        email: profile.email ?? undefined,
-        avatarUrl: profile.avatar_url,
-        provider: 'github',
-        role: resolveRole(profile.login, profile.email ?? undefined),
-      };
-
-      const jwt = signToken(userToPayload(user), config.jwtSecret, config.jwtExpirySeconds);
-
-      // Return a page that stores the token and redirects
-      return reply.type('text/html').send(callbackHtml(jwt));
     },
   );
 
   // GET /auth/callback/gitlab — exchange code for token, fetch profile, issue JWT
-  app.get<{ Querystring: { code?: string } }>(
+  app.get<{ Querystring: { code?: string; state?: string } }>(
     '/auth/callback/gitlab',
-    async (request: FastifyRequest<{ Querystring: { code?: string } }>, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Querystring: { code?: string; state?: string } }>, reply: FastifyReply) => {
       if (!config.gitlab) {
         return reply.status(400).send({
           statusCode: 400,
@@ -155,7 +200,16 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
         });
       }
 
-      const code = request.query.code;
+      // Validate CSRF state
+      const { code, state } = request.query;
+      if (!state || !consumeState(state)) {
+        return reply.status(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'Invalid or expired OAuth state. Please try logging in again.',
+        });
+      }
+
       if (!code) {
         return reply.status(400).send({
           statusCode: 400,
@@ -164,55 +218,64 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
         });
       }
 
-      // Exchange code for access token
-      const tokenRes = await fetch(`${config.gitlab.baseUrl}/oauth/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: config.gitlab.clientId,
-          client_secret: config.gitlab.clientSecret,
-          code,
-          grant_type: 'authorization_code',
-          redirect_uri: config.gitlab.callbackUrl,
-        }),
-      });
+      try {
+        // Exchange code for access token
+        const tokenRes = await fetch(`${config.gitlab.baseUrl}/oauth/token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: config.gitlab.clientId,
+            client_secret: config.gitlab.clientSecret,
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: config.gitlab.callbackUrl,
+          }),
+        });
 
-      const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string };
-      if (!tokenData.access_token) {
-        return reply.status(401).send({
-          statusCode: 401,
-          error: 'Unauthorized',
-          message: `GitLab OAuth failed: ${tokenData.error ?? 'no access token returned'}`,
+        const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string };
+        if (!tokenData.access_token) {
+          return reply.status(401).send({
+            statusCode: 401,
+            error: 'Unauthorized',
+            message: `GitLab OAuth failed: ${tokenData.error ?? 'no access token returned'}`,
+          });
+        }
+
+        // Fetch user profile
+        const userRes = await fetch(`${config.gitlab.baseUrl}/api/v4/user`, {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        });
+        const profile = (await userRes.json()) as {
+          id: number;
+          username: string;
+          name?: string;
+          email?: string;
+          avatar_url?: string;
+        };
+
+        const user: AuthUser = {
+          id: String(profile.id),
+          name: profile.name ?? profile.username,
+          email: profile.email ?? undefined,
+          avatarUrl: profile.avatar_url,
+          provider: 'gitlab',
+          role: resolveRole(profile.username, profile.email ?? undefined),
+        };
+
+        const jwt = signToken(userToPayload(user), config.jwtSecret, config.jwtExpirySeconds);
+
+        return reply.type('text/html').send(callbackHtml(jwt));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        return reply.status(502).send({
+          statusCode: 502,
+          error: 'Bad Gateway',
+          message: `GitLab OAuth exchange failed: ${message}`,
         });
       }
-
-      // Fetch user profile
-      const userRes = await fetch(`${config.gitlab.baseUrl}/api/v4/user`, {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` },
-      });
-      const profile = (await userRes.json()) as {
-        id: number;
-        username: string;
-        name?: string;
-        email?: string;
-        avatar_url?: string;
-      };
-
-      const user: AuthUser = {
-        id: String(profile.id),
-        name: profile.name ?? profile.username,
-        email: profile.email ?? undefined,
-        avatarUrl: profile.avatar_url,
-        provider: 'gitlab',
-        role: resolveRole(profile.username, profile.email ?? undefined),
-      };
-
-      const jwt = signToken(userToPayload(user), config.jwtSecret, config.jwtExpirySeconds);
-
-      return reply.type('text/html').send(callbackHtml(jwt));
     },
   );
 

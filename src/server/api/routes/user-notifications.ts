@@ -17,11 +17,9 @@ const VALID_EVENTS = new Set<string>([
   'claim', 'release', 'transition', 'comment', 'mention', 'workflow',
 ]);
 
-function getUserId(request: { user?: { id: string }; query: unknown }): string {
-  // Auth middleware attaches request.user; fall back to query param for local mode
-  if (request.user?.id) return request.user.id;
-  const query = request.query as Record<string, string | undefined>;
-  return query.userId ?? 'local';
+function getUserId(request: { user?: { id: string } }): string {
+  // Auth middleware attaches request.user; default to 'local' only if no user set
+  return request.user?.id ?? 'local';
 }
 
 export function userNotificationRoutes(
