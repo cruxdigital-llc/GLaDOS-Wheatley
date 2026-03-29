@@ -40,11 +40,11 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 1.4 Source Watching & Sync
 
-- [ ] 1.4.1 Local mode file watcher: monitor `.git/HEAD` and `.git/refs/` for changes via filesystem events
-- [ ] 1.4.2 Cloud mode poller: configurable-interval API poll for ref changes
-- [ ] 1.4.3 Debounce layer: coalesce rapid changes into a single board refresh
-- [ ] 1.4.4 Full re-sync: on-demand and periodic full re-parse as a drift-correction fallback
-- [ ] 1.4.5 Change event bus: internal pub/sub so UI can subscribe to repo-change events
+- [x] 1.4.1 Local mode file watcher: monitor `.git/HEAD` and `.git/refs/` for changes via filesystem events
+- [x] 1.4.2 Cloud mode poller: configurable-interval API poll for ref changes
+- [x] 1.4.3 Debounce layer: coalesce rapid changes into a single board refresh
+- [x] 1.4.4 Full re-sync: on-demand and periodic full re-parse as a drift-correction fallback
+- [x] 1.4.5 Change event bus: internal pub/sub so UI can subscribe to repo-change events
 
 ### 1.5 API Server
 
