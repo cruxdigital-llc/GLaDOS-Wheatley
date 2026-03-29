@@ -87,8 +87,8 @@ export class EventLogService {
         content,
         `event: ${event.type}`,
       );
-    } catch {
-      // Best-effort — don't crash on event log failures
+    } catch (err) {
+      console.warn('[EventLogService] append failed:', err instanceof Error ? err.message : err);
     } finally {
       release();
     }

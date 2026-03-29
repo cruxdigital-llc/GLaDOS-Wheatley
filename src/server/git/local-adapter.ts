@@ -70,11 +70,20 @@ export class LocalGitAdapter implements GitAdapter {
     return ref;
   }
 
+  /** Validate a git tree path — reject null bytes, control chars, and traversal. */
+  private safeTreePath(path: string): string {
+    if (path.includes('\0') || path.includes('..') || /[\x00-\x1f]/.test(path)) {
+      throw new Error(`Invalid path: "${path}"`);
+    }
+    return path;
+  }
+
   async readFile(path: string, ref?: string): Promise<string | null> {
     try {
+      const safePath = this.safeTreePath(path);
       const effectiveRef = ref ?? 'HEAD';
       const safeRef = this.safeRef(effectiveRef);
-      return await this.git.show([`${safeRef}:${path}`]);
+      return await this.git.show([`${safeRef}:${safePath}`]);
     } catch {
       return null;
     }
@@ -82,9 +91,10 @@ export class LocalGitAdapter implements GitAdapter {
 
   async listDirectory(path: string, ref?: string): Promise<DirectoryEntry[]> {
     try {
+      const safePath = this.safeTreePath(path);
       const effectiveRef = ref ?? 'HEAD';
       const safeRef = this.safeRef(effectiveRef);
-      return await this.listFromGit(path, safeRef);
+      return await this.listFromGit(safePath, safeRef);
     } catch {
       return [];
     }
@@ -152,7 +162,7 @@ export class LocalGitAdapter implements GitAdapter {
    */
   private async _writeViaWorktree(path: string, content: string, message: string, branch?: string): Promise<void> {
     const wt = this.worktreeManager!.getGit();
-    const targetBranch = branch ?? (await this.getDefaultBranch());
+    const targetBranch = this.safeRef(branch ?? (await this.getDefaultBranch()));
 
     // Validate path before any git operations
     const fullPath = this.safeWorktreePath(path);
@@ -212,7 +222,7 @@ export class LocalGitAdapter implements GitAdapter {
       this.legacyWarned = true;
     }
 
-    const targetBranch = branch ?? (await this.getDefaultBranch());
+    const targetBranch = this.safeRef(branch ?? (await this.getDefaultBranch()));
     const originalBranch = await this.getCurrentBranch();
 
     // Assert working tree is clean before checkout
@@ -273,6 +283,14 @@ export class LocalGitAdapter implements GitAdapter {
       return trimmed || null;
     } catch {
       return null;
+    }
+  }
+
+  async fetchOrigin(): Promise<void> {
+    try {
+      await this.git.fetch('origin');
+    } catch {
+      // Best-effort — remote may not exist (e.g., local-only repo)
     }
   }
 

@@ -78,6 +78,11 @@ export interface GitAdapter {
    * Returns nulls if not configured.
    */
   getGitIdentity(): Promise<GitIdentity>;
+
+  /**
+   * Fetch latest refs from the remote. No-op for remote adapters.
+   */
+  fetchOrigin(): Promise<void>;
 }
 
 export interface GitIdentity {

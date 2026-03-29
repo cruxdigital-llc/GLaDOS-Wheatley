@@ -186,6 +186,10 @@ export class RemoteGitAdapter implements GitAdapter {
     }
   }
 
+  async fetchOrigin(): Promise<void> {
+    // Remote adapter reads via API — no fetch needed
+  }
+
   async getGitIdentity(): Promise<GitIdentity> {
     // Remote mode has no local git config — identity comes from GitHub token
     return { name: null, email: null };

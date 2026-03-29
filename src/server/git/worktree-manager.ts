@@ -23,6 +23,7 @@ export class WorktreeManager {
   private readonly mainGit: SimpleGit;
   private worktreeGit: SimpleGit | null = null;
   private _ready = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor(options: WorktreeManagerOptions) {
     this.repoPath = resolve(options.repoPath);
@@ -56,12 +57,17 @@ export class WorktreeManager {
    */
   async init(): Promise<void> {
     if (this._ready) return;
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = this._doInit();
+    return this.initPromise;
+  }
 
+  private async _doInit(): Promise<void> {
     const defaultBranch = await this.detectDefaultBranch();
 
     // Clean up stale worktree if it exists on disk
     if (await this.pathExists(this.worktreePath)) {
-      await this.removeStalWorktree();
+      await this.removeStaleWorktree();
     }
 
     try {
@@ -120,7 +126,7 @@ export class WorktreeManager {
     this._ready = false;
   }
 
-  private async removeStalWorktree(): Promise<void> {
+  private async removeStaleWorktree(): Promise<void> {
     try {
       await this.mainGit.raw(['worktree', 'remove', '--force', this.worktreePath]);
     } catch {

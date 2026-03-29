@@ -71,6 +71,11 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const eventLogService = new EventLogService(options.adapter, eventBus);
   eventLogService.start();
 
+  // Stop event log on server close
+  app.addHook('onClose', async () => {
+    eventLogService.stop();
+  });
+
   // Routes (all registered as plain function calls for consistency)
   healthRoutes(app);
   boardRoutes(app, boardService, claimService, options.adapter, branchScanner);

@@ -9,10 +9,11 @@ import type { FastifyInstance } from 'fastify';
 import type { GitAdapter } from '../../git/types.js';
 
 function parseAuthorOverride(author: string): { name: string; email: string } | null {
-  const match = author.match(/^(.+?)\s*<(.+?)>$/);
+  const trimmed = author.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^(.+?)\s*<(.+?)>$/);
   if (match) return { name: match[1].trim(), email: match[2].trim() };
-  // If no angle brackets, treat entire string as name
-  return { name: author.trim(), email: '' };
+  return { name: trimmed, email: '' };
 }
 
 export function identityRoutes(app: FastifyInstance, adapter: GitAdapter): void {
