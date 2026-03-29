@@ -17,7 +17,12 @@ import { updateFrontmatter } from '../../../shared/parsers/frontmatter-parser.js
 
 const SAFE_ID_RE = /^\d+\.\d+\.\d+$/;
 const VALID_PHASES = new Set<string>(['unclaimed', 'planning', 'speccing', 'implementing', 'verifying', 'done']);
+const VALID_PRIORITIES = new Set<string>(['P0', 'P1', 'P2', 'P3']);
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const SAFE_LABEL_RE = /^[a-zA-Z0-9][a-zA-Z0-9 _-]*$/;
+const SAFE_BRANCH_RE = /^[a-zA-Z0-9][a-zA-Z0-9._\/-]*$/;
 const MAX_BULK_SIZE = 50;
+const MAX_LABELS = 20;
 
 function validateIds(ids: unknown): string[] | null {
   if (!Array.isArray(ids)) return null;
@@ -72,6 +77,9 @@ export function bulkRoutes(
     }
 
     const branchStr = typeof branch === 'string' ? branch : undefined;
+    if (branchStr && (!SAFE_BRANCH_RE.test(branchStr) || branchStr.includes('..'))) {
+      return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'Invalid branch name' });
+    }
     const results: Array<{ id: string; success: boolean; error?: string }> = [];
 
     for (const id of ids) {
@@ -161,19 +169,45 @@ export function bulkRoutes(
     }
 
     const branchStr = typeof branch === 'string' ? branch : undefined;
+    if (branchStr && (!SAFE_BRANCH_RE.test(branchStr) || branchStr.includes('..'))) {
+      return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'Invalid branch name' });
+    }
+
+    // Validate metadata values
+    if (priority !== undefined && priority !== null) {
+      if (typeof priority !== 'string' || !VALID_PRIORITIES.has(priority)) {
+        return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'priority must be P0, P1, P2, or P3' });
+      }
+    }
+    if (due !== undefined && due !== null) {
+      if (typeof due !== 'string' || !DATE_RE.test(due)) {
+        return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'due must be YYYY-MM-DD format' });
+      }
+    }
+    if (labels !== undefined && labels !== null) {
+      if (!Array.isArray(labels) || labels.length > MAX_LABELS) {
+        return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: `labels must be an array (max ${MAX_LABELS})` });
+      }
+      for (const l of labels) {
+        if (typeof l !== 'string' || !SAFE_LABEL_RE.test(l.trim())) {
+          return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'Invalid label format' });
+        }
+      }
+    }
+
     const update: Record<string, unknown> = {};
     if (labels !== undefined) update.labels = labels;
     if (priority !== undefined) update.priority = priority;
     if (due !== undefined) update.due = due;
 
+    // Load spec directory listing once (not per-card)
+    const specEntries = await adapter.listDirectory('specs', branchStr);
     const results: Array<{ id: string; success: boolean; error?: string }> = [];
 
     for (const id of ids) {
       try {
-        // Find spec directory
-        const entries = await adapter.listDirectory('specs', branchStr);
         const slug = id.replace(/\./g, '-');
-        const specDir = entries.find(
+        const specDir = specEntries.find(
           (e) => e.type === 'directory' && e.name.includes(`_${slug}`),
         )?.name;
 
@@ -228,6 +262,9 @@ export function bulkRoutes(
     }
 
     const branchStr = typeof branch === 'string' ? branch : undefined;
+    if (branchStr && (!SAFE_BRANCH_RE.test(branchStr) || branchStr.includes('..'))) {
+      return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'Invalid branch name' });
+    }
     const results: Array<{ id: string; success: boolean; error?: string }> = [];
 
     for (const id of ids) {

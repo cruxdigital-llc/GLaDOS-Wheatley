@@ -26,6 +26,9 @@ const metrics: MetricsCollector = {
 /** Default histogram bucket boundaries (in seconds). */
 const HISTOGRAM_BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
 
+/** Max observations per metric key — prevents unbounded memory growth. */
+const MAX_OBSERVATIONS = 5000;
+
 /**
  * Build a Prometheus histogram block from a map of label-key -> observations.
  */
@@ -134,6 +137,7 @@ export function updateMetrics(field: string, value: number): void {
  */
 export function recordGitOp(operation: string, durationSeconds: number): void {
   const existing = metrics.gitOpDuration.get(operation) ?? [];
+  if (existing.length >= MAX_OBSERVATIONS) existing.shift();
   existing.push(durationSeconds);
   metrics.gitOpDuration.set(operation, existing);
 }
@@ -142,18 +146,20 @@ export function metricsRoutes(app: FastifyInstance): void {
   // Track every response for request count and duration metrics
   app.addHook('onResponse', async (request, reply) => {
     const method = request.method;
-    const path = request.routeOptions?.url ?? request.url;
+    // Use route pattern to avoid high cardinality from path params
+    const path = request.routeOptions?.url ?? request.url.split('?')[0];
     const status = String(reply.statusCode);
 
     // Increment request counter
     const countKey = `${method}|${path}|${status}`;
     metrics.requestCount.set(countKey, (metrics.requestCount.get(countKey) ?? 0) + 1);
 
-    // Record request duration
+    // Record request duration (capped to prevent memory leak)
     const durationKey = `${method}|${path}`;
     const elapsedMs = reply.elapsedTime; // Fastify provides this in ms
     const elapsedSec = (elapsedMs ?? 0) / 1000;
     const existing = metrics.requestDuration.get(durationKey) ?? [];
+    if (existing.length >= MAX_OBSERVATIONS) existing.shift();
     existing.push(elapsedSec);
     metrics.requestDuration.set(durationKey, existing);
   });

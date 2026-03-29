@@ -121,21 +121,27 @@ export function extractRelationshipsFromMetadata(
     edges.push({ sourceId: cardId, targetId: metadata.parent, type: 'parent' });
   }
 
-  if (metadata.children) {
+  if (Array.isArray(metadata.children)) {
     for (const child of metadata.children) {
-      edges.push({ sourceId: cardId, targetId: child, type: 'child' });
+      if (typeof child === 'string') {
+        edges.push({ sourceId: cardId, targetId: child, type: 'child' });
+      }
     }
   }
 
-  if (metadata.blocks) {
+  if (Array.isArray(metadata.blocks)) {
     for (const blocked of metadata.blocks) {
-      edges.push({ sourceId: cardId, targetId: blocked, type: 'blocks' });
+      if (typeof blocked === 'string') {
+        edges.push({ sourceId: cardId, targetId: blocked, type: 'blocks' });
+      }
     }
   }
 
-  if (metadata.blockedBy) {
+  if (Array.isArray(metadata.blockedBy)) {
     for (const blocker of metadata.blockedBy) {
-      edges.push({ sourceId: cardId, targetId: blocker, type: 'blocked-by' });
+      if (typeof blocker === 'string') {
+        edges.push({ sourceId: cardId, targetId: blocker, type: 'blocked-by' });
+      }
     }
   }
 

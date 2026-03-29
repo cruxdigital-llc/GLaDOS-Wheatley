@@ -19,6 +19,7 @@ import { BoardService } from '../board-service.js';
 
 const SAFE_ID_RE = /^\d+\.\d+\.\d+$/;
 const SAFE_DIR_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
+const SAFE_BRANCH_RE = /^[a-zA-Z0-9][a-zA-Z0-9._\/-]*$/;
 const MAX_RELATIONS = 20;
 
 async function findSpecDir(
@@ -52,6 +53,9 @@ export function relationshipRoutes(
     }
 
     const branch = request.query.branch;
+    if (branch && (!SAFE_BRANCH_RE.test(branch) || branch.includes('..'))) {
+      return reply.status(400).send({ error: 'Invalid branch name' });
+    }
     const specDir = await findSpecDir(adapter, id, branch);
     if (!specDir || !SAFE_DIR_RE.test(specDir)) {
       return reply.status(200).send({
@@ -109,22 +113,33 @@ export function relationshipRoutes(
     const branchStr = typeof branch === 'string' ? branch : undefined;
 
     // Validate relationship targets
-    const validateIdArray = (arr: unknown, field: string): string[] | null => {
-      if (arr === undefined) return null;
-      if (!Array.isArray(arr) || arr.length > MAX_RELATIONS) {
-        return null;
-      }
+    const validateIdArray = (arr: unknown): string[] | null => {
+      if (!Array.isArray(arr) || arr.length > MAX_RELATIONS) return null;
       for (const item of arr) {
-        if (typeof item !== 'string' || !SAFE_ID_RE.test(item)) {
-          return null;
-        }
+        if (typeof item !== 'string' || !SAFE_ID_RE.test(item)) return null;
       }
       return arr as string[];
     };
 
-    const childrenArr = children !== undefined ? validateIdArray(children, 'children') : undefined;
-    const blocksArr = blocks !== undefined ? validateIdArray(blocks, 'blocks') : undefined;
-    const blockedByArr = blockedBy !== undefined ? validateIdArray(blockedBy, 'blockedBy') : undefined;
+    let childrenArr: string[] | undefined;
+    let blocksArr: string[] | undefined;
+    let blockedByArr: string[] | undefined;
+
+    if (children !== undefined) {
+      const arr = validateIdArray(children);
+      if (arr === null) return reply.status(400).send({ error: 'children must be an array of valid card IDs (max 20)' });
+      childrenArr = arr;
+    }
+    if (blocks !== undefined) {
+      const arr = validateIdArray(blocks);
+      if (arr === null) return reply.status(400).send({ error: 'blocks must be an array of valid card IDs (max 20)' });
+      blocksArr = arr;
+    }
+    if (blockedBy !== undefined) {
+      const arr = validateIdArray(blockedBy);
+      if (arr === null) return reply.status(400).send({ error: 'blockedBy must be an array of valid card IDs (max 20)' });
+      blockedByArr = arr;
+    }
 
     if (parent !== undefined && parent !== null && (typeof parent !== 'string' || !SAFE_ID_RE.test(parent))) {
       return reply.status(400).send({ error: 'parent must be a valid card ID' });
@@ -164,6 +179,9 @@ export function relationshipRoutes(
     Querystring: { branch?: string };
   }>('/api/relationships/cycles', async (request, reply) => {
     const branch = request.query.branch;
+    if (branch && (!SAFE_BRANCH_RE.test(branch) || branch.includes('..'))) {
+      return reply.status(400).send({ error: 'Invalid branch name' });
+    }
     const board = await boardService.getBoardState(branch);
 
     const allEdges: CardRelationship[] = [];
