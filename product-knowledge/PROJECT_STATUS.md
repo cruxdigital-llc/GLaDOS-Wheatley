@@ -1,6 +1,6 @@
 <!--
 GLaDOS-MANAGED DOCUMENT
-Last Updated: 2026-03-28
+Last Updated: 2026-03-29
 To modify: Edit this file directly. GLaDOS will read the current state before making future updates.
 -->
 
@@ -67,9 +67,16 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Conflict Early Warning**: cross-branch spec overlap detection, resolution suggestions based on branch size
 - [x] **Notification Hooks**: webhook system with Slack formatter, event log, configurable per event type
 
-### 6. Backlog / Upcoming
+### 6. Phase 6 — Robust Git Engine & Real-Time Sync
 
-- [ ] Phase 6: Robust Git Engine & Real-Time Sync (5 features, 21 items)
+- [x] **Worktree Isolation**: Dedicated git worktree for all writes — developer's working tree never touched
+- [x] **Dirty State & Conflict Handling**: Repo status API, dirty/conflict indicators, resolution prompts
+- [x] **Git Identity & Config**: Auto-detect from git config, env var override, UI auto-populate
+- [x] **Sync & Real-Time**: SSE endpoint, Sync button, GitHub/GitLab webhook receivers, polling fallback
+- [x] **Persistent Event Log**: File-backed events.md, rotation, replay API
+
+### 7. Backlog / Upcoming
+
 - [ ] Phase 7: Content Editing & Card Management (4 features, 18 items)
 - [ ] Phase 8: Search, Metadata & Navigation (3 features, 17 items)
 - [ ] Phase 9: GitHub Integration & GLaDOS Workflows (4 features, 22 items)
@@ -78,15 +85,12 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 
 ## Known Issues / Technical Debt
 
-- LocalGitAdapter throws on dirty working tree instead of handling it gracefully
-- `git reset --hard` on push failure is a data-loss risk
-- Username is manual text input, not derived from git config
 - No horizontal scroll indicators in board UI
-- Frontend uses polling (30s/15s) instead of SSE/WebSocket
 - Roadmap parser hardcoded to GLaDOS numbering format (X.Y.Z)
 - No card editing, creation, or comments
 - No PR/MR visibility or management
 - No auth for cloud deployments
+- Button-in-button HTML nesting in Card component (accessibility/validity issue)
 
 ## Recent Changes
 
@@ -98,3 +102,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-28: **PHASE 5 COMPLETE** — 397 tests passing, 14/14 roadmap items done.
 - 2026-03-29: Roadmap revised: phases 6-11 rewritten based on product feedback (git robustness, editing, search, GitHub/GitLab integration, auth, polish).
 - 2026-03-29: Full product walkthrough completed (WALKTHROUGH.md) — all 16 features verified.
+- 2026-03-29: **PHASE 6 COMPLETE** — 416 tests passing, 21/21 roadmap items done. Worktree isolation, dirty state detection, git identity, SSE, event log.
