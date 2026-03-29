@@ -35,5 +35,6 @@ coverage/
 # Logs
 *.log
 
-# Claude Code local settings
+# Claude Code local settings and worktrees
 .claude/settings.local.json
+.claude/worktrees/

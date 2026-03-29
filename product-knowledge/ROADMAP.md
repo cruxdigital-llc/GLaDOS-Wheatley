@@ -12,78 +12,78 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 1.1 Parsing Grammar & Contract
 
-- [ ] 1.1.1 Define the canonical markdown grammar for ROADMAP.md task items (checkbox syntax, phase markers, metadata)
-- [ ] 1.1.2 Define the canonical directory naming convention for `specs/` (e.g., `specs/YYYY-MM-DD_feature-name/`)
-- [ ] 1.1.3 Define the canonical structure within each spec directory (README.md, plan.md, requirements.md, etc.)
-- [ ] 1.1.4 Define how phase is determined from spec directory contents (which files present = which phase)
-- [ ] 1.1.5 Define the canonical format for PROJECT_STATUS.md task extraction
-- [ ] 1.1.6 Document the full grammar as a specification in `product-knowledge/standards/`
-- [ ] 1.1.7 Create a validation utility that checks whether a repo's artifacts conform to the grammar
+- [x] 1.1.1 Define the canonical markdown grammar for ROADMAP.md task items (checkbox syntax, phase markers, metadata)
+- [x] 1.1.2 Define the canonical directory naming convention for `specs/` (e.g., `specs/YYYY-MM-DD_feature-name/`)
+- [x] 1.1.3 Define the canonical structure within each spec directory (README.md, plan.md, requirements.md, etc.)
+- [x] 1.1.4 Define how phase is determined from spec directory contents (which files present = which phase)
+- [x] 1.1.5 Define the canonical format for PROJECT_STATUS.md task extraction
+- [x] 1.1.6 Document the full grammar as a specification in `product-knowledge/standards/`
+- [x] 1.1.7 Create a validation utility that checks whether a repo's artifacts conform to the grammar
 
 ### 1.2 Markdown Parsers
 
-- [ ] 1.2.1 ROADMAP.md parser: extract task items with status, phase, and metadata
-- [ ] 1.2.2 Spec directory scanner: enumerate `specs/` directories, detect phase from contents
-- [ ] 1.2.3 PROJECT_STATUS.md parser: extract active tasks, current focus, and leads
-- [ ] 1.2.4 Claims.md parser: extract existing claims (for Phase 2 readiness, read-only in Phase 1)
-- [ ] 1.2.5 Unified board state assembler: merge parser outputs into a single board model
-- [ ] 1.2.6 Unit tests for each parser against known-good and malformed inputs
+- [x] 1.2.1 ROADMAP.md parser: extract task items with status, phase, and metadata
+- [x] 1.2.2 Spec directory scanner: enumerate `specs/` directories, detect phase from contents
+- [x] 1.2.3 PROJECT_STATUS.md parser: extract active tasks, current focus, and leads
+- [x] 1.2.4 Claims.md parser: extract existing claims (for Phase 2 readiness, read-only in Phase 1)
+- [x] 1.2.5 Unified board state assembler: merge parser outputs into a single board model
+- [x] 1.2.6 Unit tests for each parser against known-good and malformed inputs
 
 ### 1.3 Git Adapter
 
-- [ ] 1.3.1 Define `GitAdapter` TypeScript interface (readFile, listDirectory, listBranches, getCurrentBranch)
-- [ ] 1.3.2 Implement `LocalGitAdapter` using simple-git (filesystem reads from a volume-mounted repo)
-- [ ] 1.3.3 Implement `RemoteGitAdapter` using Octokit (GitHub REST API: contents, branches, trees)
-- [ ] 1.3.4 Adapter factory: select implementation based on `WHEATLEY_MODE` environment variable
-- [ ] 1.3.5 Integration tests for `LocalGitAdapter` against a fixture repo
-- [ ] 1.3.6 Integration tests for `RemoteGitAdapter` against a test GitHub repo
+- [x] 1.3.1 Define `GitAdapter` TypeScript interface (readFile, listDirectory, listBranches, getCurrentBranch)
+- [x] 1.3.2 Implement `LocalGitAdapter` using simple-git (filesystem reads from a volume-mounted repo)
+- [x] 1.3.3 Implement `RemoteGitAdapter` using Octokit (GitHub REST API: contents, branches, trees)
+- [x] 1.3.4 Adapter factory: select implementation based on `WHEATLEY_MODE` environment variable
+- [x] 1.3.5 Integration tests for `LocalGitAdapter` against a fixture repo
+- [x] 1.3.6 Integration tests for `RemoteGitAdapter` against a test GitHub repo
 
 ### 1.4 Source Watching & Sync
 
-- [ ] 1.4.1 Local mode file watcher: monitor `.git/HEAD` and `.git/refs/` for changes via filesystem events
-- [ ] 1.4.2 Cloud mode poller: configurable-interval API poll for ref changes
-- [ ] 1.4.3 Debounce layer: coalesce rapid changes into a single board refresh
-- [ ] 1.4.4 Full re-sync: on-demand and periodic full re-parse as a drift-correction fallback
-- [ ] 1.4.5 Change event bus: internal pub/sub so UI can subscribe to repo-change events
+- [x] 1.4.1 Local mode file watcher: monitor `.git/HEAD` and `.git/refs/` for changes via filesystem events
+- [x] 1.4.2 Cloud mode poller: configurable-interval API poll for ref changes
+- [x] 1.4.3 Debounce layer: coalesce rapid changes into a single board refresh
+- [x] 1.4.4 Full re-sync: on-demand and periodic full re-parse as a drift-correction fallback
+- [x] 1.4.5 Change event bus: internal pub/sub so UI can subscribe to repo-change events
 
 ### 1.5 API Server
 
-- [ ] 1.5.1 Fastify server scaffold with TypeScript
-- [ ] 1.5.2 `GET /api/board` — return full board state (columns, cards, metadata)
-- [ ] 1.5.3 `GET /api/board/card/:id` — return detail for a single card (spec contents, plan, requirements)
-- [ ] 1.5.4 `GET /api/branches` — list available branches
-- [ ] 1.5.5 `POST /api/branch` — switch the active branch the board reads from
-- [ ] 1.5.6 `GET /api/health` — health check endpoint
-- [ ] 1.5.7 Error handling middleware: structured error responses
-- [ ] 1.5.8 CORS configuration for local dev (frontend on Vite dev server)
+- [x] 1.5.1 Fastify server scaffold with TypeScript
+- [x] 1.5.2 `GET /api/board` — return full board state (columns, cards, metadata)
+- [x] 1.5.3 `GET /api/board/card/:id` — return detail for a single card (spec contents, plan, requirements)
+- [x] 1.5.4 `GET /api/branches` — list available branches
+- [x] 1.5.5 `POST /api/branch` — switch the active branch the board reads from
+- [x] 1.5.6 `GET /api/health` — health check endpoint
+- [x] 1.5.7 Error handling middleware: structured error responses
+- [x] 1.5.8 CORS configuration for local dev (frontend on Vite dev server)
 
 ### 1.6 Frontend: Board View
 
-- [ ] 1.6.1 React + Vite + TypeScript project scaffold
-- [ ] 1.6.2 TailwindCSS setup and base theme
-- [ ] 1.6.3 React Query configuration and API client
-- [ ] 1.6.4 Board layout: columns for each GLaDOS phase (Unclaimed, Planning, Speccing, Implementing, Verifying, Done)
-- [ ] 1.6.5 Card component: title, phase badge, assignee (if claimed), spec link
-- [ ] 1.6.6 Card detail panel: render README, spec, plan, and requirements from the feature's spec directory
-- [ ] 1.6.7 Markdown renderer for card detail content
-- [ ] 1.6.8 Branch selector dropdown in the header
-- [ ] 1.6.9 Auto-refresh on repo change events (via polling or SSE from the API)
-- [ ] 1.6.10 Empty state: helpful messaging when no tasks are found or repo doesn't conform
-- [ ] 1.6.11 Loading and error states for all data-fetching views
+- [x] 1.6.1 React + Vite + TypeScript project scaffold
+- [x] 1.6.2 TailwindCSS setup and base theme
+- [x] 1.6.3 React Query configuration and API client
+- [x] 1.6.4 Board layout: columns for each GLaDOS phase (Unclaimed, Planning, Speccing, Implementing, Verifying, Done)
+- [x] 1.6.5 Card component: title, phase badge, assignee (if claimed), spec link
+- [x] 1.6.6 Card detail panel: render README, spec, plan, and requirements from the feature's spec directory
+- [x] 1.6.7 Markdown renderer for card detail content
+- [x] 1.6.8 Branch selector dropdown in the header
+- [x] 1.6.9 Auto-refresh on repo change events (via polling or SSE from the API)
+- [x] 1.6.10 Empty state: helpful messaging when no tasks are found or repo doesn't conform
+- [x] 1.6.11 Loading and error states for all data-fetching views
 
 ### 1.7 Brownfield Standardization
 
-- [ ] 1.7.1 CLI command or API endpoint to analyze a repo's conformance to the parsing grammar
-- [ ] 1.7.2 Report: list non-conforming files with specific violations
-- [ ] 1.7.3 Auto-fix mode: rewrite non-conforming files to match the grammar (with git commit)
+- [x] 1.7.1 CLI command or API endpoint to analyze a repo's conformance to the parsing grammar
+- [x] 1.7.2 Report: list non-conforming files with specific violations
+- [x] 1.7.3 Auto-fix mode: rewrite non-conforming files to match the grammar (with git commit)
 
 ### 1.8 Docker & Deployment
 
-- [ ] 1.8.1 Multi-stage Dockerfile (dev target with hot reload, production target with built assets)
-- [ ] 1.8.2 docker-compose.yml for local sidecar (volume-mounted repo, WHEATLEY_MODE=local)
-- [ ] 1.8.3 Environment variable documentation (WHEATLEY_MODE, WHEATLEY_REPO_PATH, GITHUB_TOKEN, WHEATLEY_REPO)
-- [ ] 1.8.4 Startup validation: fail fast with clear errors if required env vars are missing
-- [ ] 1.8.5 Cloud deployment example (standalone Docker run with WHEATLEY_MODE=remote)
+- [x] 1.8.1 Multi-stage Dockerfile (dev target with hot reload, production target with built assets)
+- [x] 1.8.2 docker-compose.yml for local sidecar (volume-mounted repo, WHEATLEY_MODE=local)
+- [x] 1.8.3 Environment variable documentation (WHEATLEY_MODE, WHEATLEY_REPO_PATH, GITHUB_TOKEN, WHEATLEY_REPO)
+- [x] 1.8.4 Startup validation: fail fast with clear errors if required env vars are missing
+- [x] 1.8.5 Cloud deployment example (standalone Docker run with WHEATLEY_MODE=remote)
 
 ## Phase 2: Claims & Assignment
 

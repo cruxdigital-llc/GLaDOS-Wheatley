@@ -1,5 +1,5 @@
 services:
-  app:
+  test:
     build:
       context: .
       target: development
@@ -9,6 +9,49 @@ services:
       - WHEATLEY_MODE=local
       - WHEATLEY_REPO_PATH=/repo
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./index.html:/app/index.html
+      - ./package.json:/app/package.json
       - /app/node_modules
       - ${WHEATLEY_REPO_PATH:-.}:/repo:ro
+
+  server:
+    build:
+      context: .
+      target: development
+    ports:
+      - "3000:3000"
+    environment:
+      - WHEATLEY_MODE=local
+      - WHEATLEY_REPO_PATH=/repo
+    volumes:
+      - ./src:/app/src
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./index.html:/app/index.html
+      - ./package.json:/app/package.json
+      - /app/node_modules
+      - ${WHEATLEY_REPO_PATH:-.}:/repo:ro
+    command: npx tsx watch src/server/index.ts
+
+  frontend:
+    build:
+      context: .
+      target: development
+    ports:
+      - "5173:5173"
+    environment:
+      - WHEATLEY_MODE=local
+      - WHEATLEY_REPO_PATH=/repo
+      - WHEATLEY_API_URL=http://server:3000
+    volumes:
+      - ./src:/app/src
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./index.html:/app/index.html
+      - ./package.json:/app/package.json
+      - /app/node_modules
+      - ${WHEATLEY_REPO_PATH:-.}:/repo:ro
+    command: npx vite --host 0.0.0.0
