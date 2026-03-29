@@ -66,4 +66,17 @@ describe('EventBus', () => {
     const bus = new EventBus<string>();
     expect(() => bus.emit('test')).not.toThrow();
   });
+
+  it('a throwing listener does not break other listeners', () => {
+    const bus = new EventBus<string>();
+    const badListener = vi.fn(() => {
+      throw new Error('boom');
+    });
+    const goodListener = vi.fn();
+    bus.on(badListener);
+    bus.on(goodListener);
+    bus.emit('test');
+    expect(badListener).toHaveBeenCalled();
+    expect(goodListener).toHaveBeenCalled();
+  });
 });

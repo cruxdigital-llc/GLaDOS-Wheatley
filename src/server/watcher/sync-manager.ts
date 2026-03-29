@@ -41,7 +41,7 @@ export class SyncManager {
     }, this.syncIntervalMs);
   }
 
-  /** Stop watching and clean up all resources. */
+  /** Stop watching. Preserves subscribers — call destroy() for full cleanup. */
   stop(): void {
     this.running = false;
     this.watcher?.stop();
@@ -51,7 +51,11 @@ export class SyncManager {
       clearInterval(this.syncTimer);
       this.syncTimer = null;
     }
+  }
 
+  /** Stop watching and remove all subscribers (full cleanup). */
+  destroy(): void {
+    this.stop();
     this.bus.removeAll();
   }
 

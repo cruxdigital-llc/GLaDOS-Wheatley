@@ -105,6 +105,16 @@ export class LocalGitAdapter implements GitAdapter {
     }
   }
 
+  async getLatestSha(branch?: string): Promise<string | null> {
+    try {
+      const ref = branch ?? (await this.getCurrentBranch());
+      const sha = await this.git.revparse([ref]);
+      return sha.trim();
+    } catch {
+      return null;
+    }
+  }
+
   private async listFromFilesystem(path: string): Promise<DirectoryEntry[]> {
     const fullPath = this.safePath(path);
     const entries = await readdir(fullPath, { withFileTypes: true });

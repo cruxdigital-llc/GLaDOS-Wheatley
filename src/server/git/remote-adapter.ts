@@ -115,4 +115,18 @@ export class RemoteGitAdapter implements GitAdapter {
       return 'main';
     }
   }
+
+  async getLatestSha(branch?: string): Promise<string | null> {
+    try {
+      const ref = branch ?? (await this.getDefaultBranch());
+      const response = await this.octokit.repos.getBranch({
+        owner: this.owner,
+        repo: this.repo,
+        branch: ref,
+      });
+      return response.data.commit.sha;
+    } catch {
+      return null;
+    }
+  }
 }

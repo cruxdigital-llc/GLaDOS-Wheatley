@@ -175,4 +175,22 @@ describe('LocalGitAdapter', () => {
       expect(branch).toBe('main');
     });
   });
+
+  describe('getLatestSha', () => {
+    it('returns a SHA for the current branch', async () => {
+      const sha = await adapter.getLatestSha();
+      expect(sha).toBeTruthy();
+      expect(sha!.length).toBeGreaterThanOrEqual(7); // Abbreviated or full SHA
+    });
+
+    it('returns a SHA for a named branch', async () => {
+      const sha = await adapter.getLatestSha('feature-branch');
+      expect(sha).toBeTruthy();
+    });
+
+    it('returns null for non-existent branch', async () => {
+      const sha = await adapter.getLatestSha('does-not-exist');
+      expect(sha).toBeNull();
+    });
+  });
 });

@@ -30,6 +30,9 @@ export interface GitAdapter {
 
   /** Get the repository's default branch. */
   getDefaultBranch(): Promise<string>;
+
+  /** Get the latest commit SHA for a branch. Returns null on error. */
+  getLatestSha(branch?: string): Promise<string | null>;
 }
 
 export interface GitHubConfig {

@@ -2,6 +2,7 @@
  * Remote Poller
  *
  * Polls the GitHub API for ref changes on a configurable interval.
+ * Uses GitAdapter.getLatestSha() to detect branch HEAD changes.
  * Used in cloud mode (WHEATLEY_MODE=remote).
  */
 
@@ -24,8 +25,9 @@ export class RemotePoller implements SourceWatcher {
   private readonly branch: string | undefined;
   private readonly intervalMs: number;
   private readonly onChangeCallback: () => void;
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private timer: ReturnType<typeof setTimeout> | null = null;
   private lastSha: string | null = null;
+  private running = false;
 
   constructor(options: RemotePollerOptions) {
     this.adapter = options.adapter;
@@ -35,49 +37,47 @@ export class RemotePoller implements SourceWatcher {
   }
 
   start(): void {
-    this.stop(); // Clean up any existing timer
-    // Poll immediately on start, then on interval
-    void this.poll();
-    this.timer = setInterval(() => void this.poll(), this.intervalMs);
+    this.stop();
+    this.running = true;
+    void this.pollLoop();
   }
 
   stop(): void {
+    this.running = false;
     if (this.timer !== null) {
-      clearInterval(this.timer);
+      clearTimeout(this.timer);
       this.timer = null;
+    }
+  }
+
+  /**
+   * Sequential poll loop using setTimeout chaining.
+   * Prevents overlapping polls when network is slow.
+   */
+  private async pollLoop(): Promise<void> {
+    if (!this.running) return;
+
+    await this.poll();
+
+    if (this.running) {
+      this.timer = setTimeout(() => void this.pollLoop(), this.intervalMs);
     }
   }
 
   private async poll(): Promise<void> {
     try {
       const branch = this.branch ?? (await this.adapter.getDefaultBranch());
-      // Read the branch ref to get the latest commit SHA
-      // We use listBranches and find the matching branch, or read the ref file
-      const branches = await this.adapter.listBranches();
-      if (!branches.includes(branch)) return;
-
-      // Use readFile on a marker path — the commit SHA comes from the API metadata
-      // For simplicity, we read a known file and use its content hash as a change indicator
-      const content = await this.adapter.readFile('product-knowledge/ROADMAP.md', branch);
-      const sha = content ? this.hashContent(content) : null;
+      const sha = await this.adapter.getLatestSha(branch);
 
       if (this.lastSha !== null && sha !== null && sha !== this.lastSha) {
         this.onChangeCallback();
       }
 
-      this.lastSha = sha;
+      if (sha !== null) {
+        this.lastSha = sha;
+      }
     } catch {
-      // Silently ignore poll errors — will retry on next interval
+      // Will retry on next poll interval
     }
-  }
-
-  /** Simple string hash for change detection. */
-  private hashContent(content: string): string {
-    let hash = 0;
-    for (let i = 0; i < content.length; i++) {
-      const char = content.charCodeAt(i);
-      hash = ((hash << 5) - hash + char) | 0;
-    }
-    return hash.toString(36);
   }
 }

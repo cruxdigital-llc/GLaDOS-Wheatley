@@ -139,4 +139,33 @@ describe('SyncManager', () => {
     vi.advanceTimersByTime(500);
     expect(callback).not.toHaveBeenCalled();
   });
+
+  it('stop preserves subscribers for restart', () => {
+    const manager = new SyncManager(null);
+    const callback = vi.fn();
+    manager.onChange(callback);
+    manager.start();
+    manager.stop();
+    manager.start();
+
+    manager.forceSync();
+    expect(callback).toHaveBeenCalledTimes(1);
+
+    manager.stop();
+  });
+
+  it('destroy removes all subscribers', () => {
+    const manager = new SyncManager(null);
+    const callback = vi.fn();
+    manager.onChange(callback);
+    manager.start();
+    manager.destroy();
+
+    // Re-start — subscriber should be gone
+    manager.start();
+    manager.forceSync();
+    expect(callback).not.toHaveBeenCalled();
+
+    manager.stop();
+  });
 });

@@ -6,6 +6,7 @@ vi.mock('@octokit/rest', () => {
   const mockGetContent = vi.fn();
   const mockListBranches = vi.fn();
   const mockGet = vi.fn();
+  const mockGetBranch = vi.fn();
 
   return {
     Octokit: vi.fn().mockImplementation(() => ({
@@ -13,11 +14,13 @@ vi.mock('@octokit/rest', () => {
         getContent: mockGetContent,
         listBranches: mockListBranches,
         get: mockGet,
+        getBranch: mockGetBranch,
       },
     })),
     __mockGetContent: mockGetContent,
     __mockListBranches: mockListBranches,
     __mockGet: mockGet,
+    __mockGetBranch: mockGetBranch,
   };
 });
 
@@ -27,6 +30,7 @@ async function getMocks() {
     mockGetContent: (mod as Record<string, unknown>).__mockGetContent as ReturnType<typeof vi.fn>,
     mockListBranches: (mod as Record<string, unknown>).__mockListBranches as ReturnType<typeof vi.fn>,
     mockGet: (mod as Record<string, unknown>).__mockGet as ReturnType<typeof vi.fn>,
+    mockGetBranch: (mod as Record<string, unknown>).__mockGetBranch as ReturnType<typeof vi.fn>,
   };
 }
 
@@ -34,10 +38,11 @@ describe('RemoteGitAdapter', () => {
   let adapter: RemoteGitAdapter;
 
   beforeEach(async () => {
-    const { mockGetContent, mockListBranches, mockGet } = await getMocks();
+    const { mockGetContent, mockListBranches, mockGet, mockGetBranch } = await getMocks();
     mockGetContent.mockReset();
     mockListBranches.mockReset();
     mockGet.mockReset();
+    mockGetBranch.mockReset();
 
     // Default: getDefaultBranch returns 'main'
     mockGet.mockResolvedValue({
@@ -220,6 +225,38 @@ describe('RemoteGitAdapter', () => {
       });
       const branch = await freshAdapter.getDefaultBranch();
       expect(branch).toBe('main');
+    });
+  });
+
+  describe('getLatestSha', () => {
+    it('returns commit SHA for a branch', async () => {
+      const { mockGetBranch } = await getMocks();
+      mockGetBranch.mockResolvedValue({
+        data: { commit: { sha: 'abc123def456' } },
+      });
+
+      const sha = await adapter.getLatestSha('main');
+      expect(sha).toBe('abc123def456');
+    });
+
+    it('uses default branch when none specified', async () => {
+      const { mockGetBranch } = await getMocks();
+      mockGetBranch.mockResolvedValue({
+        data: { commit: { sha: 'abc123' } },
+      });
+
+      await adapter.getLatestSha();
+      expect(mockGetBranch).toHaveBeenCalledWith(
+        expect.objectContaining({ branch: 'main' }),
+      );
+    });
+
+    it('returns null on error', async () => {
+      const { mockGetBranch } = await getMocks();
+      mockGetBranch.mockRejectedValue(new Error('Not Found'));
+
+      const sha = await adapter.getLatestSha('nonexistent');
+      expect(sha).toBeNull();
     });
   });
 });

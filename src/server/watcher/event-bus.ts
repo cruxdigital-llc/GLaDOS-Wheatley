@@ -18,10 +18,14 @@ export class EventBus<T> {
     this.listeners.delete(callback);
   }
 
-  /** Emit an event to all subscribers. */
+  /** Emit an event to all subscribers. A throwing listener does not prevent others from being notified. */
   emit(event: T): void {
     for (const listener of this.listeners) {
-      listener(event);
+      try {
+        listener(event);
+      } catch {
+        // Don't let one bad listener break the others
+      }
     }
   }
 

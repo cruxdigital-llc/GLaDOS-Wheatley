@@ -9,6 +9,7 @@ function createMockAdapter(overrides: Partial<GitAdapter> = {}): GitAdapter {
     listBranches: vi.fn().mockResolvedValue(['main']),
     getCurrentBranch: vi.fn().mockResolvedValue('main'),
     getDefaultBranch: vi.fn().mockResolvedValue('main'),
+    getLatestSha: vi.fn().mockResolvedValue('abc123'),
     ...overrides,
   };
 }
@@ -44,11 +45,11 @@ describe('RemotePoller', () => {
     poller.start();
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(adapter.listBranches).toHaveBeenCalledTimes(1);
+    expect(adapter.getLatestSha).toHaveBeenCalledTimes(1);
     poller.stop();
   });
 
-  it('polls on interval', async () => {
+  it('polls on interval using setTimeout chaining', async () => {
     const adapter = createMockAdapter();
     const poller = new RemotePoller({
       adapter,
@@ -61,18 +62,16 @@ describe('RemotePoller', () => {
     await vi.advanceTimersByTimeAsync(1000); // First interval
     await vi.advanceTimersByTimeAsync(1000); // Second interval
 
-    expect(adapter.listBranches).toHaveBeenCalledTimes(3);
+    expect(adapter.getLatestSha).toHaveBeenCalledTimes(3);
     poller.stop();
   });
 
-  it('detects content changes', async () => {
+  it('detects SHA changes', async () => {
     const onChange = vi.fn();
-    let callCount = 0;
     const adapter = createMockAdapter({
-      readFile: vi.fn().mockImplementation(() => {
-        callCount++;
-        return Promise.resolve(callCount <= 1 ? '# Roadmap v1\n' : '# Roadmap v2\n');
-      }),
+      getLatestSha: vi.fn()
+        .mockResolvedValueOnce('sha-1')
+        .mockResolvedValue('sha-2'),
     });
 
     const poller = new RemotePoller({
@@ -85,16 +84,16 @@ describe('RemotePoller', () => {
     await vi.advanceTimersByTimeAsync(0); // Initial poll — sets baseline
     expect(onChange).not.toHaveBeenCalled();
 
-    await vi.advanceTimersByTimeAsync(1000); // Second poll — different content
+    await vi.advanceTimersByTimeAsync(1000); // Second poll — different SHA
     expect(onChange).toHaveBeenCalledTimes(1);
 
     poller.stop();
   });
 
-  it('does not fire on same content', async () => {
+  it('does not fire when SHA is unchanged', async () => {
     const onChange = vi.fn();
     const adapter = createMockAdapter({
-      readFile: vi.fn().mockResolvedValue('# Same content\n'),
+      getLatestSha: vi.fn().mockResolvedValue('same-sha'),
     });
 
     const poller = new RemotePoller({
@@ -114,7 +113,7 @@ describe('RemotePoller', () => {
 
   it('handles adapter errors gracefully', async () => {
     const adapter = createMockAdapter({
-      listBranches: vi.fn().mockRejectedValue(new Error('Network error')),
+      getLatestSha: vi.fn().mockRejectedValue(new Error('Network error')),
     });
 
     const poller = new RemotePoller({
@@ -143,6 +142,6 @@ describe('RemotePoller', () => {
 
     await vi.advanceTimersByTimeAsync(5000);
     // Only the initial poll
-    expect(adapter.listBranches).toHaveBeenCalledTimes(1);
+    expect(adapter.getLatestSha).toHaveBeenCalledTimes(1);
   });
 });
