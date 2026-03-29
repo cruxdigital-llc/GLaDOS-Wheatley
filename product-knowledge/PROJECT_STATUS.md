@@ -33,7 +33,7 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [ ] **Kanban board UI**: Column-based view mapping GLaDOS phases to columns
 - [ ] **Card detail view**: Show README, spec, plan, and requirements from a feature's `specs/` directory
 - [ ] **Branch selector**: Switch which branch the board reads from
-- [ ] **Git adapter**: Unified interface with local (simple-git) and remote (API) implementations
+- [x] **Git adapter**: Unified interface with local (simple-git) and remote (API) implementations
 - [ ] **Docker packaging**: Single image supporting both `local` and `remote` boot modes
 - [x] **Parsing grammar**: Strict, machine-readable contract for extracting tasks from ROADMAP.md, specs/, and PROJECT_STATUS.md
 - [ ] **Source watching & sync**: `.git/` watcher (local), API polling (cloud), debounce, full re-sync fallback
@@ -55,3 +55,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-28: PR #1 review feedback incorporated — removed Zustand, reinforced no-database stance, added parsing grammar and sync architecture as Phase 1 items.
 - 2026-03-28: Feature 1.1 (Parsing Grammar) complete — 44 validator tests, phase detection, grammar spec.
 - 2026-03-28: Feature 1.2 (Markdown Parsers) complete — 88 tests total, section-level spec matching, shared utils.
+- 2026-03-28: Feature 1.3 (Git Adapter) complete — 130 tests total, path traversal protection, dual-mode adapter.
