@@ -4,7 +4,7 @@
  * Typed HTTP client for the Wheatley backend.
  */
 
-import type { BoardState, ClaimEntry } from '../shared/grammar/types.js';
+import type { BoardState, ClaimEntry, TraceEntry } from '../shared/grammar/types.js';
 import type { ConsolidatedBoardState } from '../shared/consolidation/merge.js';
 import type { BranchHealth } from '../server/api/branch-health.js';
 
@@ -188,4 +188,23 @@ export async function fetchWorkflowStatus(itemId: string): Promise<WorkflowStatu
   return fetchJson<WorkflowStatusResponse>(
     `${API_BASE}/workflow/${encodeURIComponent(itemId)}`,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Activity feed
+// ---------------------------------------------------------------------------
+
+export interface ActivityFeedResponse {
+  entries: TraceEntry[];
+  actors: Record<string, string>;
+}
+
+export async function fetchActivityFeed(
+  options?: { limit?: number; actor?: string },
+): Promise<ActivityFeedResponse> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set('limit', String(options.limit));
+  if (options?.actor) params.set('actor', options.actor);
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return fetchJson<ActivityFeedResponse>(`${API_BASE}/activity${qs}`);
 }

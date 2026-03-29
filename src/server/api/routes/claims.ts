@@ -13,8 +13,16 @@ import {
   ForbiddenError,
   ConflictError,
 } from '../claim-service.js';
+import type { ClaimTTLConfig, ClaimTTLReport } from '../claim-ttl.js';
+import { getClaimTTLReport, autoReleaseExpiredClaims } from '../claim-ttl.js';
+import type { GitAdapter } from '../../git/types.js';
 
-export function claimsRoutes(app: FastifyInstance, claimService: ClaimService): void {
+export function claimsRoutes(
+  app: FastifyInstance,
+  claimService: ClaimService,
+  adapter?: GitAdapter,
+  ttlConfig?: ClaimTTLConfig,
+): void {
   // POST /api/claims
   app.post<{
     Body: { itemId?: unknown; claimant?: unknown };
@@ -97,5 +105,25 @@ export function claimsRoutes(app: FastifyInstance, claimService: ClaimService): 
       }
       throw err;
     }
+  });
+
+  // GET /api/claims/ttl — TTL report for all active claims
+  app.get('/api/claims/ttl', async (_request, reply) => {
+    if (!adapter || !ttlConfig) {
+      return reply.status(501).send({ error: 'Not Implemented', message: 'TTL not configured' });
+    }
+
+    const report: ClaimTTLReport = await getClaimTTLReport(adapter, ttlConfig);
+    return report;
+  });
+
+  // POST /api/claims/ttl/release — auto-release all expired claims
+  app.post('/api/claims/ttl/release', async (_request, reply) => {
+    if (!adapter || !ttlConfig) {
+      return reply.status(501).send({ error: 'Not Implemented', message: 'TTL not configured' });
+    }
+
+    const released = await autoReleaseExpiredClaims(adapter, ttlConfig);
+    return { released, count: released.length };
   });
 }

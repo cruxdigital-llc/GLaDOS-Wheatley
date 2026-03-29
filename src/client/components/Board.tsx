@@ -18,6 +18,7 @@ import { BranchSelector } from './BranchSelector.js';
 import { ConflictModal } from './ConflictModal.js';
 import { ConfirmTransitionModal } from './ConfirmTransitionModal.js';
 import { BranchHealthPanel } from './BranchHealthPanel.js';
+import { ActivityFeed } from './ActivityFeed.js';
 
 type FilterMode = 'all' | 'unclaimed' | 'mine';
 type ViewMode = 'single' | 'consolidated';
@@ -48,6 +49,7 @@ export function Board() {
   const [branch, setBranch] = useState<string | undefined>();
   const [viewMode, setViewMode] = useState<ViewMode>('single');
   const [showHealthPanel, setShowHealthPanel] = useState(false);
+  const [showActivityFeed, setShowActivityFeed] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<string>(
     () => localStorage.getItem('wheatley_claimant') ?? '',
@@ -312,6 +314,15 @@ export function Board() {
               </button>
             </div>
 
+            {/* Activity feed button */}
+            <button
+              type="button"
+              onClick={() => setShowActivityFeed((v) => !v)}
+              className={`text-sm px-2 py-1 rounded border ${showActivityFeed ? 'bg-purple-50 text-purple-700 border-purple-300' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+            >
+              Activity
+            </button>
+
             {/* Branch health button */}
             <button
               type="button"
@@ -423,6 +434,11 @@ export function Board() {
           health={healthData?.health ?? []}
           onClose={() => setShowHealthPanel(false)}
         />
+      )}
+
+      {/* Activity Feed Panel */}
+      {showActivityFeed && (
+        <ActivityFeed onClose={() => setShowActivityFeed(false)} />
       )}
     </div>
   );

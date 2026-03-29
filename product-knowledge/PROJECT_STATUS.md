@@ -60,9 +60,17 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Consolidated Board View**: mergeBoards deduplication, branch badges, single/consolidated view toggle
 - [x] **Branch Diff & Health**: commits-behind indicator, last commit date, unique specs, conflict risk detection
 
-### 5. Backlog / Upcoming
+### 5. Phase 5 — Team & Agent Coordination
 
-- [ ] Phase 5: Team & Agent Coordination
+- [x] **Agent Activity Feed**: trace log format, activity parser, real-time feed UI, agent/human identity classification
+- [x] **Claim TTL & Auto-Release**: configurable TTL (24h default), staleness detection, auto-release, grace period warnings
+- [x] **Conflict Early Warning**: cross-branch spec overlap detection, resolution suggestions based on branch size
+- [x] **Notification Hooks**: webhook system with Slack formatter, event log, configurable per event type
+
+### 6. Backlog / Upcoming
+
+- [ ] Phase 6: Authentication & Multi-Tenancy (4 features, 15 items)
+- [ ] Phase 7: Polish & Production Readiness (3 features, 15 items)
 
 ## Known Issues / Technical Debt
 
@@ -82,3 +90,6 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-28: **PHASE 3 COMPLETE** — 316 tests passing, 15/15 roadmap items done.
 - 2026-03-28: Features 4.1-4.3 complete — branch scanning, consolidated view, branch health.
 - 2026-03-28: **PHASE 4 COMPLETE** — 339 tests passing, 12/12 roadmap items done.
+- 2026-03-28: Features 5.1-5.4 complete — activity feed, claim TTL, conflict detection, notification hooks.
+- 2026-03-28: **PHASE 5 COMPLETE** — 397 tests passing, 14/14 roadmap items done.
+- 2026-03-28: Roadmap extended with Phase 6 (Auth & Multi-Tenancy) and Phase 7 (Polish & Production Readiness).
