@@ -15,6 +15,8 @@ import type {
 } from './types.js';
 
 const MAX_OUTPUT_LINES = 500;
+const COMPLETED_RUN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const MAX_COMPLETED_RUNS = 50;
 
 interface RunEntry {
   run: WorkflowRun;
@@ -58,6 +60,7 @@ export class SubprocessRunner implements WorkflowRunner {
   }
 
   async start(type: WorkflowType, context: WorkflowContext): Promise<string> {
+    this.evictCompleted();
     const activeCount = this.countActive();
     if (activeCount >= this.maxConcurrent) {
       throw new Error(
@@ -170,5 +173,35 @@ export class SubprocessRunner implements WorkflowRunner {
       }
     }
     return count;
+  }
+
+  /** Evict completed runs older than TTL and cap total stored runs. */
+  private evictCompleted(): void {
+    const now = Date.now();
+    const completed: Array<[string, RunEntry]> = [];
+    for (const [id, entry] of this.runs) {
+      const state = entry.run.state;
+      if (state === 'done' || state === 'error' || state === 'cancelled') {
+        completed.push([id, entry]);
+        if (entry.run.finishedAt) {
+          const elapsed = now - new Date(entry.run.finishedAt).getTime();
+          if (elapsed > COMPLETED_RUN_TTL_MS) {
+            this.runs.delete(id);
+          }
+        }
+      }
+    }
+    // If still over limit, evict oldest completed runs
+    if (completed.length > MAX_COMPLETED_RUNS) {
+      completed.sort((a, b) => {
+        const aTime = a[1].run.finishedAt ?? a[1].run.startedAt;
+        const bTime = b[1].run.finishedAt ?? b[1].run.startedAt;
+        return aTime.localeCompare(bTime);
+      });
+      const toEvict = completed.length - MAX_COMPLETED_RUNS;
+      for (let i = 0; i < toEvict; i++) {
+        this.runs.delete(completed[i][0]);
+      }
+    }
   }
 }

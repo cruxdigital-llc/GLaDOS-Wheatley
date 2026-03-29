@@ -434,7 +434,7 @@ export async function createPR(input: {
 
 export async function mergePR(prNumber: number, strategy: string): Promise<void> {
   await fetchJson(`${API_BASE}/prs/${prNumber}/merge`, {
-    method: 'POST',
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ strategy }),
   });
@@ -484,8 +484,8 @@ export async function fetchWorkflowOutput(
 }
 
 export async function cancelWorkflow(runId: string): Promise<void> {
-  await fetchJson(`${API_BASE}/workflows/${encodeURIComponent(runId)}/cancel`, {
-    method: 'POST',
+  await fetchJson(`${API_BASE}/workflows/${encodeURIComponent(runId)}`, {
+    method: 'DELETE',
   });
 }
 

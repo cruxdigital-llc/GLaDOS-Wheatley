@@ -26,8 +26,18 @@ export class GitLabAdapter implements PlatformAdapter {
   private readonly projectId: string;
 
   constructor() {
-    this.baseUrl = (process.env['GITLAB_API_URL'] ?? 'https://gitlab.com/api/v4').replace(/\/+$/, '');
-    this.token = process.env['GITLAB_TOKEN'] ?? '';
+    const rawUrl = (process.env['GITLAB_API_URL'] ?? 'https://gitlab.com/api/v4').replace(/\/+$/, '');
+    if (!rawUrl.startsWith('https://')) {
+      throw new Error('GITLAB_API_URL must use HTTPS');
+    }
+    this.baseUrl = rawUrl;
+
+    const token = process.env['GITLAB_TOKEN'] ?? '';
+    if (!token) {
+      throw new Error('GITLAB_TOKEN is required and must be non-empty');
+    }
+    this.token = token;
+
     this.projectId = process.env['GITLAB_PROJECT_ID'] ?? '';
     if (!this.projectId) {
       throw new Error('GITLAB_PROJECT_ID is required');

@@ -44,11 +44,16 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
     }
 
     if (specDir !== undefined) {
-      if (typeof specDir !== 'string' || specDir.includes('..')) {
+      if (
+        typeof specDir !== 'string' ||
+        specDir.includes('..') ||
+        specDir.startsWith('/') ||
+        !/^[\w./-]+$/.test(specDir)
+      ) {
         return reply.status(400).send({
           statusCode: 400,
           error: 'Bad Request',
-          message: 'specDir must be a string and must not contain ".."',
+          message: 'specDir must contain only alphanumeric, hyphens, underscores, dots, and forward slashes',
         });
       }
     }
@@ -112,8 +117,8 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
     }
 
     const lines = await runner.getOutput(runId, fromLine);
-    const run = await runner.getState(runId);
-    const total = run?.outputTail.length ?? 0;
+    const allLines = await runner.getOutput(runId, 0);
+    const total = allLines.length;
 
     return reply.status(200).send({ lines, total });
   });

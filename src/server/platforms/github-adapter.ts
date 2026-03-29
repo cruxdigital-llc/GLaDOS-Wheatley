@@ -28,8 +28,19 @@ export class GitHubAdapter implements PlatformAdapter {
   private readonly repo: string;
 
   constructor() {
-    this.baseUrl = (process.env['GITHUB_API_URL'] ?? 'https://api.github.com').replace(/\/+$/, '');
-    this.token = process.env['GITHUB_TOKEN'] ?? '';
+    const rawUrl = (process.env['GITHUB_API_URL'] ?? 'https://api.github.com').replace(/\/+$/, '');
+    // Validate URL: must be HTTPS
+    if (!rawUrl.startsWith('https://')) {
+      throw new Error('GITHUB_API_URL must use HTTPS');
+    }
+    this.baseUrl = rawUrl;
+
+    const token = process.env['GITHUB_TOKEN'] ?? '';
+    if (!token) {
+      throw new Error('GITHUB_TOKEN is required and must be non-empty');
+    }
+    this.token = token;
+
     const repository = process.env['GITHUB_REPOSITORY'] ?? '';
     const parts = repository.split('/');
     if (parts.length !== 2 || !parts[0] || !parts[1]) {
