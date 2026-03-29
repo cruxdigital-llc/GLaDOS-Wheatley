@@ -441,3 +441,61 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 - [x] 11.6.3 Snapshot tests for all UI components
 - [x] 11.6.4 API contract tests: OpenAPI spec generation and request/response validation
 - [x] 11.6.5 Git edge-case test suite: dirty tree, merge conflicts, detached HEAD, shallow clones, missing remote
+
+## Phase 12: API Documentation, Export & Integration
+
+**Goal**: Make Wheatley easy to integrate with external tools and provide data portability.
+
+### 12.1 OpenAPI Documentation
+
+- [ ] 12.1.1 Generate OpenAPI 3.1 spec from Fastify route definitions (fastify-swagger or manual)
+- [ ] 12.1.2 Serve Swagger UI at `/docs` for interactive API exploration
+- [ ] 12.1.3 Per-endpoint request/response schema with examples
+- [ ] 12.1.4 API versioning strategy (URL prefix `/api/v1/` or Accept header)
+
+### 12.2 Data Export & Import
+
+- [ ] 12.2.1 CSV export: download board state as CSV (cards, phases, metadata, claims)
+- [ ] 12.2.2 JSON export: full board snapshot as machine-readable JSON
+- [ ] 12.2.3 CSV/JSON import: bulk-create cards from uploaded file with validation
+- [ ] 12.2.4 Jira import: parse Jira CSV export and map to Wheatley card model
+- [ ] 12.2.5 Archive/snapshot: create timestamped board snapshot for historical tracking
+
+### 12.3 Webhooks & Integration
+
+- [ ] 12.3.1 Outbound webhook management UI: add, edit, test, delete webhook subscriptions
+- [ ] 12.3.2 Webhook payload signing: HMAC-SHA256 signature in `X-Wheatley-Signature` header
+- [ ] 12.3.3 Webhook retry: exponential backoff on delivery failure (max 3 retries)
+- [ ] 12.3.4 Inbound webhook API: accept events from external tools to update board state
+- [ ] 12.3.5 Zapier/n8n compatible triggers: standardized event payloads for no-code automation
+
+### 12.4 Plugin System
+
+- [ ] 12.4.1 Plugin interface: define lifecycle hooks (onCardCreate, onTransition, onClaim, etc.)
+- [ ] 12.4.2 Plugin loader: discover and load plugins from `plugins/` directory or npm packages
+- [ ] 12.4.3 Built-in plugin: auto-label cards based on spec directory content
+- [ ] 12.4.4 Built-in plugin: Slack channel sync (mirror board changes to a Slack channel)
+
+## Phase 13: Analytics, Reporting & Insights
+
+**Goal**: Provide data-driven insights into project velocity, bottlenecks, and team productivity.
+
+### 13.1 Board Analytics
+
+- [ ] 13.1.1 Cycle time calculation: average time cards spend in each phase
+- [ ] 13.1.2 Throughput chart: cards completed per day/week/sprint (line chart)
+- [ ] 13.1.3 Phase distribution chart: current cards per phase (bar/pie chart)
+- [ ] 13.1.4 Cumulative flow diagram: stacked area chart of cards across phases over time
+
+### 13.2 Team Metrics
+
+- [ ] 13.2.1 Per-agent/user workload: cards claimed, completed, average cycle time
+- [ ] 13.2.2 Activity heatmap: contribution calendar showing commits/claims per day
+- [ ] 13.2.3 Bottleneck detection: flag phases where cards accumulate with high average age
+
+### 13.3 Reporting
+
+- [ ] 13.3.1 Scheduled reports: configurable weekly/monthly email digest of board metrics
+- [ ] 13.3.2 PDF report generation: downloadable summary with charts and key metrics
+- [ ] 13.3.3 Dashboard view: dedicated analytics page with configurable widget grid
+- [ ] 13.3.4 Custom date range selector for all analytics views

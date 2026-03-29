@@ -100,6 +100,11 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] Phase 10: Authentication, Teams & Multi-Project (4 features, 18 items)
 - [x] Phase 11: Views, Bulk Operations & Production Polish (6 features, 23 items)
 
+### 12. Backlog / Upcoming
+
+- [ ] Phase 12: API Documentation, Export & Integration (4 features, 18 items)
+- [ ] Phase 13: Analytics, Reporting & Insights (3 features, 11 items)
+
 ## Known Issues / Technical Debt
 
 - Card editing limited to allowlisted spec files (no arbitrary path editing)
