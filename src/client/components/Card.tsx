@@ -12,6 +12,13 @@ import { useClaimItem, useReleaseItem } from '../hooks/use-claims.js';
 import { useWorkflowStatus } from '../hooks/use-workflow-status.js';
 import { ClaimConflictError } from '../api.js';
 
+const PRIORITY_COLORS: Record<string, string> = {
+  P0: 'bg-red-500 text-white',
+  P1: 'bg-orange-400 text-white',
+  P2: 'bg-yellow-400 text-gray-900',
+  P3: 'bg-gray-300 text-gray-700',
+};
+
 const PHASE_COLORS: Record<string, string> = {
   unclaimed: 'bg-gray-100 text-gray-700',
   planning: 'bg-blue-100 text-blue-700',
@@ -36,6 +43,8 @@ interface CardProps {
   onDragEnd?: () => void;
   /** True when this card is being dragged (shows reduced opacity). */
   isDragging?: boolean;
+  /** True when this card has keyboard-navigation focus. */
+  isFocused?: boolean;
 }
 
 function formatClaimTime(iso: string): string {
@@ -61,6 +70,7 @@ export function Card({
   onDragStart,
   onDragEnd,
   isDragging,
+  isFocused,
 }: CardProps) {
   const phaseColor = PHASE_COLORS[card.phase] ?? 'bg-gray-100 text-gray-700';
 
@@ -124,7 +134,7 @@ export function Card({
     <button
       type="button"
       onClick={() => onClick?.(card)}
-      className="w-full text-left bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow cursor-pointer"
+      className={`w-full text-left bg-white rounded-lg shadow-sm border p-3 hover:shadow-md transition-shadow cursor-pointer ${isFocused ? 'border-blue-500 ring-2 ring-blue-400' : 'border-gray-200'}`}
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-medium text-gray-900 leading-tight">
@@ -141,8 +151,38 @@ export function Card({
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${phaseColor}`}>
           {card.phase}
         </span>
+        {card.metadata?.priority && (
+          <span className={`text-xs px-1.5 py-0.5 rounded font-semibold leading-none ${PRIORITY_COLORS[card.metadata.priority]}`}>
+            {card.metadata.priority}
+          </span>
+        )}
         <span className="text-xs text-gray-400">{card.id}</span>
       </div>
+
+      {/* Metadata: labels and due date */}
+      {(card.metadata?.labels?.length || card.metadata?.due) && (
+        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+          {card.metadata.labels?.slice(0, 2).map((label) => (
+            <span
+              key={label}
+              className="text-xs px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200"
+            >
+              {label}
+            </span>
+          ))}
+          {card.metadata.due && (
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded ${
+                card.metadata.due < '2026-03-29'
+                  ? 'bg-red-50 text-red-600 border border-red-200'
+                  : 'text-gray-500'
+              }`}
+            >
+              {card.metadata.due}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Claimant badge */}
       {card.claim && (

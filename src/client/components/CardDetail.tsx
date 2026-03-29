@@ -8,8 +8,9 @@
 import React, { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { CardDetailResponse } from '../api.js';
-import { saveSpecFile, renameCard, deleteCard } from '../api.js';
+import { saveSpecFile, renameCard, deleteCard, updateCardMetadata } from '../api.js';
 import { MarkdownEditor } from './MarkdownEditor.js';
+import { CardTimeline } from './CardTimeline.js';
 import { CommentThread } from './CommentThread.js';
 
 interface CardDetailProps {
@@ -31,6 +32,36 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameTitle, setRenameTitle] = useState(card.title);
   const [error, setError] = useState<string | null>(null);
+
+  // Metadata editing state
+  const cardMeta = card.metadata;
+  const [metaPriority, setMetaPriority] = useState<string>(cardMeta?.priority ?? '');
+  const [metaDue, setMetaDue] = useState<string>(cardMeta?.due ?? '');
+  const [metaLabels, setMetaLabels] = useState<string[]>(cardMeta?.labels ?? []);
+  const [newLabel, setNewLabel] = useState('');
+  const [metaSaving, setMetaSaving] = useState(false);
+
+  const handleMetaSave = useCallback(async () => {
+    setError(null);
+    setMetaSaving(true);
+    try {
+      await updateCardMetadata(
+        card.id,
+        {
+          priority: metaPriority || undefined,
+          due: metaDue || undefined,
+          labels: metaLabels,
+        },
+        branch,
+      );
+      void queryClient.invalidateQueries({ queryKey: ['card'] });
+      void queryClient.invalidateQueries({ queryKey: ['board'] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save metadata');
+    } finally {
+      setMetaSaving(false);
+    }
+  }, [card.id, metaPriority, metaDue, metaLabels, branch, queryClient]);
 
   const specDir = card.specEntry?.dirName;
 
@@ -196,6 +227,90 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
           </div>
         )}
 
+        {/* Metadata section */}
+        <div className="px-6 py-4 border-b space-y-3">
+          <h3 className="text-sm font-semibold text-gray-700">Metadata</h3>
+          <div className="flex flex-wrap items-end gap-4">
+            {/* Priority */}
+            <label className="flex flex-col gap-1 text-xs text-gray-600">
+              Priority
+              <select
+                value={metaPriority}
+                onChange={(e) => setMetaPriority(e.target.value)}
+                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">None</option>
+                <option value="P0">P0</option>
+                <option value="P1">P1</option>
+                <option value="P2">P2</option>
+                <option value="P3">P3</option>
+              </select>
+            </label>
+
+            {/* Due date */}
+            <label className="flex flex-col gap-1 text-xs text-gray-600">
+              Due date
+              <input
+                type="date"
+                value={metaDue}
+                onChange={(e) => setMetaDue(e.target.value)}
+                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </label>
+
+            {/* Save */}
+            <button
+              type="button"
+              onClick={() => void handleMetaSave()}
+              disabled={metaSaving}
+              className="text-xs px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {metaSaving ? 'Saving...' : 'Save Metadata'}
+            </button>
+          </div>
+
+          {/* Labels */}
+          <div className="space-y-1">
+            <span className="text-xs text-gray-600">Labels</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {metaLabels.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200"
+                >
+                  {label}
+                  <button
+                    type="button"
+                    onClick={() => setMetaLabels((prev) => prev.filter((l) => l !== label))}
+                    className="text-blue-400 hover:text-blue-700 leading-none"
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+              <form
+                className="inline-flex items-center gap-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const trimmed = newLabel.trim();
+                  if (trimmed && !metaLabels.includes(trimmed)) {
+                    setMetaLabels((prev) => [...prev, trimmed]);
+                  }
+                  setNewLabel('');
+                }}
+              >
+                <input
+                  type="text"
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
+                  placeholder="Add label..."
+                  className="text-xs border border-gray-300 rounded px-2 py-0.5 w-24 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                />
+              </form>
+            </div>
+          </div>
+        </div>
+
         {/* Spec contents */}
         <div className="flex-1 px-6 py-4 space-y-6">
           {editingFile && specContents?.[editingFile] !== undefined ? (
@@ -232,6 +347,11 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
             <p className="text-gray-400 text-center py-8">
               No spec files available for this card.
             </p>
+          )}
+
+          {/* Card Timeline */}
+          {card.specEntry && (
+            <CardTimeline cardId={card.id} branch={branch} />
           )}
 
           {/* Comment thread */}

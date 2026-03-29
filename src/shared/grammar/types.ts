@@ -5,6 +5,8 @@
  * See: product-knowledge/standards/parsing-grammar.md
  */
 
+import type { CardMetadata } from '../parsers/frontmatter-parser.js';
+
 // Board phases matching GLaDOS workflow
 export type BoardPhase =
   | 'unclaimed'
@@ -86,6 +88,8 @@ export interface SpecEntry {
   phase: BoardPhase;
   /** Files found in the directory */
   files: string[];
+  /** Card metadata from spec frontmatter */
+  metadata?: CardMetadata;
 }
 
 // --- PROJECT_STATUS.md types ---
@@ -165,6 +169,8 @@ export interface BoardCard {
    * Lists the branch names this card was found on.
    */
   branches?: string[];
+  /** Card metadata from spec frontmatter */
+  metadata?: CardMetadata;
 }
 
 export interface BoardColumn {

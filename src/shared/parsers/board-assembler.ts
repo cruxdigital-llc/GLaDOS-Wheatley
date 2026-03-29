@@ -92,6 +92,9 @@ export function assembleBoardState(
         const card = cardMap.get(item.id);
         if (card) {
           card.specEntry = spec;
+          if (spec.metadata) {
+            card.metadata = spec.metadata;
+          }
           // Only override phase if the item isn't already individually marked done
           if (!item.completed) {
             card.phase = spec.phase;
@@ -106,6 +109,7 @@ export function assembleBoardState(
         phase: spec.phase,
         source: 'spec',
         specEntry: spec,
+        ...(spec.metadata ? { metadata: spec.metadata } : {}),
       });
     }
   }

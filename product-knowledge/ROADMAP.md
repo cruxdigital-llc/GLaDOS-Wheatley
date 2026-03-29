@@ -287,29 +287,29 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 8.1 Search & Advanced Filtering
 
-- [ ] 8.1.1 Full-text search bar: search across card titles, spec content, comments, and claimant names
-- [ ] 8.1.2 Search results panel with highlighted matches and click-to-open
-- [ ] 8.1.3 Compound filters: combine phase, claimant, label, priority, date range, and free text
-- [ ] 8.1.4 Filter state persisted in URL query params (shareable filtered views)
-- [ ] 8.1.5 Saved filter presets per user (stored in localStorage or git-backed config)
+- [x] 8.1.1 Full-text search bar: search across card titles, spec content, comments, and claimant names
+- [x] 8.1.2 Search results panel with highlighted matches and click-to-open
+- [x] 8.1.3 Compound filters: combine phase, claimant, label, priority, date range, and free text
+- [x] 8.1.4 Filter state persisted in URL query params (shareable filtered views)
+- [x] 8.1.5 Saved filter presets per user (stored in localStorage or git-backed config)
 
 ### 8.2 Labels, Priority & Due Dates
 
-- [ ] 8.2.1 Label system: custom key-value tags stored as YAML frontmatter in spec README.md
-- [ ] 8.2.2 Label management UI: create, edit, delete labels with custom colors
-- [ ] 8.2.3 Priority field (P0–P3): stored in spec frontmatter, displayed as colored badge on cards
-- [ ] 8.2.4 Due date field: stored in spec frontmatter, displayed on card, highlight overdue items in red
-- [ ] 8.2.5 Sort by priority, due date, creation date, or last activity
-- [ ] 8.2.6 Bulk label/priority assignment from multi-select mode
+- [x] 8.2.1 Label system: custom key-value tags stored as YAML frontmatter in spec README.md
+- [x] 8.2.2 Label management UI: create, edit, delete labels with custom colors
+- [x] 8.2.3 Priority field (P0–P3): stored in spec frontmatter, displayed as colored badge on cards
+- [x] 8.2.4 Due date field: stored in spec frontmatter, displayed on card, highlight overdue items in red
+- [x] 8.2.5 Sort by priority, due date, creation date, or last activity
+- [x] 8.2.6 Bulk label/priority assignment from multi-select mode
 
 ### 8.3 Board Navigation & UX
 
-- [ ] 8.3.1 Visible horizontal scroll indicators (left/right arrows) when columns overflow
-- [ ] 8.3.2 Keyboard shortcuts: arrow keys to navigate cards, `c` to claim, `e` to edit, `Enter` to open detail
-- [ ] 8.3.3 Keyboard shortcut overlay (press `?` to show all shortcuts)
-- [ ] 8.3.4 Column collapse/expand: minimize columns to save horizontal space
-- [ ] 8.3.5 Card count badges always visible; empty columns auto-collapse option
-- [ ] 8.3.6 Card timeline: visual history of phase transitions, claims, and edits for each card
+- [x] 8.3.1 Visible horizontal scroll indicators (left/right arrows) when columns overflow
+- [x] 8.3.2 Keyboard shortcuts: arrow keys to navigate cards, `c` to claim, `e` to edit, `Enter` to open detail
+- [x] 8.3.3 Keyboard shortcut overlay (press `?` to show all shortcuts)
+- [x] 8.3.4 Column collapse/expand: minimize columns to save horizontal space
+- [x] 8.3.5 Card count badges always visible; empty columns auto-collapse option
+- [x] 8.3.6 Card timeline: visual history of phase transitions, claims, and edits for each card
 
 ## Phase 9: GitHub Integration & GLaDOS Workflows
 

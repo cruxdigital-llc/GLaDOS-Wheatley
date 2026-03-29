@@ -7,6 +7,7 @@
 
 import type { SpecEntry, BoardPhase } from '../grammar/types.js';
 import { detectPhaseWithContents } from '../grammar/validator.js';
+import { parseFrontmatter } from './frontmatter-parser.js';
 
 const SPEC_DIR_RE =
   /^(\d{4}-\d{2}-\d{2})_(feature|fix|mission-statement|plan-product)_(.+)$/;
@@ -40,6 +41,18 @@ export function parseSpecDirectories(
       dir.readmeContent,
     );
 
+    // Parse frontmatter metadata from README.md if available
+    const metadata = dir.readmeContent
+      ? parseFrontmatter(dir.readmeContent)
+      : undefined;
+
+    // Only attach metadata if it has meaningful content
+    const hasMetadata = metadata && (
+      metadata.labels.length > 0 ||
+      metadata.priority !== null ||
+      metadata.due !== null
+    );
+
     entries.push({
       dirName: dir.dirName,
       date: match[1],
@@ -47,6 +60,7 @@ export function parseSpecDirectories(
       name: match[3],
       phase,
       files: dir.files,
+      ...(hasMetadata ? { metadata } : {}),
     });
   }
 
