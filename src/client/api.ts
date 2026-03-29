@@ -200,6 +200,103 @@ export interface ActivityFeedResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Cards
+// ---------------------------------------------------------------------------
+
+export interface CreateCardRequest {
+  title: string;
+  phase?: string;
+  section?: string;
+  branch?: string;
+}
+
+export interface CreateCardResponse {
+  id: string;
+  title: string;
+  phase: string;
+  specDir?: string;
+}
+
+export async function createCard(input: CreateCardRequest): Promise<CreateCardResponse> {
+  return fetchJson<CreateCardResponse>(`${API_BASE}/cards`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function renameCard(id: string, title: string, branch?: string): Promise<void> {
+  await fetchJson(`${API_BASE}/cards/${encodeURIComponent(id)}/title`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, branch }),
+  });
+}
+
+export async function deleteCard(id: string, branch?: string): Promise<void> {
+  const params = branch ? `?branch=${encodeURIComponent(branch)}` : '';
+  await fetchJson(`${API_BASE}/cards/${encodeURIComponent(id)}${params}`, {
+    method: 'DELETE',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Comments
+// ---------------------------------------------------------------------------
+
+export interface CommentEntry {
+  author: string;
+  timestamp: string;
+  body: string;
+}
+
+export async function fetchComments(
+  specDir: string,
+  branch?: string,
+): Promise<{ comments: CommentEntry[] }> {
+  const params = branch ? `?branch=${encodeURIComponent(branch)}` : '';
+  return fetchJson<{ comments: CommentEntry[] }>(
+    `${API_BASE}/specs/${encodeURIComponent(specDir)}/comments${params}`,
+  );
+}
+
+export async function addComment(
+  specDir: string,
+  author: string,
+  body: string,
+  branch?: string,
+): Promise<{ added: boolean }> {
+  return fetchJson<{ added: boolean }>(
+    `${API_BASE}/specs/${encodeURIComponent(specDir)}/comments`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ author, body, branch }),
+    },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Specs
+// ---------------------------------------------------------------------------
+
+export async function saveSpecFile(
+  specDir: string,
+  fileName: string,
+  content: string,
+  branch?: string,
+): Promise<{ saved: boolean; path: string }> {
+  return fetchJson<{ saved: boolean; path: string }>(
+    `${API_BASE}/specs/${encodeURIComponent(specDir)}/${encodeURIComponent(fileName)}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, branch }),
+    },
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Sync
 // ---------------------------------------------------------------------------
 

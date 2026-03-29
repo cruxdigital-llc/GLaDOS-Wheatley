@@ -12,7 +12,8 @@ import type { BoardCard, BoardColumn, BoardPhase } from '../../shared/grammar/ty
 import { VALID_TRANSITIONS } from '../../shared/transitions/types.js';
 import { useBoard, useCardDetail, useConsolidatedBoard, useBranchHealth, useGitIdentity } from '../hooks/use-board.js';
 import { useSSE } from '../hooks/use-sse.js';
-import { triggerSync } from '../api.js';
+import { triggerSync, createCard } from '../api.js';
+import { CreateCardModal } from './CreateCardModal.js';
 import { useExecuteTransition } from '../hooks/use-transitions.js';
 import { Column } from './Column.js';
 import { CardDetail } from './CardDetail.js';
@@ -69,6 +70,8 @@ export function Board() {
   const [optimisticColumns, setOptimisticColumns] = useState<BoardColumn[] | null>(null);
   // Transition error
   const [transitionError, setTransitionError] = useState<string | null>(null);
+  // Card creation
+  const [createCardPhase, setCreateCardPhase] = useState<BoardPhase | null>(null);
 
   const { data: gitIdentity } = useGitIdentity();
   const [syncing, setSyncing] = useState(false);
@@ -431,6 +434,7 @@ export function Board() {
                 onDrop={isConsolidated ? undefined : handleColumnDrop}
                 onCardDragStart={isConsolidated ? undefined : handleDragStart}
                 onCardDragEnd={isConsolidated ? undefined : handleDragEnd}
+                onAddCard={isConsolidated ? undefined : (phase) => setCreateCardPhase(phase)}
               />
             ))}
           </div>
@@ -450,7 +454,7 @@ export function Board() {
 
       {/* Card Detail Panel */}
       {selectedCardId && cardDetail && (
-        <CardDetail detail={cardDetail} onClose={handleCloseDetail} />
+        <CardDetail detail={cardDetail} branch={branch} currentUser={currentUser} onClose={handleCloseDetail} />
       )}
 
       {/* Claim Conflict Modal */}
@@ -485,6 +489,24 @@ export function Board() {
       {/* Activity Feed Panel */}
       {showActivityFeed && (
         <ActivityFeed onClose={() => setShowActivityFeed(false)} />
+      )}
+
+      {/* Create Card Modal */}
+      {createCardPhase && (
+        <CreateCardModal
+          targetPhase={createCardPhase}
+          onCancel={() => setCreateCardPhase(null)}
+          onConfirm={async (title) => {
+            try {
+              await createCard({ title, phase: createCardPhase, branch });
+              setCreateCardPhase(null);
+              void queryClient.invalidateQueries({ queryKey: ['board'] });
+            } catch (err) {
+              setTransitionError(err instanceof Error ? err.message : 'Failed to create card');
+              setCreateCardPhase(null);
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -33,6 +33,10 @@ import { syncRoutes } from './routes/sync.js';
 import { eventLogRoutes } from './routes/event-log.js';
 import { EventBus } from './event-bus.js';
 import { EventLogService } from './event-log-service.js';
+import { CardService } from './card-service.js';
+import { cardRoutes } from './routes/cards.js';
+import { specRoutes } from './routes/specs.js';
+import { commentRoutes } from './routes/comments.js';
 
 export interface ServerOptions {
   adapter: GitAdapter;
@@ -67,6 +71,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const claimTTLConfig = getClaimTTLConfig();
   const conflictDetector = new ConflictDetector(options.adapter);
   const notificationService = new NotificationService();
+  const cardService = new CardService(options.adapter);
   const eventBus = new EventBus();
   const eventLogService = new EventLogService(options.adapter, eventBus);
   eventLogService.start();
@@ -88,6 +93,9 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   notificationRoutes(app, notificationService);
   repoStatusRoutes(app, options.adapter);
   identityRoutes(app, options.adapter);
+  cardRoutes(app, cardService);
+  specRoutes(app, options.adapter);
+  commentRoutes(app, options.adapter);
   syncRoutes(app, options.adapter, eventBus);
   eventLogRoutes(app, eventLogService);
 
