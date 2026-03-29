@@ -14,7 +14,9 @@ export function branchRoutes(
   app: FastifyInstance,
   adapter: GitAdapter,
   boardService: BoardService,
+  healthService?: BranchHealthService,
 ): void {
+  const resolvedHealthService = healthService ?? new BranchHealthService(adapter);
   app.get('/api/branches', async () => {
     const [branches, current] = await Promise.all([
       adapter.listBranches(),
@@ -29,8 +31,7 @@ export function branchRoutes(
 
   app.get<{ Querystring: { base?: string } }>('/api/branches/health', async (request) => {
     const baseBranch = request.query.base || undefined;
-    const healthService = new BranchHealthService(adapter);
-    const health = await healthService.computeHealth(undefined, baseBranch);
+    const health = await resolvedHealthService.computeHealth(undefined, baseBranch);
     return { health };
   });
 }

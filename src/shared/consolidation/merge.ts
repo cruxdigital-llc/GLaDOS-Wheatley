@@ -12,6 +12,7 @@
  */
 
 import type { BoardCard, BoardColumn, BoardState } from '../grammar/types.js';
+import { PHASE_ORDER } from '../grammar/types.js';
 
 /** Minimal scan result needed for merging — mirrors server/api/branch-scanner.ts ScanResult. */
 export interface ScanResultForMerge {
@@ -68,8 +69,17 @@ export function mergeBoards(results: ScanResultForMerge[]): ConsolidatedBoardSta
         }
         branchesMap.get(card.id)!.add(branch);
 
-        // Later branches overwrite card metadata (phase, claim, etc.)
-        cardMap.set(card.id, card);
+        // Keep the card with the most advanced phase
+        const existing = cardMap.get(card.id);
+        if (!existing) {
+          cardMap.set(card.id, card);
+        } else {
+          const existingIdx = PHASE_ORDER.indexOf(existing.phase);
+          const newIdx = PHASE_ORDER.indexOf(card.phase);
+          if (newIdx > existingIdx) {
+            cardMap.set(card.id, card);
+          }
+        }
       }
     }
   }

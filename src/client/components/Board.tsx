@@ -75,8 +75,9 @@ export function Board() {
   const transitionMutation = useExecuteTransition(branch);
 
   // Active board data depending on view mode
-  const activeBoard = viewMode === 'consolidated' ? consolidatedBoard : board;
-  const activeLoading = viewMode === 'consolidated' ? consolidatedLoading : isLoading;
+  const isConsolidated = viewMode === 'consolidated';
+  const activeBoard = isConsolidated ? consolidatedBoard : board;
+  const activeLoading = isConsolidated ? consolidatedLoading : isLoading;
 
   const handleCardClick = (card: BoardCard) => {
     setSelectedCardId(card.id);
@@ -368,11 +369,11 @@ export function Board() {
                 currentUser={currentUser}
                 branch={branch}
                 onConflict={handleConflict}
-                validDropTargets={validDropTargets}
-                draggingCardId={dragState?.cardId}
-                onDrop={handleColumnDrop}
-                onCardDragStart={handleDragStart}
-                onCardDragEnd={handleDragEnd}
+                validDropTargets={isConsolidated ? new Set() : validDropTargets}
+                draggingCardId={isConsolidated ? undefined : dragState?.cardId}
+                onDrop={isConsolidated ? undefined : handleColumnDrop}
+                onCardDragStart={isConsolidated ? undefined : handleDragStart}
+                onCardDragEnd={isConsolidated ? undefined : handleDragEnd}
               />
             ))}
           </div>

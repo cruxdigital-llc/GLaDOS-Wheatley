@@ -48,11 +48,29 @@ interface CacheEntry {
 
 function parsePatterns(envValue: string | undefined): RegExp[] {
   if (!envValue) return [];
-  return envValue
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((pattern) => new RegExp(pattern));
+  const results: RegExp[] = [];
+  for (const raw of envValue.split(',')) {
+    const pattern = raw.trim();
+    if (!pattern) continue;
+    try {
+      results.push(new RegExp(pattern));
+    } catch {
+      // eslint-disable-next-line no-console
+      console.warn(`[BranchScanner] Skipping invalid regex pattern from env: "${pattern}"`);
+    }
+  }
+  return results;
+}
+
+/** Process items in batches of `limit` at a time. */
+async function batchedMap<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += limit) {
+    const batch = items.slice(i, i + limit);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,12 +104,20 @@ export class BranchScanner {
     const allBranches = await this.adapter.listBranches();
     const branches = allBranches.filter((b) => this.matchesBranchConfig(b, mergedConfig));
 
-    const results = await Promise.all(
-      branches.map((branch) => this.scanBranch(branch)),
-    );
+    const results = await batchedMap(branches, 5, (branch) => this.scanBranch(branch));
 
     // Filter out null entries (branches whose SHA couldn't be resolved)
-    return results.filter((r): r is ScanResult => r !== null);
+    const filtered = results.filter((r): r is ScanResult => r !== null);
+
+    // Prune cache keys for branches no longer present
+    const currentBranchSet = new Set(branches);
+    for (const key of this.cache.keys()) {
+      if (!currentBranchSet.has(key)) {
+        this.cache.delete(key);
+      }
+    }
+
+    return filtered;
   }
 
   /**

@@ -21,6 +21,7 @@ export function boardRoutes(
   boardService: BoardService,
   claimService: ClaimService,
   adapter?: GitAdapter,
+  scanner?: BranchScanner,
 ): void {
   app.get<{ Querystring: { branch?: string } }>('/api/board', async (request) => {
     const branch = request.query.branch || undefined;
@@ -68,7 +69,7 @@ export function boardRoutes(
       exclude?: string;
       prefixes?: string;
     };
-  }>('/api/board/consolidated', async (request) => {
+  }>('/api/board/consolidated', async (request, reply) => {
     if (!adapter) {
       // Return an empty consolidated state when no adapter is injected
       return {
@@ -80,13 +81,47 @@ export function boardRoutes(
 
     const { include, exclude, prefixes } = request.query;
 
+    const MAX_PATTERN_LENGTH = 200;
+
     const config: BranchScanConfig = {};
-    if (include) config.include = include.split(',').map((p) => new RegExp(p.trim()));
-    if (exclude) config.exclude = exclude.split(',').map((p) => new RegExp(p.trim()));
+    try {
+      if (include) {
+        const parts = include.split(',').map((p) => p.trim()).filter(Boolean);
+        for (const p of parts) {
+          if (p.length > MAX_PATTERN_LENGTH) {
+            return reply.status(400).send({
+              statusCode: 400,
+              error: 'Bad Request',
+              message: `Regex pattern too long (max ${MAX_PATTERN_LENGTH} chars)`,
+            });
+          }
+        }
+        config.include = parts.map((p) => new RegExp(p));
+      }
+      if (exclude) {
+        const parts = exclude.split(',').map((p) => p.trim()).filter(Boolean);
+        for (const p of parts) {
+          if (p.length > MAX_PATTERN_LENGTH) {
+            return reply.status(400).send({
+              statusCode: 400,
+              error: 'Bad Request',
+              message: `Regex pattern too long (max ${MAX_PATTERN_LENGTH} chars)`,
+            });
+          }
+        }
+        config.exclude = parts.map((p) => new RegExp(p));
+      }
+    } catch {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Invalid regex pattern in query parameter',
+      });
+    }
     if (prefixes) config.prefixes = prefixes.split(',').map((p) => p.trim());
 
-    const scanner = new BranchScanner(adapter);
-    const results = await scanner.scanAllBranches(config);
+    const resolvedScanner = scanner ?? new BranchScanner(adapter);
+    const results = await resolvedScanner.scanAllBranches(config);
     return mergeBoards(results);
   });
 }

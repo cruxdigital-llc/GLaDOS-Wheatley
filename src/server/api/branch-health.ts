@@ -11,6 +11,21 @@
 import type { GitAdapter } from '../git/types.js';
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Process items in batches of `limit` at a time. */
+async function batchedMap<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += limit) {
+    const batch = items.slice(i, i + limit);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Public types
 // ---------------------------------------------------------------------------
 
@@ -55,9 +70,9 @@ export class BranchHealthService {
     // Fetch base branch spec dirs once
     const baseSpecDirs = await this.getSpecDirNames(resolvedBase);
 
-    // Compute raw health data for each branch in parallel
-    const rawResults = await Promise.all(
-      allBranches.map((branch) => this.computeSingleBranch(branch, resolvedBase, baseSpecDirs)),
+    // Compute raw health data for each branch (max 5 concurrently)
+    const rawResults = await batchedMap(allBranches, 5, (branch) =>
+      this.computeSingleBranch(branch, resolvedBase, baseSpecDirs),
     );
 
     // Second pass: compute conflictRisk by looking for overlapping spec dirs
