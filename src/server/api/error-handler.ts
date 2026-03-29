@@ -12,13 +12,25 @@ export interface ApiError {
   message: string;
 }
 
+const STATUS_NAMES: Record<number, string> = {
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'Not Found',
+  409: 'Conflict',
+  422: 'Unprocessable Entity',
+  500: 'Internal Server Error',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
+};
+
 export function errorHandler(
   error: FastifyError,
   _request: FastifyRequest,
   reply: FastifyReply,
 ): void {
   const statusCode = error.statusCode ?? 500;
-  const errorName = statusCode >= 500 ? 'Internal Server Error' : 'Bad Request';
+  const errorName = STATUS_NAMES[statusCode] ?? (statusCode >= 500 ? 'Server Error' : 'Client Error');
 
   const response: ApiError = {
     statusCode,
@@ -27,22 +39,4 @@ export function errorHandler(
   };
 
   void reply.status(statusCode).send(response);
-}
-
-export class NotFoundError extends Error {
-  statusCode = 404;
-
-  constructor(message: string) {
-    super(message);
-    this.name = 'NotFoundError';
-  }
-}
-
-export class BadRequestError extends Error {
-  statusCode = 400;
-
-  constructor(message: string) {
-    super(message);
-    this.name = 'BadRequestError';
-  }
 }

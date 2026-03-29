@@ -41,7 +41,31 @@ describe('BoardService', () => {
     expect(state.metadata.totalCards).toBe(1);
   });
 
-  it('getCardDetail returns card with spec contents', async () => {
+  it('passes branch to adapter when specified', async () => {
+    const adapter = createMockAdapter();
+    const service = new BoardService(adapter);
+
+    await service.getBoardState('develop');
+
+    expect(adapter.readFile).toHaveBeenCalledWith(
+      'product-knowledge/ROADMAP.md',
+      'develop',
+    );
+  });
+
+  it('passes undefined ref when no branch specified', async () => {
+    const adapter = createMockAdapter();
+    const service = new BoardService(adapter);
+
+    await service.getBoardState();
+
+    expect(adapter.readFile).toHaveBeenCalledWith(
+      'product-knowledge/ROADMAP.md',
+      undefined,
+    );
+  });
+
+  it('getCardDetail returns card', async () => {
     const adapter = createMockAdapter({
       readFile: vi.fn().mockImplementation((path: string) => {
         if (path === 'product-knowledge/ROADMAP.md') {
@@ -66,24 +90,11 @@ describe('BoardService', () => {
     expect(detail).toBeNull();
   });
 
-  it('uses active branch when set', async () => {
+  it('getCurrentBranch delegates to adapter', async () => {
     const adapter = createMockAdapter();
     const service = new BoardService(adapter);
 
-    service.setActiveBranch('develop');
-    await service.getBoardState();
-
-    expect(adapter.readFile).toHaveBeenCalledWith(
-      'product-knowledge/ROADMAP.md',
-      'develop',
-    );
-  });
-
-  it('uses current branch when no active branch set', async () => {
-    const adapter = createMockAdapter();
-    const service = new BoardService(adapter);
-
-    const branch = await service.getActiveBranch();
+    const branch = await service.getCurrentBranch();
     expect(branch).toBe('main');
     expect(adapter.getCurrentBranch).toHaveBeenCalled();
   });
@@ -111,11 +122,9 @@ describe('BoardService', () => {
     const service = new BoardService(adapter);
     const board = await service.getBoardState();
 
-    // Find the card that got the spec overlay
     const specCards = board.columns.flatMap((c) => c.cards).filter((c) => c.specEntry);
     expect(specCards.length).toBeGreaterThan(0);
 
-    // Get detail for a card with spec entry
     if (specCards.length > 0) {
       const detail = await service.getCardDetail(specCards[0].id);
       expect(detail?.specContents).toBeDefined();

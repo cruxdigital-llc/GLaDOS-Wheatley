@@ -18,16 +18,17 @@ export interface ServerOptions {
   host?: string;
   port?: number;
   corsOrigin?: string | string[] | boolean;
+  logger?: boolean;
 }
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: true,
+    logger: options.logger ?? true,
   });
 
-  // CORS
+  // CORS — defaults to localhost for dev; set CORS_ORIGIN in production
   await app.register(cors, {
-    origin: options.corsOrigin ?? true, // Allow all in dev
+    origin: options.corsOrigin ?? 'http://localhost:5173',
   });
 
   // Error handler
@@ -36,8 +37,8 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   // Services
   const boardService = new BoardService(options.adapter);
 
-  // Routes
-  await app.register(healthRoutes);
+  // Routes (all registered as plain function calls for consistency)
+  healthRoutes(app);
   boardRoutes(app, boardService);
   branchRoutes(app, options.adapter, boardService);
 

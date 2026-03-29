@@ -60,6 +60,7 @@ describe('API Routes', () => {
     app = await createServer({
       adapter: createFixtureAdapter(),
       corsOrigin: true,
+      logger: false,
     });
     await app.ready();
   });
@@ -106,6 +107,14 @@ describe('API Routes', () => {
         'unclaimed', 'planning', 'speccing', 'implementing', 'verifying', 'done',
       ]);
     });
+
+    it('accepts optional branch query parameter', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/board?branch=main',
+      });
+      expect(response.statusCode).toBe(200);
+    });
   });
 
   describe('GET /api/board/card/:id', () => {
@@ -137,6 +146,14 @@ describe('API Routes', () => {
       const body = response.json();
       expect(body.card.phase).toBe('done');
     });
+
+    it('returns 400 for invalid card ID format', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/board/card/not-a-valid-id!',
+      });
+      expect(response.statusCode).toBe(400);
+    });
   });
 
   describe('GET /api/branches', () => {
@@ -149,38 +166,6 @@ describe('API Routes', () => {
       const body = response.json();
       expect(body.branches).toEqual(['main', 'develop']);
       expect(body.current).toBe('main');
-    });
-  });
-
-  describe('POST /api/branch', () => {
-    it('switches to a valid branch', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/branch',
-        payload: { branch: 'develop' },
-      });
-      expect(response.statusCode).toBe(200);
-      const body = response.json();
-      expect(body.success).toBe(true);
-      expect(body.branch).toBe('develop');
-    });
-
-    it('returns 404 for non-existent branch', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/branch',
-        payload: { branch: 'nonexistent' },
-      });
-      expect(response.statusCode).toBe(404);
-    });
-
-    it('returns 400 for missing branch in body', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/branch',
-        payload: {},
-      });
-      expect(response.statusCode).toBe(400);
     });
   });
 });
