@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash ../GLaDOS/bin/glados-install.sh --mode claude --target . --verbose)",
+      "Bash(git config:*)",
+      "Bash(ssh -T git@github.com)",
+      "Bash(git remote:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)"
+    ]
+  }
+}
