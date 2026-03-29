@@ -13,6 +13,11 @@ const VALID_ACTIONS = new Set<string>([
   'claim', 'release', 'transition', 'file-create', 'file-edit', 'commit', 'comment',
 ]);
 
+const MAX_LIMIT = 500;
+const MAX_FIELD_LENGTH = 200;
+/** Reject strings containing pipe, newline, or control characters. */
+const UNSAFE_PATTERN = /[|\n\r\x00-\x1f]/;
+
 export function activityRoutes(app: FastifyInstance, activityService: ActivityService): void {
   // GET /api/activity?limit=50&actor=jed&action=claim&branch=main
   app.get('/api/activity', async (request, reply) => {
@@ -22,6 +27,7 @@ export function activityRoutes(app: FastifyInstance, activityService: ActivitySe
     if (limit !== undefined && (isNaN(limit) || limit < 1)) {
       return reply.status(400).send({ error: 'Bad Request', message: 'limit must be a positive integer' });
     }
+    const cappedLimit = limit !== undefined ? Math.min(limit, MAX_LIMIT) : undefined;
 
     const action = query.action;
     if (action && !VALID_ACTIONS.has(action)) {
@@ -29,7 +35,7 @@ export function activityRoutes(app: FastifyInstance, activityService: ActivitySe
     }
 
     const feed = await activityService.getActivityFeed({
-      limit,
+      limit: cappedLimit,
       actor: query.actor,
       action: action as TraceAction | undefined,
       branch: query.branch,
@@ -68,6 +74,16 @@ export function activityRoutes(app: FastifyInstance, activityService: ActivitySe
     }
     if (!actor || typeof actor !== 'string') {
       return reply.status(400).send({ error: 'Bad Request', message: 'actor required' });
+    }
+
+    // Validate field lengths and reject unsafe characters
+    for (const [name, value] of [['target', target], ['actor', actor], ['detail', detail ?? '']] as const) {
+      if (value.length > MAX_FIELD_LENGTH) {
+        return reply.status(400).send({ error: 'Bad Request', message: `${name} exceeds max length of ${MAX_FIELD_LENGTH}` });
+      }
+      if (UNSAFE_PATTERN.test(value)) {
+        return reply.status(400).send({ error: 'Bad Request', message: `${name} contains invalid characters` });
+      }
     }
 
     const entry = await activityService.recordTrace(

@@ -93,6 +93,9 @@ function formatSlackMessage(event: WheatleyEvent): Record<string, unknown> {
 /** Max events to keep in the in-memory log. */
 const MAX_EVENT_LOG_SIZE = 1000;
 
+/** Max webhooks allowed. */
+const MAX_WEBHOOKS = 50;
+
 export class NotificationService {
   private webhooks: WebhookConfig[] = [];
   private eventLog: WheatleyEvent[] = [];
@@ -108,7 +111,26 @@ export class NotificationService {
       try {
         const parsed = JSON.parse(envWebhooks);
         if (Array.isArray(parsed)) {
-          this.webhooks.push(...parsed);
+          for (const entry of parsed) {
+            if (
+              entry &&
+              typeof entry === 'object' &&
+              typeof entry.id === 'string' &&
+              typeof entry.url === 'string' &&
+              typeof entry.format === 'string' &&
+              Array.isArray(entry.events) &&
+              typeof entry.active === 'boolean'
+            ) {
+              try {
+                const u = new URL(entry.url);
+                if (u.protocol === 'https:') {
+                  this.webhooks.push(entry as WebhookConfig);
+                }
+              } catch {
+                // Skip entries with invalid URLs
+              }
+            }
+          }
         }
       } catch {
         // Ignore invalid env var
@@ -118,18 +140,28 @@ export class NotificationService {
     // Convenience: WHEATLEY_SLACK_WEBHOOK_URL for quick Slack setup
     const slackUrl = process.env['WHEATLEY_SLACK_WEBHOOK_URL'];
     if (slackUrl) {
-      this.webhooks.push({
-        id: 'slack-default',
-        url: slackUrl,
-        events: [],
-        active: true,
-        format: 'slack',
-      });
+      try {
+        const u = new URL(slackUrl);
+        if (u.protocol === 'https:') {
+          this.webhooks.push({
+            id: 'slack-default',
+            url: slackUrl,
+            events: [],
+            active: true,
+            format: 'slack',
+          });
+        }
+      } catch {
+        // Ignore invalid Slack webhook URL
+      }
     }
   }
 
   /** Register a webhook at runtime. */
   addWebhook(config: WebhookConfig): void {
+    if (this.webhooks.length >= MAX_WEBHOOKS) {
+      throw new Error(`Maximum of ${MAX_WEBHOOKS} webhooks reached`);
+    }
     this.webhooks.push(config);
   }
 
@@ -177,6 +209,7 @@ export class NotificationService {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
+          signal: AbortSignal.timeout(5000),
         });
       } catch {
         // Silently ignore webhook failures — fire-and-forget

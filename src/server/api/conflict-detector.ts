@@ -42,6 +42,17 @@ export interface ConflictReport {
 // ConflictDetector
 // ---------------------------------------------------------------------------
 
+/** Process items in batches of `limit` at a time. */
+async function batchedMap<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += limit) {
+    const batch = items.slice(i, i + limit);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+}
+
 export class ConflictDetector {
   constructor(private readonly adapter: GitAdapter) {}
 
@@ -59,13 +70,13 @@ export class ConflictDetector {
     // Exclude base branch from comparison
     const featureBranches = allBranches.filter((b) => b !== resolvedBase);
 
-    // Gather spec dirs per branch
+    // Gather spec dirs per branch (batched, max 5 concurrent)
     const branchSpecs = new Map<string, Set<string>>();
-    for (const branch of featureBranches) {
+    await batchedMap(featureBranches, 5, async (branch) => {
       const entries = await this.adapter.listDirectory('specs', branch);
       const dirs = entries.filter((e) => e.type === 'directory').map((e) => e.name);
       branchSpecs.set(branch, new Set(dirs));
-    }
+    });
 
     // Find overlaps: spec dirs that appear on 2+ feature branches
     const specToBranches = new Map<string, string[]>();
@@ -98,7 +109,7 @@ export class ConflictDetector {
           if (seenPairs.has(pairKey)) {
             // Already generated a warning for this pair, add to overlapping specs
             const existing = warnings.find(
-              (w) => w.branches.sort().join('|') === pairKey,
+              (w) => [...w.branches].sort().join('|') === pairKey,
             );
             if (existing && !existing.overlappingSpecs.includes(overlap.specDir)) {
               existing.overlappingSpecs.push(overlap.specDir);

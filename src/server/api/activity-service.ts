@@ -29,7 +29,17 @@ export interface ActivityQuery {
 }
 
 export class ActivityService {
+  private writeLock: Promise<void> = Promise.resolve();
+
   constructor(private readonly adapter: GitAdapter) {}
+
+  private acquireWriteLock(): Promise<() => void> {
+    let release: () => void;
+    const next = new Promise<void>(resolve => { release = resolve; });
+    const prev = this.writeLock;
+    this.writeLock = next;
+    return prev.then(() => release!);
+  }
 
   /**
    * Read and parse the activity feed from the repo.
@@ -63,25 +73,30 @@ export class ActivityService {
     detail?: string,
     branch?: string,
   ): Promise<TraceEntry> {
-    const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-    const actorType = identifyAgent(actor);
+    const release = await this.acquireWriteLock();
+    try {
+      const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+      const actorType = identifyAgent(actor);
 
-    const detailSuffix = detail ? ` | ${detail}` : '';
-    const line = `- [${action}] ${target} | ${actor} | ${timestamp}${detailSuffix}`;
+      const detailSuffix = detail ? ` | ${detail}` : '';
+      const line = `- [${action}] ${target} | ${actor} | ${timestamp}${detailSuffix}`;
 
-    const existingContent = await this.adapter.readFile(ACTIVITY_FILE, branch);
-    const base = existingContent?.trim()
-      ? existingContent.trimEnd()
-      : ACTIVITY_FILE_HEADER.trimEnd();
-    const newContent = `${base}\n${line}`;
+      const existingContent = await this.adapter.readFile(ACTIVITY_FILE, branch);
+      const base = existingContent?.trim()
+        ? existingContent.trimEnd()
+        : ACTIVITY_FILE_HEADER.trimEnd();
+      const newContent = `${base}\n${line}`;
 
-    await this.adapter.writeFile(
-      ACTIVITY_FILE,
-      newContent,
-      `activity: ${action} ${target} by ${actor}`,
-      branch,
-    );
+      await this.adapter.writeFile(
+        ACTIVITY_FILE,
+        newContent,
+        `activity: ${action} ${target} by ${actor}`,
+        branch,
+      );
 
-    return { action, target, actor, actorType, timestamp, detail };
+      return { action, target, actor, actorType, timestamp, detail };
+    } finally {
+      release();
+    }
   }
 }

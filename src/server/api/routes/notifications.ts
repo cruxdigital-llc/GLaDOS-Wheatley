@@ -14,6 +14,7 @@ const VALID_FORMATS = new Set(['raw', 'slack']);
 const VALID_EVENT_TYPES = new Set<string>([
   'claim', 'release', 'transition', 'conflict', 'ttl-warning', 'ttl-expired',
 ]);
+const MAX_WEBHOOKS = 50;
 
 export function notificationRoutes(
   app: FastifyInstance,
@@ -43,6 +44,20 @@ export function notificationRoutes(
     }
     if (!url || typeof url !== 'string') {
       return reply.status(400).send({ error: 'Bad Request', message: 'url required (string)' });
+    }
+    // Reject non-HTTPS webhook URLs to prevent SSRF
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      return reply.status(400).send({ error: 'Bad Request', message: 'url must be a valid URL' });
+    }
+    if (parsedUrl.protocol !== 'https:') {
+      return reply.status(400).send({ error: 'Bad Request', message: 'url must use HTTPS' });
+    }
+    // Enforce max webhooks limit
+    if (notificationService.listWebhooks().length >= MAX_WEBHOOKS) {
+      return reply.status(400).send({ error: 'Bad Request', message: `Maximum of ${MAX_WEBHOOKS} webhooks reached` });
     }
     if (format && !VALID_FORMATS.has(format)) {
       return reply.status(400).send({ error: 'Bad Request', message: 'format must be "raw" or "slack"' });
