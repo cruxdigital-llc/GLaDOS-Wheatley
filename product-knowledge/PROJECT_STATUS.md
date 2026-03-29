@@ -29,7 +29,7 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 
 *Lead: TBD*
 
-- [ ] **Repo parser**: Extract unclaimed items from `ROADMAP.md`, phase from `specs/` directories, active tasks from `PROJECT_STATUS.md`
+- [x] **Repo parser**: Extract unclaimed items from `ROADMAP.md`, phase from `specs/` directories, active tasks from `PROJECT_STATUS.md`
 - [ ] **Kanban board UI**: Column-based view mapping GLaDOS phases to columns
 - [ ] **Card detail view**: Show README, spec, plan, and requirements from a feature's `specs/` directory
 - [ ] **Branch selector**: Switch which branch the board reads from

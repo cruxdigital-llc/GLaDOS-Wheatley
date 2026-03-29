@@ -134,6 +134,49 @@ export interface ParsedClaims {
   activeClaims: Map<string, ClaimEntry>;
 }
 
+// --- Board state types (assembled from all parsers) ---
+
+export type CardSource = 'roadmap' | 'spec' | 'status';
+
+export interface BoardCard {
+  /** Unique card ID — roadmap item ID or spec dir name */
+  id: string;
+  /** Display title */
+  title: string;
+  /** Current phase */
+  phase: BoardPhase;
+  /** Where this card's data originates */
+  source: CardSource;
+  /** Linked roadmap item (if any) */
+  roadmapItem?: RoadmapItem;
+  /** Linked spec entry (if any) */
+  specEntry?: SpecEntry;
+  /** Linked status task (if any) */
+  statusTask?: StatusTask;
+  /** Active claim on this item (if any) */
+  claim?: ClaimEntry;
+}
+
+export interface BoardColumn {
+  /** Phase this column represents */
+  phase: BoardPhase;
+  /** Display name for the column */
+  title: string;
+  /** Cards in this column */
+  cards: BoardCard[];
+}
+
+export interface BoardState {
+  /** Columns in phase order */
+  columns: BoardColumn[];
+  /** Summary metadata */
+  metadata: {
+    totalCards: number;
+    claimedCount: number;
+    completedCount: number;
+  };
+}
+
 // --- Validation types ---
 
 export interface ValidationError {

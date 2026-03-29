@@ -22,12 +22,12 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 1.2 Markdown Parsers
 
-- [ ] 1.2.1 ROADMAP.md parser: extract task items with status, phase, and metadata
-- [ ] 1.2.2 Spec directory scanner: enumerate `specs/` directories, detect phase from contents
-- [ ] 1.2.3 PROJECT_STATUS.md parser: extract active tasks, current focus, and leads
-- [ ] 1.2.4 Claims.md parser: extract existing claims (for Phase 2 readiness, read-only in Phase 1)
-- [ ] 1.2.5 Unified board state assembler: merge parser outputs into a single board model
-- [ ] 1.2.6 Unit tests for each parser against known-good and malformed inputs
+- [x] 1.2.1 ROADMAP.md parser: extract task items with status, phase, and metadata
+- [x] 1.2.2 Spec directory scanner: enumerate `specs/` directories, detect phase from contents
+- [x] 1.2.3 PROJECT_STATUS.md parser: extract active tasks, current focus, and leads
+- [x] 1.2.4 Claims.md parser: extract existing claims (for Phase 2 readiness, read-only in Phase 1)
+- [x] 1.2.5 Unified board state assembler: merge parser outputs into a single board model
+- [x] 1.2.6 Unit tests for each parser against known-good and malformed inputs
 
 ### 1.3 Git Adapter
 
