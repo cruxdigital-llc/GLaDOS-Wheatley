@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(bash ../GLaDOS/bin/glados-install.sh --mode claude --target . --verbose)",
       "Bash(git config:*)",
@@ -11,7 +12,9 @@
       "Bash(git checkout:*)",
       "Bash(gh pr:*)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "mcp__Desktop_Commander__list_directory",
+      "mcp__Desktop_Commander__read_file"
     ]
   }
 }

@@ -4,9 +4,12 @@
     {
       "name": "frontend",
       "runtimeExecutable": "docker",
-      "runtimeArgs": ["compose", "up", "frontend"],
+      "runtimeArgs": ["compose", "up", "frontend", "server"],
       "port": 5173,
-      "autoPort": false
+      "autoPort": false,
+      "env": {
+        "WHEATLEY_REPO_PATH": "C:/Users/jedix/Workspace/wheatley-mock-repo"
+      }
     }
   ]
 }
