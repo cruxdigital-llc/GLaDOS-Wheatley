@@ -69,7 +69,8 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 
 ### 6. Backlog / Upcoming
 
-*All phases complete. See roadmap for future enhancements.*
+- [ ] Phase 6: Authentication & Multi-Tenancy (4 features, 15 items)
+- [ ] Phase 7: Polish & Production Readiness (3 features, 15 items)
 
 ## Known Issues / Technical Debt
 
@@ -91,3 +92,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-28: **PHASE 4 COMPLETE** — 339 tests passing, 12/12 roadmap items done.
 - 2026-03-28: Features 5.1-5.4 complete — activity feed, claim TTL, conflict detection, notification hooks.
 - 2026-03-28: **PHASE 5 COMPLETE** — 397 tests passing, 14/14 roadmap items done.
+- 2026-03-28: Roadmap extended with Phase 6 (Auth & Multi-Tenancy) and Phase 7 (Polish & Production Readiness).

@@ -204,3 +204,60 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 - [x] 5.4.1 Webhook system: configurable outbound webhooks for events (claim, release, phase transition, conflict)
 - [x] 5.4.2 Slack integration: pre-built webhook formatter for Slack
 - [x] 5.4.3 Event log: persistent log of all Wheatley events for audit
+
+## Phase 6: Authentication & Multi-Tenancy
+
+**Goal**: Secure the board for team use and support multiple repositories.
+
+### 6.1 Authentication & Authorization
+
+- [ ] 6.1.1 API key authentication middleware (header-based, configurable via `WHEATLEY_API_KEY`)
+- [ ] 6.1.2 Role-based access: read-only viewers vs. editors (can claim, transition, write)
+- [ ] 6.1.3 GitHub OAuth integration for user identity (replace manual name input)
+- [ ] 6.1.4 Per-endpoint authorization checks (e.g., only editors can POST/DELETE)
+
+### 6.2 Multi-Repo Support
+
+- [ ] 6.2.1 Configuration file for multiple repo sources (`wheatley.config.json`)
+- [ ] 6.2.2 Repo selector in the UI header (switch between managed repos)
+- [ ] 6.2.3 Per-repo adapter instantiation (independent git connections)
+- [ ] 6.2.4 Cross-repo dashboard: aggregate view of cards across multiple repos
+
+### 6.3 Persistent Event Log
+
+- [ ] 6.3.1 Replace in-memory event log with file-backed storage (`product-knowledge/events.md`)
+- [ ] 6.3.2 Event log rotation: archive events older than configurable threshold
+- [ ] 6.3.3 Event replay: reconstruct board state from event log for debugging
+
+### 6.4 Performance & Scalability
+
+- [ ] 6.4.1 Server-Sent Events (SSE) for real-time board updates (replace polling)
+- [ ] 6.4.2 Incremental parsing: only re-parse changed files on git events
+- [ ] 6.4.3 Response caching with ETag/If-None-Match for API endpoints
+- [ ] 6.4.4 Frontend virtualized lists for boards with 100+ cards
+
+## Phase 7: Polish & Production Readiness
+
+**Goal**: Production-quality UX and operational tooling.
+
+### 7.1 UI/UX Improvements
+
+- [ ] 7.1.1 Dark mode theme with system preference detection
+- [ ] 7.1.2 Keyboard shortcuts: navigate cards, claim, transition
+- [ ] 7.1.3 Search and filter by card title, phase, assignee, or date
+- [ ] 7.1.4 Card timeline: visual history of phase transitions for each card
+- [ ] 7.1.5 Responsive design for tablet/mobile viewports
+
+### 7.2 Operational Tooling
+
+- [ ] 7.2.1 Structured logging with configurable log levels (debug, info, warn, error)
+- [ ] 7.2.2 Prometheus metrics endpoint (`/metrics`) for monitoring
+- [ ] 7.2.3 Startup self-test: validate git connectivity, permissions, and repo conformance
+- [ ] 7.2.4 Graceful shutdown: drain in-flight requests, flush event log
+
+### 7.3 Testing & Quality
+
+- [ ] 7.3.1 End-to-end tests with Playwright (board load, claim, transition, drag-drop)
+- [ ] 7.3.2 Load testing: concurrent claim/release under contention
+- [ ] 7.3.3 Snapshot tests for all UI components
+- [ ] 7.3.4 API contract tests (OpenAPI spec generation and validation)
