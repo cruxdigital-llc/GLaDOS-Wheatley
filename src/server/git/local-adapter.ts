@@ -5,10 +5,11 @@
  * Used in Docker sidecar mode (WHEATLEY_MODE=local).
  */
 
-import { readFile, readdir } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
+import { resolve, dirname } from 'node:path';
 import simpleGit, { type SimpleGit } from 'simple-git';
 import type { GitAdapter, DirectoryEntry } from './types.js';
+import { ConflictError } from './types.js';
 
 /** Validate ref strings to prevent command-line injection. */
 const SAFE_REF_RE = /^[a-zA-Z0-9_./-]+$/;
@@ -123,6 +124,42 @@ export class LocalGitAdapter implements GitAdapter {
       type: entry.isDirectory() ? 'directory' as const : 'file' as const,
       path: path ? `${path}/${entry.name}` : entry.name,
     }));
+  }
+
+  async writeFile(path: string, content: string, message: string, branch?: string): Promise<void> {
+    const targetBranch = branch ?? (await this.getDefaultBranch());
+    const originalBranch = await this.getCurrentBranch();
+
+    // Checkout coordination branch
+    await this.git.checkout(targetBranch);
+
+    try {
+      // Write file content to disk
+      const fullPath = this.safePath(path);
+      await mkdir(dirname(fullPath), { recursive: true });
+      await writeFile(fullPath, content, 'utf-8');
+
+      // Stage, commit, push
+      await this.git.add(path);
+      await this.git.commit(message);
+
+      try {
+        await this.git.push('origin', targetBranch);
+      } catch (pushErr) {
+        const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+        if (msg.includes('non-fast-forward') || msg.includes('rejected')) {
+          throw new ConflictError(`Push rejected: non-fast-forward conflict on ${path}`);
+        }
+        throw pushErr;
+      }
+    } finally {
+      // Best-effort restore to original branch
+      try {
+        await this.git.checkout(originalBranch);
+      } catch {
+        // Ignore checkout errors during cleanup
+      }
+    }
   }
 
   private async listFromGit(path: string, ref: string): Promise<DirectoryEntry[]> {

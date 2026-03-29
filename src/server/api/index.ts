@@ -4,4 +4,5 @@
 
 export { createServer, type ServerOptions } from './server.js';
 export { BoardService } from './board-service.js';
+export { ClaimService } from './claim-service.js';
 export { errorHandler } from './error-handler.js';

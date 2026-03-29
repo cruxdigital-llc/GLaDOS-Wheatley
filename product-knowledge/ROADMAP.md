@@ -97,13 +97,13 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 2.2 Claim Operations (Backend)
 
-- [ ] 2.2.1 Extend `GitAdapter` interface with write operations (commitFile, push)
-- [ ] 2.2.2 Implement write operations in `LocalGitAdapter` (commit to coordination branch)
-- [ ] 2.2.3 Implement write operations in `RemoteGitAdapter` (create/update file via API, target coordination branch)
-- [ ] 2.2.4 `POST /api/claims` — claim a task (append to claims.md, commit to coordination branch)
-- [ ] 2.2.5 `DELETE /api/claims/:id` — release a claim (update claims.md, commit)
-- [ ] 2.2.6 Conflict detection: catch failed commits (someone else claimed first), return conflict response
-- [ ] 2.2.7 Coordination branch configuration: configurable target branch for claim commits (default: `main`)
+- [x] 2.2.1 Extend `GitAdapter` interface with write operations (commitFile, push)
+- [x] 2.2.2 Implement write operations in `LocalGitAdapter` (commit to coordination branch)
+- [x] 2.2.3 Implement write operations in `RemoteGitAdapter` (create/update file via API, target coordination branch)
+- [x] 2.2.4 `POST /api/claims` — claim a task (append to claims.md, commit to coordination branch)
+- [x] 2.2.5 `DELETE /api/claims/:id` — release a claim (update claims.md, commit)
+- [x] 2.2.6 Conflict detection: catch failed commits (someone else claimed first), return conflict response
+- [x] 2.2.7 Coordination branch configuration: configurable target branch for claim commits (default: `main`)
 
 ### 2.3 Claim Operations (Frontend)
 

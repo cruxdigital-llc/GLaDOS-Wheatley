@@ -7,6 +7,7 @@
 
 import { Octokit } from '@octokit/rest';
 import type { GitAdapter, DirectoryEntry, GitHubConfig } from './types.js';
+import { ConflictError } from './types.js';
 
 export class RemoteGitAdapter implements GitAdapter {
   private readonly octokit: Octokit;
@@ -113,6 +114,45 @@ export class RemoteGitAdapter implements GitAdapter {
       return this.defaultBranchCache;
     } catch {
       return 'main';
+    }
+  }
+
+  async writeFile(path: string, content: string, message: string, branch?: string): Promise<void> {
+    const targetBranch = branch ?? (await this.getDefaultBranch());
+
+    // Read the current file SHA (needed for updates; omit for new files)
+    let sha: string | undefined;
+    try {
+      const response = await this.octokit.repos.getContent({
+        owner: this.owner,
+        repo: this.repo,
+        path,
+        ref: targetBranch,
+      });
+      const data = response.data;
+      if (!Array.isArray(data) && data.type === 'file') {
+        sha = data.sha;
+      }
+    } catch {
+      // File does not exist yet — proceed with sha undefined
+    }
+
+    try {
+      await this.octokit.repos.createOrUpdateFileContents({
+        owner: this.owner,
+        repo: this.repo,
+        path,
+        message,
+        content: Buffer.from(content).toString('base64'),
+        branch: targetBranch,
+        ...(sha !== undefined ? { sha } : {}),
+      });
+    } catch (err) {
+      const status = (err as { status?: number }).status;
+      if (status === 409) {
+        throw new ConflictError(`GitHub API returned 409: conflict on ${path}`);
+      }
+      throw err;
     }
   }
 

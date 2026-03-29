@@ -8,11 +8,13 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import type { GitAdapter } from '../git/types.js';
 import { BoardService } from './board-service.js';
+import { ClaimService } from './claim-service.js';
 import { errorHandler } from './error-handler.js';
 import { healthRoutes } from './routes/health.js';
 import { boardRoutes } from './routes/board.js';
 import { branchRoutes } from './routes/branches.js';
 import { conformanceRoutes } from './routes/conformance.js';
+import { claimsRoutes } from './routes/claims.js';
 
 export interface ServerOptions {
   adapter: GitAdapter;
@@ -37,12 +39,14 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
   // Services
   const boardService = new BoardService(options.adapter);
+  const claimService = new ClaimService(options.adapter);
 
   // Routes (all registered as plain function calls for consistency)
   healthRoutes(app);
   boardRoutes(app, boardService);
   branchRoutes(app, options.adapter, boardService);
   conformanceRoutes(app, options.adapter);
+  claimsRoutes(app, claimService);
 
   return app;
 }

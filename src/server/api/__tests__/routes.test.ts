@@ -50,6 +50,7 @@ function createFixtureAdapter(): GitAdapter {
     getCurrentBranch: async () => 'main',
     getDefaultBranch: async () => 'main',
     getLatestSha: async () => 'abc123',
+    writeFile: async () => {},
   };
 }
 
