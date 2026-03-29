@@ -125,10 +125,10 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 3.1 Phase Transition Engine
 
-- [ ] 3.1.1 Define valid phase transitions (Unclaimed → Planning → Speccing → Implementing → Verifying → Done)
-- [ ] 3.1.2 Transition logic: determine which markdown files to create/update for each phase change
-- [ ] 3.1.3 Commit generation: produce a well-formed commit for each transition
-- [ ] 3.1.4 Transition validation: prevent invalid transitions (e.g., Unclaimed → Done)
+- [x] 3.1.1 Define valid phase transitions (Unclaimed → Planning → Speccing → Implementing → Verifying → Done)
+- [x] 3.1.2 Transition logic: determine which markdown files to create/update for each phase change
+- [x] 3.1.3 Commit generation: produce a well-formed commit for each transition
+- [x] 3.1.4 Transition validation: prevent invalid transitions (e.g., Unclaimed → Done)
 
 ### 3.2 Drag-and-Drop UI
 
