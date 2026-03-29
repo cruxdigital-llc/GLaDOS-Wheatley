@@ -159,6 +159,33 @@ export class RemoteGitAdapter implements GitAdapter {
     }
   }
 
+  async getCommitsBehind(branch: string, baseBranch: string): Promise<number> {
+    try {
+      const response = await this.octokit.repos.compareCommits({
+        owner: this.owner,
+        repo: this.repo,
+        base: branch,
+        head: baseBranch,
+      });
+      return response.data.ahead_by ?? 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  async getLastCommitDate(branch: string): Promise<string | null> {
+    try {
+      const response = await this.octokit.repos.getBranch({
+        owner: this.owner,
+        repo: this.repo,
+        branch,
+      });
+      return response.data.commit.commit.committer?.date ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   async getLatestSha(branch?: string): Promise<string | null> {
     try {
       const ref = branch ?? (await this.getDefaultBranch());

@@ -50,7 +50,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
   // Routes (all registered as plain function calls for consistency)
   healthRoutes(app);
-  boardRoutes(app, boardService, claimService);
+  boardRoutes(app, boardService, claimService, options.adapter);
   branchRoutes(app, options.adapter, boardService);
   conformanceRoutes(app, options.adapter);
   claimsRoutes(app, claimService);

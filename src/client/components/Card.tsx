@@ -199,6 +199,20 @@ export function Card({
         )}
       </div>
 
+      {/* Branch badges — shown in consolidated view when card appears on multiple branches */}
+      {card.branches && card.branches.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {card.branches.map((b) => (
+            <span
+              key={b}
+              className="text-xs px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200"
+            >
+              {b}
+            </span>
+          ))}
+        </div>
+      )}
+
       {card.statusTask && (
         <div className="mt-1 text-xs text-gray-400 truncate">
           {card.statusTask.description}
