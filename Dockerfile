@@ -17,6 +17,7 @@ RUN npm run build
 
 # Production
 FROM node:22-alpine AS production
+RUN apk add --no-cache git
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules

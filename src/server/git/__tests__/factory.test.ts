@@ -47,6 +47,15 @@ describe('createGitAdapter', () => {
     ).toThrow(/owner/);
   });
 
+  it('throws if remote mode has empty repo', () => {
+    expect(() =>
+      createGitAdapter({
+        mode: 'remote',
+        github: { token: 'ghp_test', owner: 'org', repo: '' },
+      }),
+    ).toThrow(/repo/);
+  });
+
   it('throws for invalid mode', () => {
     expect(() =>
       createGitAdapter({ mode: 'invalid' as 'local' }),

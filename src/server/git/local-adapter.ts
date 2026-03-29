@@ -6,34 +6,49 @@
  */
 
 import { readFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import simpleGit, { type SimpleGit } from 'simple-git';
 import type { GitAdapter, DirectoryEntry } from './types.js';
+
+/** Validate ref strings to prevent command-line injection. */
+const SAFE_REF_RE = /^[a-zA-Z0-9_./-]+$/;
 
 export class LocalGitAdapter implements GitAdapter {
   private readonly git: SimpleGit;
   private readonly repoPath: string;
 
   constructor(repoPath: string) {
-    this.repoPath = repoPath;
-    this.git = simpleGit(repoPath);
+    this.repoPath = resolve(repoPath);
+    this.git = simpleGit(this.repoPath);
+  }
+
+  /** Resolve a path within the repo, preventing path traversal attacks. */
+  private safePath(path: string): string {
+    const resolved = resolve(this.repoPath, path);
+    if (!resolved.startsWith(this.repoPath)) {
+      throw new Error('Path traversal detected');
+    }
+    return resolved;
+  }
+
+  /** Validate a git ref to prevent command-line injection. */
+  private safeRef(ref: string): string {
+    if (!SAFE_REF_RE.test(ref)) {
+      throw new Error(`Invalid git ref: "${ref}"`);
+    }
+    return ref;
   }
 
   async readFile(path: string, ref?: string): Promise<string | null> {
     try {
       if (!ref) {
         // Read from working tree
-        return await readFile(join(this.repoPath, path), 'utf-8');
+        return await readFile(this.safePath(path), 'utf-8');
       }
 
-      const currentBranch = await this.getCurrentBranch();
-      if (ref === currentBranch) {
-        // Same as current branch — read from working tree
-        return await readFile(join(this.repoPath, path), 'utf-8');
-      }
-
-      // Different ref — use git show
-      return await this.git.show([`${ref}:${path}`]);
+      // Explicit ref — always use git show for committed content
+      const safeRef = this.safeRef(ref);
+      return await this.git.show([`${safeRef}:${path}`]);
     } catch {
       return null;
     }
@@ -46,13 +61,9 @@ export class LocalGitAdapter implements GitAdapter {
         return await this.listFromFilesystem(path);
       }
 
-      const currentBranch = await this.getCurrentBranch();
-      if (ref === currentBranch) {
-        return await this.listFromFilesystem(path);
-      }
-
-      // Different ref — use git ls-tree
-      return await this.listFromGit(path, ref);
+      // Explicit ref — always use git ls-tree for committed content
+      const safeRef = this.safeRef(ref);
+      return await this.listFromGit(path, safeRef);
     } catch {
       return [];
     }
@@ -78,17 +89,24 @@ export class LocalGitAdapter implements GitAdapter {
 
   async getDefaultBranch(): Promise<string> {
     try {
-      const branches = await this.listBranches();
-      if (branches.includes('main')) return 'main';
-      if (branches.includes('master')) return 'master';
-      return branches[0] ?? 'main';
+      // Try to read the remote's default branch
+      const ref = await this.git.raw(['symbolic-ref', 'refs/remotes/origin/HEAD']);
+      return ref.trim().replace('refs/remotes/origin/', '');
     } catch {
-      return 'main';
+      // Fallback: guess from available branches
+      try {
+        const branches = await this.listBranches();
+        if (branches.includes('main')) return 'main';
+        if (branches.includes('master')) return 'master';
+        return branches[0] ?? 'main';
+      } catch {
+        return 'main';
+      }
     }
   }
 
   private async listFromFilesystem(path: string): Promise<DirectoryEntry[]> {
-    const fullPath = join(this.repoPath, path);
+    const fullPath = this.safePath(path);
     const entries = await readdir(fullPath, { withFileTypes: true });
     return entries.map((entry) => ({
       name: entry.name,

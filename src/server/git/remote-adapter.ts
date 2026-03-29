@@ -71,9 +71,9 @@ export class RemoteGitAdapter implements GitAdapter {
     try {
       const branches: string[] = [];
       let page = 1;
+      const MAX_PAGES = 10; // Cap at 1,000 branches to avoid rate limit exhaustion
 
-      // Paginate to get all branches
-      while (true) {
+      while (page <= MAX_PAGES) {
         const response = await this.octokit.repos.listBranches({
           owner: this.owner,
           repo: this.repo,

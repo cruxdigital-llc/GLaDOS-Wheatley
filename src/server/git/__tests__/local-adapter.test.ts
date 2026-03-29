@@ -87,13 +87,26 @@ describe('LocalGitAdapter', () => {
       expect(content).toContain('done on feature branch');
     });
 
-    it('reads from working tree when ref matches current branch', async () => {
+    it('reads committed content when ref matches current branch', async () => {
       const content = await adapter.readFile(
         'product-knowledge/ROADMAP.md',
         'main',
       );
+      // Uses git show even for current branch — returns committed content
       expect(content).toContain('1.1.1 Task one');
-      expect(content).not.toContain('done on feature branch');
+    });
+
+    it('returns null for path traversal attempt', async () => {
+      const content = await adapter.readFile('../../etc/passwd');
+      expect(content).toBeNull();
+    });
+
+    it('returns null for invalid ref', async () => {
+      const content = await adapter.readFile(
+        'product-knowledge/ROADMAP.md',
+        '--malicious',
+      );
+      expect(content).toBeNull();
     });
   });
 
@@ -126,6 +139,18 @@ describe('LocalGitAdapter', () => {
       const entries = await adapter.listDirectory('specs');
       const names = entries.map((e) => e.name);
       expect(names).toContain('2026-03-28_feature_test');
+    });
+
+    it('returns empty array for path traversal attempt', async () => {
+      const entries = await adapter.listDirectory('../../etc');
+      expect(entries).toEqual([]);
+    });
+
+    it('lists directory from a specific ref via git ls-tree', async () => {
+      const entries = await adapter.listDirectory('product-knowledge', 'main');
+      const names = entries.map((e) => e.name);
+      expect(names).toContain('ROADMAP.md');
+      expect(names).toContain('PROJECT_STATUS.md');
     });
   });
 
