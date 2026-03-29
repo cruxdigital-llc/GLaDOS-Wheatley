@@ -181,26 +181,26 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 5.1 Agent Activity Feed
 
-- [ ] 5.1.1 Define agent trace log format (or adopt existing GLaDOS trace format)
-- [ ] 5.1.2 Parse agent trace logs from `specs/` session directories
-- [ ] 5.1.3 Activity feed UI: real-time view of what each agent is doing
-- [ ] 5.1.4 Agent identification: map git committer identity to agent/human label
+- [x] 5.1.1 Define agent trace log format (or adopt existing GLaDOS trace format)
+- [x] 5.1.2 Parse agent trace logs from `specs/` session directories
+- [x] 5.1.3 Activity feed UI: real-time view of what each agent is doing
+- [x] 5.1.4 Agent identification: map git committer identity to agent/human label
 
 ### 5.2 Claim TTL & Auto-Release
 
-- [ ] 5.2.1 Configurable TTL per claim (default: X hours)
-- [ ] 5.2.2 Staleness detector: flag claims with no associated commit activity within TTL window
-- [ ] 5.2.3 Auto-release: commit a release to claims.md when TTL expires
-- [ ] 5.2.4 Grace period notification: warn claimant before auto-release
+- [x] 5.2.1 Configurable TTL per claim (default: 24 hours)
+- [x] 5.2.2 Staleness detector: flag claims with no associated commit activity within TTL window
+- [x] 5.2.3 Auto-release: commit a release to claims.md when TTL expires
+- [x] 5.2.4 Grace period notification: warn claimant before auto-release
 
 ### 5.3 Conflict Early Warning
 
-- [ ] 5.3.1 Cross-branch file overlap detection: identify when two branches are editing the same files
-- [ ] 5.3.2 Warning indicators on affected cards
-- [ ] 5.3.3 Suggested resolution: recommend which branch should merge first
+- [x] 5.3.1 Cross-branch file overlap detection: identify when two branches are editing the same files
+- [x] 5.3.2 Warning indicators on affected cards
+- [x] 5.3.3 Suggested resolution: recommend which branch should merge first
 
 ### 5.4 Notification Hooks
 
-- [ ] 5.4.1 Webhook system: configurable outbound webhooks for events (claim, release, phase transition, conflict)
-- [ ] 5.4.2 Slack integration: pre-built webhook formatter for Slack
-- [ ] 5.4.3 Event log: persistent log of all Wheatley events for audit
+- [x] 5.4.1 Webhook system: configurable outbound webhooks for events (claim, release, phase transition, conflict)
+- [x] 5.4.2 Slack integration: pre-built webhook formatter for Slack
+- [x] 5.4.3 Event log: persistent log of all Wheatley events for audit

@@ -13,6 +13,10 @@ import { TransitionService } from './transition-service.js';
 import { WorkflowService } from './workflow-service.js';
 import { BranchScanner } from './branch-scanner.js';
 import { BranchHealthService } from './branch-health.js';
+import { ActivityService } from './activity-service.js';
+import { getClaimTTLConfig } from './claim-ttl.js';
+import { ConflictDetector } from './conflict-detector.js';
+import { NotificationService } from './notification-service.js';
 import { errorHandler } from './error-handler.js';
 import { healthRoutes } from './routes/health.js';
 import { boardRoutes } from './routes/board.js';
@@ -21,6 +25,8 @@ import { conformanceRoutes } from './routes/conformance.js';
 import { claimsRoutes } from './routes/claims.js';
 import { transitionRoutes } from './routes/transitions.js';
 import { webhookRoutes } from './routes/webhooks.js';
+import { activityRoutes } from './routes/activity.js';
+import { notificationRoutes } from './routes/notifications.js';
 
 export interface ServerOptions {
   adapter: GitAdapter;
@@ -51,15 +57,21 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const transitionService = new TransitionService(options.adapter, workflowService);
   const branchScanner = new BranchScanner(options.adapter);
   const branchHealthService = new BranchHealthService(options.adapter);
+  const activityService = new ActivityService(options.adapter);
+  const claimTTLConfig = getClaimTTLConfig();
+  const conflictDetector = new ConflictDetector(options.adapter);
+  const notificationService = new NotificationService();
 
   // Routes (all registered as plain function calls for consistency)
   healthRoutes(app);
   boardRoutes(app, boardService, claimService, options.adapter, branchScanner);
-  branchRoutes(app, options.adapter, boardService, branchHealthService);
+  branchRoutes(app, options.adapter, boardService, branchHealthService, conflictDetector);
   conformanceRoutes(app, options.adapter);
-  claimsRoutes(app, claimService);
+  claimsRoutes(app, claimService, options.adapter, claimTTLConfig);
   transitionRoutes(app, transitionService);
   webhookRoutes(app, workflowService);
+  activityRoutes(app, activityService);
+  notificationRoutes(app, notificationService);
 
   return app;
 }

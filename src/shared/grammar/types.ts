@@ -187,6 +187,34 @@ export interface BoardState {
   };
 }
 
+// --- Agent activity types ---
+
+export type TraceAction = 'claim' | 'release' | 'transition' | 'file-create' | 'file-edit' | 'commit' | 'comment';
+
+export type AgentIdentity = 'agent' | 'human' | 'unknown';
+
+export interface TraceEntry {
+  /** Agent or human identifier (git committer name or explicit label) */
+  actor: string;
+  /** Whether this actor is an agent or human */
+  actorType: AgentIdentity;
+  /** What kind of action was performed */
+  action: TraceAction;
+  /** The target of the action (item ID, file path, etc.) */
+  target: string;
+  /** ISO 8601 timestamp */
+  timestamp: string;
+  /** Optional free-form detail */
+  detail?: string;
+}
+
+export interface ParsedActivityFeed {
+  /** All trace entries, newest first */
+  entries: TraceEntry[];
+  /** Unique actors seen, mapped to their identity type */
+  actors: Map<string, AgentIdentity>;
+}
+
 // --- Validation types ---
 
 export interface ValidationError {
