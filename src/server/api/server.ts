@@ -27,6 +27,12 @@ import { transitionRoutes } from './routes/transitions.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import { activityRoutes } from './routes/activity.js';
 import { notificationRoutes } from './routes/notifications.js';
+import { repoStatusRoutes } from './routes/repo-status.js';
+import { identityRoutes } from './routes/identity.js';
+import { syncRoutes } from './routes/sync.js';
+import { eventLogRoutes } from './routes/event-log.js';
+import { EventBus } from './event-bus.js';
+import { EventLogService } from './event-log-service.js';
 
 export interface ServerOptions {
   adapter: GitAdapter;
@@ -61,6 +67,9 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const claimTTLConfig = getClaimTTLConfig();
   const conflictDetector = new ConflictDetector(options.adapter);
   const notificationService = new NotificationService();
+  const eventBus = new EventBus();
+  const eventLogService = new EventLogService(options.adapter, eventBus);
+  eventLogService.start();
 
   // Routes (all registered as plain function calls for consistency)
   healthRoutes(app);
@@ -72,6 +81,10 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   webhookRoutes(app, workflowService);
   activityRoutes(app, activityService);
   notificationRoutes(app, notificationService);
+  repoStatusRoutes(app, options.adapter);
+  identityRoutes(app, options.adapter);
+  syncRoutes(app, options.adapter, eventBus);
+  eventLogRoutes(app, eventLogService);
 
   return app;
 }

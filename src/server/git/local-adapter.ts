@@ -11,7 +11,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import simpleGit, { type SimpleGit } from 'simple-git';
-import type { GitAdapter, DirectoryEntry } from './types.js';
+import type { GitAdapter, DirectoryEntry, RepoStatus, GitIdentity } from './types.js';
 import { ConflictError } from './types.js';
 import type { WorktreeManager } from './worktree-manager.js';
 
@@ -273,6 +273,41 @@ export class LocalGitAdapter implements GitAdapter {
       return trimmed || null;
     } catch {
       return null;
+    }
+  }
+
+  async getGitIdentity(): Promise<GitIdentity> {
+    try {
+      const name = (await this.git.raw(['config', 'user.name']).catch(() => '')).trim() || null;
+      const email = (await this.git.raw(['config', 'user.email']).catch(() => '')).trim() || null;
+      return { name, email };
+    } catch {
+      return { name: null, email: null };
+    }
+  }
+
+  async getRepoStatus(): Promise<RepoStatus> {
+    try {
+      const status = await this.git.status();
+      return {
+        clean: status.isClean(),
+        modified: status.modified.length + status.renamed.length,
+        untracked: status.not_added.length,
+        staged: status.staged.length,
+        conflicted: status.conflicted.length > 0,
+        conflictedFiles: status.conflicted,
+        worktreeActive: this.worktreeManager?.isReady() ?? false,
+      };
+    } catch {
+      return {
+        clean: true,
+        modified: 0,
+        untracked: 0,
+        staged: 0,
+        conflicted: false,
+        conflictedFiles: [],
+        worktreeActive: this.worktreeManager?.isReady() ?? false,
+      };
     }
   }
 

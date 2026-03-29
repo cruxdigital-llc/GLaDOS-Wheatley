@@ -199,6 +199,50 @@ export interface ActivityFeedResponse {
   actors: Record<string, string>;
 }
 
+// ---------------------------------------------------------------------------
+// Sync
+// ---------------------------------------------------------------------------
+
+export async function triggerSync(): Promise<{ synced: boolean }> {
+  return fetchJson<{ synced: boolean }>(`${API_BASE}/sync`, { method: 'POST' });
+}
+
+// ---------------------------------------------------------------------------
+// Git identity
+// ---------------------------------------------------------------------------
+
+export interface GitIdentityResponse {
+  name: string | null;
+  email: string | null;
+  source: 'git-config' | 'env';
+}
+
+export async function fetchGitIdentity(): Promise<GitIdentityResponse> {
+  return fetchJson<GitIdentityResponse>(`${API_BASE}/identity`);
+}
+
+// ---------------------------------------------------------------------------
+// Repo status
+// ---------------------------------------------------------------------------
+
+export interface RepoStatusResponse {
+  clean: boolean;
+  modified: number;
+  untracked: number;
+  staged: number;
+  conflicted: boolean;
+  conflictedFiles: string[];
+  worktreeActive: boolean;
+}
+
+export async function fetchRepoStatus(): Promise<RepoStatusResponse> {
+  return fetchJson<RepoStatusResponse>(`${API_BASE}/repo/status`);
+}
+
+// ---------------------------------------------------------------------------
+// Activity feed
+// ---------------------------------------------------------------------------
+
 export async function fetchActivityFeed(
   options?: { limit?: number; actor?: string },
 ): Promise<ActivityFeedResponse> {

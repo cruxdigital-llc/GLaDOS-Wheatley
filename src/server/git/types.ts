@@ -66,6 +66,23 @@ export interface GitAdapter {
    * Returns null on error.
    */
   getLastCommitDate(branch: string): Promise<string | null>;
+
+  /**
+   * Get the working tree status of the repository.
+   * Returns clean status for remote adapters (no working tree).
+   */
+  getRepoStatus(): Promise<RepoStatus>;
+
+  /**
+   * Get the git identity (user.name, user.email) configured for this repository.
+   * Returns nulls if not configured.
+   */
+  getGitIdentity(): Promise<GitIdentity>;
+}
+
+export interface GitIdentity {
+  name: string | null;
+  email: string | null;
 }
 
 export interface GitHubConfig {
