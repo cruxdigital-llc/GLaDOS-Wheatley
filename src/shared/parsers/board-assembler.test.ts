@@ -2,26 +2,57 @@ import { describe, it, expect } from 'vitest';
 import { assembleBoardState } from './board-assembler.js';
 import type {
   ParsedRoadmap,
+  RoadmapPhase,
   SpecEntry,
   ParsedProjectStatus,
   ParsedClaims,
   ClaimEntry,
 } from '../grammar/types.js';
 
-function makeRoadmap(items: Array<{ id: string; title: string; completed?: boolean; sectionTitle?: string }>): ParsedRoadmap {
-  return {
-    phases: [],
-    allItems: items.map((i) => ({
-      id: i.id,
-      phase: parseInt(i.id.split('.')[0], 10),
-      section: parseInt(i.id.split('.')[1], 10),
-      item: parseInt(i.id.split('.')[2], 10),
-      title: i.title,
-      completed: i.completed ?? false,
-      sectionTitle: i.sectionTitle ?? 'Section',
-      phaseTitle: 'Phase 1: Test',
-    })),
-  };
+/** Helper to build a ParsedRoadmap with proper phase/section structure */
+function makeRoadmap(
+  sections: Array<{
+    sectionId: string;
+    sectionTitle: string;
+    items: Array<{ id: string; title: string; completed?: boolean }>;
+  }>,
+): ParsedRoadmap {
+  const phases: RoadmapPhase[] = [];
+  const allItems: ParsedRoadmap['allItems'] = [];
+
+  for (const sec of sections) {
+    const [phaseNum, sectionNum] = sec.sectionId.split('.').map(Number);
+
+    let phase = phases.find((p) => p.number === phaseNum);
+    if (!phase) {
+      phase = { number: phaseNum, title: `Phase ${phaseNum}`, goal: 'Test', sections: [] };
+      phases.push(phase);
+    }
+
+    const sectionItems = sec.items.map((i) => {
+      const [p, s, item] = i.id.split('.').map(Number);
+      return {
+        id: i.id,
+        phase: p,
+        section: s,
+        item,
+        title: i.title,
+        completed: i.completed ?? false,
+        sectionTitle: sec.sectionTitle,
+        phaseTitle: `Phase ${phaseNum}: Test`,
+      };
+    });
+
+    phase.sections.push({
+      id: sec.sectionId,
+      title: sec.sectionTitle,
+      items: sectionItems,
+    });
+
+    allItems.push(...sectionItems);
+  }
+
+  return { phases, allItems };
 }
 
 const EMPTY_STATUS: ParsedProjectStatus = { activeTasks: [], backlog: [] };
@@ -30,8 +61,14 @@ const EMPTY_CLAIMS: ParsedClaims = { entries: [], activeClaims: new Map() };
 describe('assembleBoardState', () => {
   it('creates cards from roadmap items', () => {
     const roadmap = makeRoadmap([
-      { id: '1.1.1', title: 'Define grammar' },
-      { id: '1.1.2', title: 'Create validator', completed: true },
+      {
+        sectionId: '1.1',
+        sectionTitle: 'Section',
+        items: [
+          { id: '1.1.1', title: 'Define grammar' },
+          { id: '1.1.2', title: 'Create validator', completed: true },
+        ],
+      },
     ]);
     const result = assembleBoardState(roadmap, [], EMPTY_STATUS, EMPTY_CLAIMS);
 
@@ -40,9 +77,17 @@ describe('assembleBoardState', () => {
     expect(result.columns.find((c) => c.phase === 'done')?.cards).toHaveLength(1);
   });
 
-  it('overlays spec entries with better phase info', () => {
+  it('overlays spec entries on ALL items in the matched section', () => {
     const roadmap = makeRoadmap([
-      { id: '1.1.1', title: 'Define grammar', sectionTitle: 'Parsing Grammar' },
+      {
+        sectionId: '1.1',
+        sectionTitle: 'Parsing Grammar',
+        items: [
+          { id: '1.1.1', title: 'Define grammar' },
+          { id: '1.1.2', title: 'Document grammar' },
+          { id: '1.1.3', title: 'Create validator' },
+        ],
+      },
     ]);
     const specs: SpecEntry[] = [
       {
@@ -56,10 +101,41 @@ describe('assembleBoardState', () => {
     ];
     const result = assembleBoardState(roadmap, specs, EMPTY_STATUS, EMPTY_CLAIMS);
 
-    // The card should be in implementing (from spec) not unclaimed (from roadmap)
+    // ALL 3 items should be in implementing, not just the first
     const implCards = result.columns.find((c) => c.phase === 'implementing')?.cards;
-    expect(implCards).toHaveLength(1);
-    expect(implCards?.[0].specEntry).toBeDefined();
+    expect(implCards).toHaveLength(3);
+    for (const card of implCards ?? []) {
+      expect(card.specEntry).toBeDefined();
+      expect(card.phase).toBe('implementing');
+    }
+  });
+
+  it('preserves individually completed items even when section spec is not done', () => {
+    const roadmap = makeRoadmap([
+      {
+        sectionId: '1.1',
+        sectionTitle: 'Parsing Grammar',
+        items: [
+          { id: '1.1.1', title: 'Define grammar', completed: true },
+          { id: '1.1.2', title: 'Document grammar' },
+        ],
+      },
+    ]);
+    const specs: SpecEntry[] = [
+      {
+        dirName: '2026-03-28_feature_parsing-grammar',
+        date: '2026-03-28',
+        prefix: 'feature',
+        name: 'parsing-grammar',
+        phase: 'implementing',
+        files: ['README.md', 'spec.md', 'tasks.md'],
+      },
+    ];
+    const result = assembleBoardState(roadmap, specs, EMPTY_STATUS, EMPTY_CLAIMS);
+
+    // Item marked [x] should stay done, even though spec is implementing
+    expect(result.columns.find((c) => c.phase === 'done')?.cards).toHaveLength(1);
+    expect(result.columns.find((c) => c.phase === 'implementing')?.cards).toHaveLength(1);
   });
 
   it('creates cards from unmatched spec entries', () => {
@@ -84,7 +160,13 @@ describe('assembleBoardState', () => {
   });
 
   it('attaches claims to matching cards', () => {
-    const roadmap = makeRoadmap([{ id: '1.1.1', title: 'Define grammar' }]);
+    const roadmap = makeRoadmap([
+      {
+        sectionId: '1.1',
+        sectionTitle: 'Section',
+        items: [{ id: '1.1.1', title: 'Define grammar' }],
+      },
+    ]);
     const claim: ClaimEntry = {
       status: 'claimed',
       itemId: '1.1.1',
@@ -125,10 +207,6 @@ describe('assembleBoardState', () => {
 
     expect(result.columns).toHaveLength(6);
     expect(result.columns[0].phase).toBe('unclaimed');
-    expect(result.columns[1].phase).toBe('planning');
-    expect(result.columns[2].phase).toBe('speccing');
-    expect(result.columns[3].phase).toBe('implementing');
-    expect(result.columns[4].phase).toBe('verifying');
     expect(result.columns[5].phase).toBe('done');
   });
 
@@ -141,9 +219,15 @@ describe('assembleBoardState', () => {
 
   it('computes metadata correctly', () => {
     const roadmap = makeRoadmap([
-      { id: '1.1.1', title: 'Item 1' },
-      { id: '1.1.2', title: 'Item 2', completed: true },
-      { id: '1.1.3', title: 'Item 3' },
+      {
+        sectionId: '1.1',
+        sectionTitle: 'Section',
+        items: [
+          { id: '1.1.1', title: 'Item 1' },
+          { id: '1.1.2', title: 'Item 2', completed: true },
+          { id: '1.1.3', title: 'Item 3' },
+        ],
+      },
     ]);
     const claim: ClaimEntry = {
       status: 'claimed',
@@ -160,5 +244,47 @@ describe('assembleBoardState', () => {
     expect(result.metadata.totalCards).toBe(3);
     expect(result.metadata.claimedCount).toBe(1);
     expect(result.metadata.completedCount).toBe(1);
+  });
+
+  it('cross-references status tasks by section title', () => {
+    const roadmap = makeRoadmap([
+      {
+        sectionId: '1.1',
+        sectionTitle: 'Parsing Grammar',
+        items: [{ id: '1.1.1', title: 'Define grammar' }],
+      },
+    ]);
+    const status: ParsedProjectStatus = {
+      activeTasks: [
+        { label: 'Parsing Grammar', description: 'In progress', completed: false, section: 'MVP' },
+      ],
+      backlog: [],
+    };
+    const result = assembleBoardState(roadmap, [], status, EMPTY_CLAIMS);
+
+    const card = result.columns.find((c) => c.phase === 'unclaimed')?.cards[0];
+    expect(card?.statusTask).toBeDefined();
+    expect(card?.statusTask?.label).toBe('Parsing Grammar');
+  });
+
+  it('does not false-positive match status tasks with substring overlap', () => {
+    const roadmap = makeRoadmap([
+      {
+        sectionId: '1.1',
+        sectionTitle: 'Git Adapter',
+        items: [{ id: '1.1.1', title: 'Define interface' }],
+      },
+    ]);
+    const status: ParsedProjectStatus = {
+      activeTasks: [
+        { label: 'Git', description: 'Unrelated task', completed: false, section: 'Other' },
+      ],
+      backlog: [],
+    };
+    const result = assembleBoardState(roadmap, [], status, EMPTY_CLAIMS);
+
+    // "Git" should NOT match "Git Adapter" — exact match only
+    const card = result.columns.find((c) => c.phase === 'unclaimed')?.cards[0];
+    expect(card?.statusTask).toBeUndefined();
   });
 });

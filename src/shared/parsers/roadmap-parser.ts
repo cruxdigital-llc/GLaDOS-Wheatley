@@ -11,21 +11,12 @@ import type {
   RoadmapSection,
   RoadmapItem,
 } from '../grammar/types.js';
-
-/** Normalize CRLF to LF and trim trailing whitespace */
-function normalize(content: string): string {
-  return content.replace(/\r\n/g, '\n').trimEnd();
-}
-
-/** Strip the optional GLaDOS HTML comment header */
-function stripHeader(content: string): string {
-  return content.replace(/^<!--[\s\S]*?-->\s*\n?/, '');
-}
+import { normalize, stripHeader } from './utils.js';
 
 const PHASE_HEADING_RE = /^## Phase (\d+): (.+)$/;
 const GOAL_RE = /^\*\*Goal\*\*: (.+)$/;
 const SECTION_HEADING_RE = /^### (\d+)\.(\d+) (.+)$/;
-const TASK_ITEM_RE = /^- \[([ x])\] (\d+)\.(\d+)\.(\d+) (.+)$/;
+const TASK_ITEM_RE = /^- \[([ xX])\] (\d+)\.(\d+)\.(\d+) (.+)$/;
 
 export function parseRoadmap(content: string): ParsedRoadmap {
   const phases: RoadmapPhase[] = [];
@@ -86,7 +77,7 @@ export function parseRoadmap(content: string): ParsedRoadmap {
         section: parseInt(taskMatch[3], 10),
         item: parseInt(taskMatch[4], 10),
         title: taskMatch[5],
-        completed: taskMatch[1] === 'x',
+        completed: taskMatch[1].toLowerCase() === 'x',
         sectionTitle: currentSection.title,
         phaseTitle: `Phase ${currentPhase.number}: ${currentPhase.title}`,
       };

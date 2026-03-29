@@ -6,16 +6,7 @@
  */
 
 import type { ParsedProjectStatus, StatusTask } from '../grammar/types.js';
-
-/** Normalize CRLF to LF */
-function normalize(content: string): string {
-  return content.replace(/\r\n/g, '\n').trimEnd();
-}
-
-/** Strip the optional GLaDOS HTML comment header */
-function stripHeader(content: string): string {
-  return content.replace(/^<!--[\s\S]*?-->\s*\n?/, '');
-}
+import { normalize, stripHeader } from './utils.js';
 
 const FOCUS_SECTION_RE = /^### (\d+)\. (.+)$/;
 const TASK_LINE_RE = /^- \[([ x])\] \*\*(.+?)\*\*: (.+)$/;

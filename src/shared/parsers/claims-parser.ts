@@ -6,16 +6,7 @@
  */
 
 import type { ParsedClaims, ClaimEntry, ClaimStatus } from '../grammar/types.js';
-
-/** Normalize CRLF to LF */
-function normalize(content: string): string {
-  return content.replace(/\r\n/g, '\n').trimEnd();
-}
-
-/** Strip the optional GLaDOS HTML comment header */
-function stripHeader(content: string): string {
-  return content.replace(/^<!--[\s\S]*?-->\s*\n?/, '');
-}
+import { normalize, stripHeader } from './utils.js';
 
 const CLAIM_ENTRY_RE =
   /^- \[(claimed|released|expired)\] (\d+\.\d+\.\d+) \| (.+?) \| (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)( \| (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z))?$/;

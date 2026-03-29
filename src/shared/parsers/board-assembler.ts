@@ -7,6 +7,7 @@
 
 import type {
   ParsedRoadmap,
+  RoadmapSection,
   SpecEntry,
   ParsedProjectStatus,
   ParsedClaims,
@@ -14,7 +15,6 @@ import type {
   BoardColumn,
   BoardCard,
   BoardPhase,
-  RoadmapItem,
 } from '../grammar/types.js';
 import { PHASE_ORDER } from '../grammar/types.js';
 
@@ -28,25 +28,25 @@ const COLUMN_TITLES: Record<BoardPhase, string> = {
 };
 
 /**
- * Attempt to match a spec entry to a roadmap item by name.
- * Matching is based on the spec's kebab-case name containing keywords
- * from the roadmap item's section title.
+ * Attempt to match a spec entry to a roadmap section by name.
+ * Returns all items in the matched section.
  */
-function matchSpecToRoadmapItem(
+function matchSpecToRoadmapSection(
   spec: SpecEntry,
-  allItems: RoadmapItem[],
-): RoadmapItem | undefined {
+  roadmap: ParsedRoadmap,
+): RoadmapSection | undefined {
   const specName = spec.name.toLowerCase();
 
-  // Try exact section title match first (kebab-cased)
-  for (const item of allItems) {
-    const sectionKebab = item.sectionTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
+  for (const phase of roadmap.phases) {
+    for (const section of phase.sections) {
+      const sectionKebab = section.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
 
-    if (specName === sectionKebab || specName.includes(sectionKebab)) {
-      return item;
+      if (specName === sectionKebab || specName.includes(sectionKebab)) {
+        return section;
+      }
     }
   }
 
@@ -74,24 +74,28 @@ export function assembleBoardState(
   }
 
   // 2. Overlay spec entries — they provide more accurate phase info
+  //    Specs match to roadmap SECTIONS, so all items in the section get updated
   for (const spec of specs) {
     if (spec.prefix !== 'feature' && spec.prefix !== 'fix') {
-      // Skip non-feature specs (mission-statement, plan-product)
       continue;
     }
 
-    const matchedItem = matchSpecToRoadmapItem(spec, roadmap.allItems);
+    const matchedSection = matchSpecToRoadmapSection(spec, roadmap);
 
-    if (matchedItem) {
-      // Update existing card with spec info and better phase
-      const card = cardMap.get(matchedItem.id);
-      if (card) {
-        card.specEntry = spec;
-        // Spec phase is more accurate than roadmap checkbox
-        card.phase = spec.phase;
+    if (matchedSection) {
+      // Update ALL cards in the matched section with spec info and better phase
+      for (const item of matchedSection.items) {
+        const card = cardMap.get(item.id);
+        if (card) {
+          card.specEntry = spec;
+          // Only override phase if the item isn't already individually marked done
+          if (!item.completed) {
+            card.phase = spec.phase;
+          }
+        }
       }
     } else {
-      // No matching roadmap item — create a card from the spec
+      // No matching roadmap section — create a card from the spec
       cardMap.set(spec.dirName, {
         id: spec.dirName,
         title: spec.name.replace(/-/g, ' '),
@@ -110,31 +114,34 @@ export function assembleBoardState(
     }
   }
 
-  // 4. Cross-reference status tasks
-  for (const task of status.activeTasks) {
-    // Try to match status tasks to existing cards by label
-    for (const card of cardMap.values()) {
-      const cardTitle = card.title.toLowerCase();
-      const taskLabel = task.label.toLowerCase();
-      if (cardTitle.includes(taskLabel) || taskLabel.includes(cardTitle)) {
-        card.statusTask = task;
-        break;
-      }
+  // 4. Cross-reference status tasks (exact label match only)
+  const statusTaskMap = new Map(
+    status.activeTasks.map((t) => [t.label.toLowerCase(), t]),
+  );
+  for (const card of cardMap.values()) {
+    // Match by exact roadmap section title → status task label
+    const sectionTitle = card.roadmapItem?.sectionTitle?.toLowerCase();
+    if (sectionTitle && statusTaskMap.has(sectionTitle)) {
+      card.statusTask = statusTaskMap.get(sectionTitle);
+      continue;
+    }
+    // Fallback: exact match on card title → task label
+    const taskLabel = card.title.toLowerCase();
+    if (statusTaskMap.has(taskLabel)) {
+      card.statusTask = statusTaskMap.get(taskLabel);
     }
   }
 
-  // 5. Organize into columns
-  const columns: BoardColumn[] = PHASE_ORDER.map((phase) => ({
-    phase,
-    title: COLUMN_TITLES[phase],
-    cards: [] as BoardCard[],
-  }));
+  // 5. Organize into columns (using Map for O(1) lookup)
+  const columnMap = new Map<BoardPhase, BoardColumn>();
+  const columns: BoardColumn[] = PHASE_ORDER.map((phase) => {
+    const col: BoardColumn = { phase, title: COLUMN_TITLES[phase], cards: [] };
+    columnMap.set(phase, col);
+    return col;
+  });
 
   for (const card of cardMap.values()) {
-    const column = columns.find((c) => c.phase === card.phase);
-    if (column) {
-      column.cards.push(card);
-    }
+    columnMap.get(card.phase)?.cards.push(card);
   }
 
   // 6. Compute metadata
