@@ -413,9 +413,10 @@ export interface PullRequest {
 }
 
 export async function fetchCardPRs(cardId: string): Promise<{ prs: PullRequest[] }> {
-  return fetchJson<{ prs: PullRequest[] }>(
-    `${API_BASE}/cards/${encodeURIComponent(cardId)}/prs`,
+  const prs = await fetchJson<PullRequest[]>(
+    `${API_BASE}/prs/card/${encodeURIComponent(cardId)}`,
   );
+  return { prs };
 }
 
 export async function createPR(input: {
