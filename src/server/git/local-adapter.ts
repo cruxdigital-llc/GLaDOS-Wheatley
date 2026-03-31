@@ -1,27 +1,37 @@
 /**
  * Local Git Adapter
  *
- * Reads from a filesystem-mounted git repository using simple-git and fs.
+ * Reads from a filesystem-mounted git repository using simple-git.
+ * Writes go through an isolated git worktree (when available) so the
+ * developer's working tree, index, and current branch are never touched.
+ *
  * Used in Docker sidecar mode (WHEATLEY_MODE=local).
  */
 
-import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import simpleGit, { type SimpleGit } from 'simple-git';
-import type { GitAdapter, DirectoryEntry } from './types.js';
+import type { GitAdapter, DirectoryEntry, RepoStatus, GitIdentity } from './types.js';
 import { ConflictError } from './types.js';
+import type { WorktreeManager } from './worktree-manager.js';
 
 /** Validate ref strings to prevent command-line injection. */
 const SAFE_REF_RE = /^[a-zA-Z0-9_./-]+$/;
 
+/** Maximum push-conflict retries (fetch + reset + retry). */
+const MAX_PUSH_RETRIES = 3;
+
 export class LocalGitAdapter implements GitAdapter {
   private readonly git: SimpleGit;
   private readonly repoPath: string;
+  private readonly worktreeManager: WorktreeManager | null;
   private writeLock: Promise<void> = Promise.resolve();
+  private legacyWarned = false;
 
-  constructor(repoPath: string) {
+  constructor(repoPath: string, worktreeManager?: WorktreeManager) {
     this.repoPath = resolve(repoPath);
     this.git = simpleGit(this.repoPath);
+    this.worktreeManager = worktreeManager ?? null;
   }
 
   private acquireWriteLock(): Promise<() => void> {
@@ -41,6 +51,17 @@ export class LocalGitAdapter implements GitAdapter {
     return resolved;
   }
 
+  /** Resolve a path within the worktree, preventing path traversal attacks. */
+  private safeWorktreePath(path: string): string {
+    if (!this.worktreeManager) throw new Error('No worktree available');
+    const base = this.worktreeManager.getPath();
+    const resolved = resolve(base, path);
+    if (!resolved.startsWith(base)) {
+      throw new Error('Path traversal detected');
+    }
+    return resolved;
+  }
+
   /** Validate a git ref to prevent command-line injection. */
   private safeRef(ref: string): string {
     if (!SAFE_REF_RE.test(ref)) {
@@ -49,16 +70,20 @@ export class LocalGitAdapter implements GitAdapter {
     return ref;
   }
 
+  /** Validate a git tree path — reject null bytes, control chars, and traversal. */
+  private safeTreePath(path: string): string {
+    if (path.includes('\0') || path.includes('..') || /[\x00-\x1f]/.test(path)) {
+      throw new Error(`Invalid path: "${path}"`);
+    }
+    return path;
+  }
+
   async readFile(path: string, ref?: string): Promise<string | null> {
     try {
-      if (!ref) {
-        // Read from working tree
-        return await readFile(this.safePath(path), 'utf-8');
-      }
-
-      // Explicit ref — always use git show for committed content
-      const safeRef = this.safeRef(ref);
-      return await this.git.show([`${safeRef}:${path}`]);
+      const safePath = this.safeTreePath(path);
+      const effectiveRef = ref ?? 'HEAD';
+      const safeRef = this.safeRef(effectiveRef);
+      return await this.git.show([`${safeRef}:${safePath}`]);
     } catch {
       return null;
     }
@@ -66,14 +91,10 @@ export class LocalGitAdapter implements GitAdapter {
 
   async listDirectory(path: string, ref?: string): Promise<DirectoryEntry[]> {
     try {
-      if (!ref) {
-        // Read from working tree
-        return await this.listFromFilesystem(path);
-      }
-
-      // Explicit ref — always use git ls-tree for committed content
-      const safeRef = this.safeRef(ref);
-      return await this.listFromGit(path, safeRef);
+      const safePath = this.safeTreePath(path);
+      const effectiveRef = ref ?? 'HEAD';
+      const safeRef = this.safeRef(effectiveRef);
+      return await this.listFromGit(safePath, safeRef);
     } catch {
       return [];
     }
@@ -99,11 +120,9 @@ export class LocalGitAdapter implements GitAdapter {
 
   async getDefaultBranch(): Promise<string> {
     try {
-      // Try to read the remote's default branch
       const ref = await this.git.raw(['symbolic-ref', 'refs/remotes/origin/HEAD']);
       return ref.trim().replace('refs/remotes/origin/', '');
     } catch {
-      // Fallback: guess from available branches
       try {
         const branches = await this.listBranches();
         if (branches.includes('main')) return 'main';
@@ -125,45 +144,100 @@ export class LocalGitAdapter implements GitAdapter {
     }
   }
 
-  private async listFromFilesystem(path: string): Promise<DirectoryEntry[]> {
-    const fullPath = this.safePath(path);
-    const entries = await readdir(fullPath, { withFileTypes: true });
-    return entries.map((entry) => ({
-      name: entry.name,
-      type: entry.isDirectory() ? 'directory' as const : 'file' as const,
-      path: path ? `${path}/${entry.name}` : entry.name,
-    }));
-  }
-
   async writeFile(path: string, content: string, message: string, branch?: string): Promise<void> {
     const release = await this.acquireWriteLock();
     try {
-      await this._writeFileImpl(path, content, message, branch);
+      if (this.worktreeManager?.isReady()) {
+        await this._writeViaWorktree(path, content, message, branch);
+      } else {
+        await this._writeViaMainRepo(path, content, message, branch);
+      }
     } finally {
       release();
     }
   }
 
-  private async _writeFileImpl(path: string, content: string, message: string, branch?: string): Promise<void> {
-    const targetBranch = branch ?? (await this.getDefaultBranch());
+  /**
+   * Write via the isolated worktree — developer's working tree is untouched.
+   */
+  private async _writeViaWorktree(path: string, content: string, message: string, branch?: string): Promise<void> {
+    const wt = this.worktreeManager!.getGit();
+    const targetBranch = this.safeRef(branch ?? (await this.getDefaultBranch()));
+
+    // Validate path before any git operations
+    const fullPath = this.safeWorktreePath(path);
+
+    // Fetch latest from origin and detach HEAD to the target branch tip.
+    // We always use detached HEAD to avoid "branch already checked out" errors
+    // (the main repo may have the same branch checked out).
+    await wt.fetch('origin');
+    await wt.raw(['checkout', `origin/${targetBranch}`]);
+
+    // Write file to the worktree filesystem
+    await mkdir(dirname(fullPath), { recursive: true });
+    await writeFile(fullPath, content, 'utf-8');
+
+    // Stage and commit (on detached HEAD)
+    await wt.add(path);
+    await wt.commit(message);
+
+    // Push detached HEAD to the remote branch, with retry on conflict
+    for (let attempt = 1; attempt <= MAX_PUSH_RETRIES; attempt++) {
+      try {
+        await wt.raw(['push', 'origin', `HEAD:${targetBranch}`]);
+        // Update main repo's remote refs and fast-forward local branch
+        // so reads via `git show {branch}:path` reflect the push
+        await this.git.fetch('origin').catch(() => { /* best-effort */ });
+        await this.git.raw(['update-ref', `refs/heads/${targetBranch}`, `origin/${targetBranch}`]).catch(() => { /* best-effort */ });
+        return; // Success
+      } catch (pushErr) {
+        const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+        const isConflict = msg.includes('non-fast-forward') || msg.includes('rejected');
+
+        if (!isConflict || attempt === MAX_PUSH_RETRIES) {
+          if (isConflict) {
+            throw new ConflictError(`Push rejected after ${MAX_PUSH_RETRIES} attempts on ${path}`);
+          }
+          throw pushErr;
+        }
+
+        // Retry: fetch, reset to remote tip, re-apply write
+        await wt.fetch('origin');
+        await wt.raw(['checkout', `origin/${targetBranch}`]);
+        await mkdir(dirname(fullPath), { recursive: true });
+        await writeFile(fullPath, content, 'utf-8');
+        await wt.add(path);
+        await wt.commit(message);
+      }
+    }
+  }
+
+  /**
+   * Legacy write path — directly on the main repo.
+   * Requires a clean working tree. Used when worktree is unavailable.
+   */
+  private async _writeViaMainRepo(path: string, content: string, message: string, branch?: string): Promise<void> {
+    if (!this.legacyWarned) {
+      console.warn('[LocalGitAdapter] Running without worktree isolation — writes require clean working tree');
+      this.legacyWarned = true;
+    }
+
+    const targetBranch = this.safeRef(branch ?? (await this.getDefaultBranch()));
     const originalBranch = await this.getCurrentBranch();
 
     // Assert working tree is clean before checkout
     const status = await this.git.status();
     if (!status.isClean()) {
-      throw new Error('Working tree is not clean; cannot write file');
+      throw new Error('Working tree is not clean; cannot write file (no worktree available)');
     }
 
-    // Checkout coordination branch
     await this.git.checkout(targetBranch);
 
     try {
-      // Write file content to disk
       const fullPath = this.safePath(path);
       await mkdir(dirname(fullPath), { recursive: true });
       await writeFile(fullPath, content, 'utf-8');
 
-      // Stage, commit, push
       await this.git.add(path);
       await this.git.commit(message);
 
@@ -172,18 +246,16 @@ export class LocalGitAdapter implements GitAdapter {
       } catch (pushErr) {
         const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
         if (msg.includes('non-fast-forward') || msg.includes('rejected')) {
-          // Reset local branch to origin to discard orphaned commit
           try {
             await this.git.reset(['--hard', `origin/${targetBranch}`]);
           } catch {
-            // Best-effort reset — ignore secondary failures
+            // Best-effort reset
           }
           throw new ConflictError(`Push rejected: non-fast-forward conflict on ${path}`);
         }
         throw pushErr;
       }
     } finally {
-      // Best-effort restore to original branch
       try {
         await this.git.checkout(originalBranch);
       } catch {
@@ -196,7 +268,6 @@ export class LocalGitAdapter implements GitAdapter {
     try {
       const safeB = this.safeRef(branch);
       const safeBase = this.safeRef(baseBranch);
-      // rev-list --count baseBranch..branch gives commits on baseBranch not on branch
       const output = await this.git.raw(['rev-list', '--count', `${safeB}..${safeBase}`]);
       return parseInt(output.trim(), 10) || 0;
     } catch {
@@ -215,18 +286,60 @@ export class LocalGitAdapter implements GitAdapter {
     }
   }
 
+  async fetchOrigin(): Promise<void> {
+    try {
+      await this.git.fetch('origin');
+    } catch {
+      // Best-effort — remote may not exist (e.g., local-only repo)
+    }
+  }
+
+  async getGitIdentity(): Promise<GitIdentity> {
+    try {
+      const name = (await this.git.raw(['config', 'user.name']).catch(() => '')).trim() || null;
+      const email = (await this.git.raw(['config', 'user.email']).catch(() => '')).trim() || null;
+      return { name, email };
+    } catch {
+      return { name: null, email: null };
+    }
+  }
+
+  async getRepoStatus(): Promise<RepoStatus> {
+    try {
+      const status = await this.git.status();
+      return {
+        clean: status.isClean(),
+        modified: status.modified.length + status.renamed.length,
+        untracked: status.not_added.length,
+        staged: status.staged.length,
+        conflicted: status.conflicted.length > 0,
+        conflictedFiles: status.conflicted,
+        worktreeActive: this.worktreeManager?.isReady() ?? false,
+      };
+    } catch {
+      return {
+        clean: true,
+        modified: 0,
+        untracked: 0,
+        staged: 0,
+        conflicted: false,
+        conflictedFiles: [],
+        worktreeActive: this.worktreeManager?.isReady() ?? false,
+      };
+    }
+  }
+
   private async listFromGit(path: string, ref: string): Promise<DirectoryEntry[]> {
     const treePath = path.endsWith('/') ? path : `${path}/`;
     const output = await this.git.raw(['ls-tree', ref, treePath]);
     if (!output.trim()) return [];
 
-    // ls-tree output format: <mode> <type> <hash>\t<path>
     return output
       .trim()
       .split('\n')
       .map((line) => {
         const [meta, filePath] = line.split('\t');
-        const type = meta.split(/\s+/)[1]; // 'blob' or 'tree'
+        const type = meta.split(/\s+/)[1];
         const name = filePath.split('/').pop() ?? filePath;
         return {
           name,

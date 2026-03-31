@@ -2,14 +2,33 @@
  * Wheatley Server Entry Point
  *
  * Boots the Fastify server with the appropriate git adapter.
+ * In local mode, creates an isolated git worktree for write operations.
  */
 
 import { createServer } from './api/server.js';
 import { createGitAdapter, configFromEnv } from './git/factory.js';
+import { WorktreeManager } from './git/worktree-manager.js';
 
 async function main(): Promise<void> {
   const config = configFromEnv();
-  const adapter = createGitAdapter(config);
+  let worktreeManager: WorktreeManager | undefined;
+
+  // In local mode, set up worktree isolation for writes
+  if (config.mode === 'local' && config.localPath) {
+    worktreeManager = new WorktreeManager({ repoPath: config.localPath });
+    try {
+      await worktreeManager.init();
+      if (worktreeManager.isReady()) {
+        console.log(`[Wheatley] Worktree isolation active at ${worktreeManager.getPath()}`);
+      } else {
+        console.warn('[Wheatley] Worktree isolation unavailable — writes require clean working tree');
+      }
+    } catch (err) {
+      console.warn('[Wheatley] Failed to initialize worktree:', err);
+    }
+  }
+
+  const adapter = createGitAdapter(config, worktreeManager);
 
   const host = process.env.HOST ?? '0.0.0.0';
   const port = parseInt(process.env.PORT ?? '3000', 10);
@@ -28,9 +47,17 @@ async function main(): Promise<void> {
     corsOrigin,
   });
 
-  // Graceful shutdown for Docker
+  // Graceful shutdown for Docker — clean up worktree
   const shutdown = async (signal: string) => {
     server.log.info(`Received ${signal}, shutting down gracefully...`);
+    if (worktreeManager) {
+      try {
+        await worktreeManager.destroy();
+        server.log.info('Worktree cleaned up');
+      } catch {
+        // Best-effort cleanup
+      }
+    }
     await server.close();
     process.exit(0);
   };

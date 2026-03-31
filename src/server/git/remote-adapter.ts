@@ -6,7 +6,7 @@
  */
 
 import { Octokit } from '@octokit/rest';
-import type { GitAdapter, DirectoryEntry, GitHubConfig } from './types.js';
+import type { GitAdapter, DirectoryEntry, GitHubConfig, RepoStatus, GitIdentity } from './types.js';
 import { ConflictError } from './types.js';
 
 export class RemoteGitAdapter implements GitAdapter {
@@ -184,6 +184,28 @@ export class RemoteGitAdapter implements GitAdapter {
     } catch {
       return null;
     }
+  }
+
+  async fetchOrigin(): Promise<void> {
+    // Remote adapter reads via API — no fetch needed
+  }
+
+  async getGitIdentity(): Promise<GitIdentity> {
+    // Remote mode has no local git config — identity comes from GitHub token
+    return { name: null, email: null };
+  }
+
+  async getRepoStatus(): Promise<RepoStatus> {
+    // Remote repos have no working tree — always report clean
+    return {
+      clean: true,
+      modified: 0,
+      untracked: 0,
+      staged: 0,
+      conflicted: false,
+      conflictedFiles: [],
+      worktreeActive: false,
+    };
   }
 
   async getLatestSha(branch?: string): Promise<string | null> {

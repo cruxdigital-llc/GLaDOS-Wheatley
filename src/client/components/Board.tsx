@@ -6,11 +6,13 @@
  * and HTML5 drag-and-drop for phase transitions.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { BoardCard, BoardColumn, BoardPhase } from '../../shared/grammar/types.js';
 import { VALID_TRANSITIONS } from '../../shared/transitions/types.js';
-import { useBoard, useCardDetail, useConsolidatedBoard, useBranchHealth } from '../hooks/use-board.js';
+import { useBoard, useCardDetail, useConsolidatedBoard, useBranchHealth, useGitIdentity } from '../hooks/use-board.js';
+import { useSSE } from '../hooks/use-sse.js';
+import { triggerSync } from '../api.js';
 import { useExecuteTransition } from '../hooks/use-transitions.js';
 import { Column } from './Column.js';
 import { CardDetail } from './CardDetail.js';
@@ -19,6 +21,7 @@ import { ConflictModal } from './ConflictModal.js';
 import { ConfirmTransitionModal } from './ConfirmTransitionModal.js';
 import { BranchHealthPanel } from './BranchHealthPanel.js';
 import { ActivityFeed } from './ActivityFeed.js';
+import { RepoStatusIndicator } from './RepoStatusIndicator.js';
 
 type FilterMode = 'all' | 'unclaimed' | 'mine';
 type ViewMode = 'single' | 'consolidated';
@@ -66,6 +69,20 @@ export function Board() {
   const [optimisticColumns, setOptimisticColumns] = useState<BoardColumn[] | null>(null);
   // Transition error
   const [transitionError, setTransitionError] = useState<string | null>(null);
+
+  const { data: gitIdentity } = useGitIdentity();
+  const [syncing, setSyncing] = useState(false);
+
+  // Connect to SSE for real-time updates
+  useSSE();
+
+  // Auto-populate username from git config if user hasn't set one
+  useEffect(() => {
+    if (!currentUser && gitIdentity?.name) {
+      setCurrentUser(gitIdentity.name);
+      localStorage.setItem('wheatley_claimant', gitIdentity.name);
+    }
+  }, [gitIdentity, currentUser]);
 
   const { data: board, isLoading, error } = useBoard(viewMode === 'single' ? branch : undefined);
   const { data: consolidatedBoard, isLoading: consolidatedLoading } = useConsolidatedBoard(
@@ -257,6 +274,7 @@ export function Board() {
         <div className="max-w-full mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">Wheatley</h1>
+            <RepoStatusIndicator />
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
@@ -273,13 +291,21 @@ export function Board() {
 
             {/* User identity input */}
             <div className="flex flex-col items-start">
-              <input
-                type="text"
-                value={currentUser}
-                onChange={handleUserChange}
-                placeholder="Your name…"
-                className={`text-sm border rounded px-2 py-1 w-36 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${userNameWarning ? 'border-yellow-400 focus:ring-yellow-400' : 'border-gray-300'}`}
-              />
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={currentUser}
+                  onChange={handleUserChange}
+                  placeholder="Your name…"
+                  className={`text-sm border rounded px-2 py-1 w-36 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${userNameWarning ? 'border-yellow-400 focus:ring-yellow-400' : 'border-gray-300'}`}
+                />
+                {gitIdentity?.source === 'git-config' && currentUser === gitIdentity?.name && (
+                  <span className="text-xs text-gray-400" title={`From git config${gitIdentity.email ? ` (${gitIdentity.email})` : ''}`}>git</span>
+                )}
+                {gitIdentity?.source === 'env' && (
+                  <span className="text-xs text-gray-400" title="From WHEATLEY_COMMIT_AUTHOR">env</span>
+                )}
+              </div>
               {userNameWarning && (
                 <span className="text-xs text-yellow-600 mt-0.5">{userNameWarning}</span>
               )}
@@ -313,6 +339,26 @@ export function Board() {
                 All Branches
               </button>
             </div>
+
+            {/* Sync button */}
+            <button
+              type="button"
+              disabled={syncing}
+              onClick={async () => {
+                setSyncing(true);
+                try {
+                  await triggerSync();
+                  void queryClient.invalidateQueries({ queryKey: ['board'] });
+                } catch {
+                  // Silently fail — user can retry
+                } finally {
+                  setSyncing(false);
+                }
+              }}
+              className="text-sm px-2 py-1 rounded border bg-white text-gray-600 border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {syncing ? 'Syncing…' : 'Sync'}
+            </button>
 
             {/* Activity feed button */}
             <button

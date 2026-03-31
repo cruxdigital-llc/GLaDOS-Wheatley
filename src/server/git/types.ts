@@ -66,12 +66,51 @@ export interface GitAdapter {
    * Returns null on error.
    */
   getLastCommitDate(branch: string): Promise<string | null>;
+
+  /**
+   * Get the working tree status of the repository.
+   * Returns clean status for remote adapters (no working tree).
+   */
+  getRepoStatus(): Promise<RepoStatus>;
+
+  /**
+   * Get the git identity (user.name, user.email) configured for this repository.
+   * Returns nulls if not configured.
+   */
+  getGitIdentity(): Promise<GitIdentity>;
+
+  /**
+   * Fetch latest refs from the remote. No-op for remote adapters.
+   */
+  fetchOrigin(): Promise<void>;
+}
+
+export interface GitIdentity {
+  name: string | null;
+  email: string | null;
 }
 
 export interface GitHubConfig {
   token: string;
   owner: string;
   repo: string;
+}
+
+export interface RepoStatus {
+  /** True if the working tree has no uncommitted changes. */
+  clean: boolean;
+  /** Number of modified files. */
+  modified: number;
+  /** Number of untracked files. */
+  untracked: number;
+  /** Number of staged (added) files. */
+  staged: number;
+  /** True if a merge conflict is in progress. */
+  conflicted: boolean;
+  /** Paths with merge conflicts. */
+  conflictedFiles: string[];
+  /** True if the worktree isolation is active (writes are safe). */
+  worktreeActive: boolean;
 }
 
 export interface GitAdapterConfig {

@@ -11,6 +11,8 @@ import {
   fetchBranches,
   fetchConsolidatedBoard,
   fetchBranchHealth,
+  fetchRepoStatus,
+  fetchGitIdentity,
   type ConsolidatedBoardQuery,
 } from '../api.js';
 
@@ -53,5 +55,21 @@ export function useBranchHealth(base?: string, enabled = true) {
     queryFn: () => fetchBranchHealth(base),
     staleTime: 60_000,
     enabled,
+  });
+}
+
+export function useRepoStatus() {
+  return useQuery({
+    queryKey: ['repo', 'status'],
+    queryFn: fetchRepoStatus,
+    refetchInterval: 15_000, // Poll every 15s
+  });
+}
+
+export function useGitIdentity() {
+  return useQuery({
+    queryKey: ['identity'],
+    queryFn: fetchGitIdentity,
+    staleTime: 300_000, // Identity rarely changes — cache 5 min
   });
 }

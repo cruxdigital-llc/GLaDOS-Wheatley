@@ -211,39 +211,39 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 6.1 Worktree Isolation
 
-- [ ] 6.1.1 Use `git worktree` for all write operations so Wheatley never touches the developer's working tree or index
-- [ ] 6.1.2 Dedicated Wheatley worktree lifecycle: auto-create on server start, clean up on shutdown
-- [ ] 6.1.3 All commits (claims, transitions, activity) target the worktree, then push to origin
-- [ ] 6.1.4 Fallback for repos that don't support worktrees (bare repos, older git versions)
+- [x] 6.1.1 Use `git worktree` for all write operations so Wheatley never touches the developer's working tree or index
+- [x] 6.1.2 Dedicated Wheatley worktree lifecycle: auto-create on server start, clean up on shutdown
+- [x] 6.1.3 All commits (claims, transitions, activity) target the worktree, then push to origin
+- [x] 6.1.4 Fallback for repos that don't support worktrees (bare repos, older git versions)
 
 ### 6.2 Dirty State & Conflict Handling
 
-- [ ] 6.2.1 Remove the "working tree not clean" hard failure — reads should always work regardless of dirty state
-- [ ] 6.2.2 Detect and report untracked/modified/staged files as board-level status indicator ("repo has uncommitted changes")
-- [ ] 6.2.3 Handle push conflicts gracefully: pull-rebase-retry loop (up to 3 attempts) instead of `reset --hard`
-- [ ] 6.2.4 Merge conflict detection on pull: surface conflicted files in the UI with paths and conflict markers
-- [ ] 6.2.5 Manual conflict resolution prompt: link to files that need resolution, block writes until resolved
+- [x] 6.2.1 Remove the "working tree not clean" hard failure — reads should always work regardless of dirty state
+- [x] 6.2.2 Detect and report untracked/modified/staged files as board-level status indicator ("repo has uncommitted changes")
+- [x] 6.2.3 Handle push conflicts gracefully: pull-rebase-retry loop (up to 3 attempts) instead of `reset --hard`
+- [x] 6.2.4 Merge conflict detection on pull: surface conflicted files in the UI with paths and conflict markers
+- [x] 6.2.5 Manual conflict resolution prompt: link to files that need resolution, block writes until resolved
 
 ### 6.3 Git Identity & Config
 
-- [ ] 6.3.1 Auto-detect username from `git config user.name` and pre-populate the UI identity field
-- [ ] 6.3.2 Auto-detect email from `git config user.email` for commit attribution
-- [ ] 6.3.3 Configurable commit author override via `WHEATLEY_COMMIT_AUTHOR` env var
-- [ ] 6.3.4 Display detected git identity in the UI header (replace manual text input with auto-detected + editable)
+- [x] 6.3.1 Auto-detect username from `git config user.name` and pre-populate the UI identity field
+- [x] 6.3.2 Auto-detect email from `git config user.email` for commit attribution
+- [x] 6.3.3 Configurable commit author override via `WHEATLEY_COMMIT_AUTHOR` env var
+- [x] 6.3.4 Display detected git identity in the UI header (replace manual text input with auto-detected + editable)
 
 ### 6.4 Sync & Real-Time Updates
 
-- [ ] 6.4.1 Manual "Sync" button in the UI header: triggers immediate git pull + board re-parse
-- [ ] 6.4.2 Server-Sent Events (SSE) endpoint: push board-change events to connected clients (replace polling)
-- [ ] 6.4.3 Frontend SSE client: subscribe to real-time updates, fall back to polling if SSE disconnects
-- [ ] 6.4.4 Inbound webhook receiver (`POST /api/webhooks/github`, `POST /api/webhooks/gitlab`): accept push events to trigger re-sync in cloud mode
-- [ ] 6.4.5 Optimistic UI: update board state immediately on write operations, reconcile on next sync
+- [x] 6.4.1 Manual "Sync" button in the UI header: triggers immediate git pull + board re-parse
+- [x] 6.4.2 Server-Sent Events (SSE) endpoint: push board-change events to connected clients (replace polling)
+- [x] 6.4.3 Frontend SSE client: subscribe to real-time updates, fall back to polling if SSE disconnects
+- [x] 6.4.4 Inbound webhook receiver (`POST /api/webhooks/github`, `POST /api/webhooks/gitlab`): accept push events to trigger re-sync in cloud mode
+- [x] 6.4.5 Optimistic UI: update board state immediately on write operations, reconcile on next sync
 
 ### 6.5 Persistent Event Log
 
-- [ ] 6.5.1 Replace in-memory event log with file-backed storage (`product-knowledge/events.md`)
-- [ ] 6.5.2 Event log rotation: archive events older than configurable threshold
-- [ ] 6.5.3 Event replay: reconstruct board state from event log for debugging
+- [x] 6.5.1 Replace in-memory event log with file-backed storage (`product-knowledge/events.md`)
+- [x] 6.5.2 Event log rotation: archive events older than configurable threshold
+- [x] 6.5.3 Event replay: reconstruct board state from event log for debugging
 
 ## Phase 7: Content Editing & Card Management
 

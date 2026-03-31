@@ -8,12 +8,14 @@
 import type { GitAdapter, GitAdapterConfig } from './types.js';
 import { LocalGitAdapter } from './local-adapter.js';
 import { RemoteGitAdapter } from './remote-adapter.js';
+import type { WorktreeManager } from './worktree-manager.js';
 
 /**
  * Create a GitAdapter instance based on the provided configuration.
  * Throws if required config is missing for the selected mode.
+ * In local mode, pass an optional WorktreeManager for isolated writes.
  */
-export function createGitAdapter(config: GitAdapterConfig): GitAdapter {
+export function createGitAdapter(config: GitAdapterConfig, worktreeManager?: WorktreeManager): GitAdapter {
   switch (config.mode) {
     case 'local': {
       if (!config.localPath) {
@@ -21,7 +23,7 @@ export function createGitAdapter(config: GitAdapterConfig): GitAdapter {
           'LocalGitAdapter requires config.localPath — set WHEATLEY_REPO_PATH environment variable',
         );
       }
-      return new LocalGitAdapter(config.localPath);
+      return new LocalGitAdapter(config.localPath, worktreeManager);
     }
 
     case 'remote': {
