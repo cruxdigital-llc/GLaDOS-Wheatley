@@ -36,6 +36,12 @@ interface ColumnProps {
   onCardDragEnd?: () => void;
   /** Called when the user clicks the "+" button to add a card. */
   onAddCard?: (phase: BoardPhase) => void;
+  /** Card ID that should show a keyboard-navigation focus ring. */
+  focusedCardId?: string;
+  /** Whether this column is collapsed. */
+  collapsed?: boolean;
+  /** Called when the collapse/expand toggle is clicked. */
+  onToggleCollapse?: () => void;
 }
 
 export function Column({
@@ -50,6 +56,9 @@ export function Column({
   onCardDragStart,
   onCardDragEnd,
   onAddCard,
+  focusedCardId,
+  collapsed,
+  onToggleCollapse,
 }: ColumnProps) {
   const borderColor = COLUMN_HEADER_COLORS[column.phase] ?? 'border-t-gray-400';
   const [isDragOver, setIsDragOver] = useState(false);
@@ -92,6 +101,39 @@ export function Column({
     dropZoneClass = 'opacity-40';
   }
 
+  if (collapsed) {
+    return (
+      <div
+        className={`flex flex-col bg-gray-50 rounded-lg border-t-4 ${borderColor} min-w-[48px] max-w-[48px] transition-all ${dropZoneClass}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <div className="flex flex-col items-center py-2 gap-1">
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="text-gray-400 hover:text-gray-600 text-xs leading-none"
+              title="Expand column"
+            >
+              &#9656;
+            </button>
+          )}
+          <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
+            {column.cards.length}
+          </span>
+          <span
+            className="text-xs font-semibold text-gray-700 whitespace-nowrap"
+            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+          >
+            {column.title}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`flex flex-col bg-gray-50 rounded-lg border-t-4 ${borderColor} min-w-[280px] max-w-[320px] transition-all ${dropZoneClass}`}
@@ -100,7 +142,19 @@ export function Column({
       onDrop={handleDrop}
     >
       <div className="px-3 py-2 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-700">{column.title}</h2>
+        <div className="flex items-center gap-1">
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="text-gray-400 hover:text-gray-600 text-xs leading-none"
+              title="Collapse column"
+            >
+              &#9662;
+            </button>
+          )}
+          <h2 className="text-sm font-semibold text-gray-700">{column.title}</h2>
+        </div>
         <div className="flex items-center gap-1.5">
           {onAddCard && (
             <button
@@ -135,6 +189,7 @@ export function Column({
               isDragging={card.id === draggingCardId}
               onDragStart={onCardDragStart}
               onDragEnd={onCardDragEnd}
+              isFocused={card.id === focusedCardId}
             />
           ))
         )}

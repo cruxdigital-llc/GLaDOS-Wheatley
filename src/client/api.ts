@@ -25,6 +25,11 @@ export interface CardDetailResponse {
       dirName: string;
       files: string[];
     };
+    metadata?: {
+      labels?: string[];
+      priority?: string | null;
+      due?: string | null;
+    };
   };
   specContents?: Record<string, string>;
 }
@@ -225,6 +230,18 @@ export async function createCard(input: CreateCardRequest): Promise<CreateCardRe
   });
 }
 
+export async function updateCardMetadata(
+  cardId: string,
+  metadata: { labels?: string[]; priority?: string; due?: string },
+  branch?: string,
+): Promise<{ updated: boolean }> {
+  return fetchJson(`${API_BASE}/cards/${encodeURIComponent(cardId)}/metadata`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...metadata, branch }),
+  });
+}
+
 export async function renameCard(id: string, title: string, branch?: string): Promise<void> {
   await fetchJson(`${API_BASE}/cards/${encodeURIComponent(id)}/title`, {
     method: 'PUT',
@@ -339,6 +356,30 @@ export async function fetchRepoStatus(): Promise<RepoStatusResponse> {
 // ---------------------------------------------------------------------------
 // Activity feed
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
+
+export interface SearchResult {
+  cardId: string;
+  title: string;
+  phase: string;
+  matchType: 'title' | 'spec' | 'comment' | 'claimant';
+  matchContext: string;
+  score: number;
+}
+
+export interface SearchResponse {
+  results: SearchResult[];
+  total: number;
+}
+
+export async function searchCards(query: string, branch?: string): Promise<SearchResponse> {
+  const params = new URLSearchParams({ q: query });
+  if (branch) params.set('branch', branch);
+  return fetchJson<SearchResponse>(`${API_BASE}/search?${params.toString()}`);
+}
 
 export async function fetchActivityFeed(
   options?: { limit?: number; actor?: string },

@@ -6,7 +6,7 @@
  * and HTML5 drag-and-drop for phase transitions.
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { BoardCard, BoardColumn, BoardPhase } from '../../shared/grammar/types.js';
 import { VALID_TRANSITIONS } from '../../shared/transitions/types.js';
@@ -23,9 +23,77 @@ import { ConfirmTransitionModal } from './ConfirmTransitionModal.js';
 import { BranchHealthPanel } from './BranchHealthPanel.js';
 import { ActivityFeed } from './ActivityFeed.js';
 import { RepoStatusIndicator } from './RepoStatusIndicator.js';
+import { SearchBar } from './SearchBar.js';
+import { ScrollIndicators } from './ScrollIndicators.js';
+import { ShortcutOverlay } from './ShortcutOverlay.js';
+import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts.js';
+import type { ShortcutDef } from '../hooks/use-keyboard-shortcuts.js';
 
-type FilterMode = 'all' | 'unclaimed' | 'mine';
 type ViewMode = 'single' | 'consolidated';
+type SortMode = 'default' | 'priority' | 'due' | 'newest' | 'activity';
+
+interface CompoundFilter {
+  phases: BoardPhase[];
+  claimant: string;
+  priority: string; // '' | 'P0' | 'P1' | 'P2' | 'P3'
+  hasLabels: boolean;
+}
+
+interface SavedPreset {
+  name: string;
+  filter: CompoundFilter;
+}
+
+const PRIORITY_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+
+function defaultFilter(): CompoundFilter {
+  return { phases: [], claimant: '', priority: '', hasLabels: false };
+}
+
+function filterFromURL(): CompoundFilter {
+  const params = new URLSearchParams(window.location.search);
+  const f = defaultFilter();
+  const phases = params.get('phases');
+  if (phases) f.phases = phases.split(',').filter(Boolean) as BoardPhase[];
+  const claimant = params.get('claimant');
+  if (claimant) f.claimant = claimant;
+  const priority = params.get('priority');
+  if (priority) f.priority = priority;
+  if (params.get('hasLabels') === '1') f.hasLabels = true;
+  return f;
+}
+
+function filterToURL(f: CompoundFilter): void {
+  const params = new URLSearchParams(window.location.search);
+  // Clear old filter params
+  params.delete('phases');
+  params.delete('claimant');
+  params.delete('priority');
+  params.delete('hasLabels');
+  if (f.phases.length) params.set('phases', f.phases.join(','));
+  if (f.claimant) params.set('claimant', f.claimant);
+  if (f.priority) params.set('priority', f.priority);
+  if (f.hasLabels) params.set('hasLabels', '1');
+  const qs = params.toString();
+  const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+  window.history.replaceState(null, '', url);
+}
+
+function loadPresets(): SavedPreset[] {
+  try {
+    const raw = localStorage.getItem('wheatley_saved_filters');
+    if (raw) return JSON.parse(raw) as SavedPreset[];
+  } catch { /* ignore */ }
+  return [];
+}
+
+function savePresets(presets: SavedPreset[]): void {
+  localStorage.setItem('wheatley_saved_filters', JSON.stringify(presets.slice(0, 10)));
+}
+
+function isFilterEmpty(f: CompoundFilter): boolean {
+  return f.phases.length === 0 && !f.claimant && !f.priority && !f.hasLabels;
+}
 
 /** Transitions that create files and require a confirmation dialog. */
 const FILE_CREATING_TRANSITIONS = new Set([
@@ -58,7 +126,11 @@ export function Board() {
   const [currentUser, setCurrentUser] = useState<string>(
     () => localStorage.getItem('wheatley_claimant') ?? '',
   );
-  const [filter, setFilter] = useState<FilterMode>('all');
+  const [filter, setFilter] = useState<CompoundFilter>(filterFromURL);
+  const [sortMode, setSortMode] = useState<SortMode>('default');
+  const [presets, setPresets] = useState<SavedPreset[]>(loadPresets);
+  const [presetName, setPresetName] = useState('');
+  const [showPresetMenu, setShowPresetMenu] = useState(false);
   const [conflictInfo, setConflictInfo] = useState<{ claimedBy: string } | null>(null);
   const [userNameWarning, setUserNameWarning] = useState<string | null>(null);
 
@@ -73,11 +145,30 @@ export function Board() {
   // Card creation
   const [createCardPhase, setCreateCardPhase] = useState<BoardPhase | null>(null);
 
+  // Collapsed columns (persisted to localStorage)
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<BoardPhase>>(() => {
+    try {
+      const stored = localStorage.getItem('wheatley_collapsed_columns');
+      if (stored) return new Set(JSON.parse(stored) as BoardPhase[]);
+    } catch { /* ignore */ }
+    return new Set();
+  });
+
+  // Keyboard navigation
+  const [focusedCardIndex, setFocusedCardIndex] = useState<number>(-1);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   const { data: gitIdentity } = useGitIdentity();
   const [syncing, setSyncing] = useState(false);
 
   // Connect to SSE for real-time updates
   useSSE();
+
+  // Persist filter state to URL
+  useEffect(() => {
+    filterToURL(filter);
+  }, [filter]);
 
   // Auto-populate username from git config if user hasn't set one
   useEffect(() => {
@@ -142,6 +233,19 @@ export function Board() {
   const handleConflictClose = () => {
     setConflictInfo(null);
   };
+
+  const handleToggleCollapse = useCallback((phase: BoardPhase) => {
+    setCollapsedColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(phase)) {
+        next.delete(phase);
+      } else {
+        next.add(phase);
+      }
+      localStorage.setItem('wheatley_collapsed_columns', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Drag-and-drop handlers
@@ -248,27 +352,201 @@ export function Board() {
   /** Base columns: server data overridden by optimistic local state. */
   const baseColumns = optimisticColumns ?? activeBoard?.columns ?? [];
 
+  /** Sort cards within a column based on sortMode. */
+  const sortCards = useCallback((cards: BoardCard[]): BoardCard[] => {
+    if (sortMode === 'default') return cards;
+    const sorted = [...cards];
+    sorted.sort((a, b) => {
+      if (sortMode === 'priority') {
+        const pa = a.metadata?.priority ? PRIORITY_ORDER[a.metadata.priority] ?? 99 : 99;
+        const pb = b.metadata?.priority ? PRIORITY_ORDER[b.metadata.priority] ?? 99 : 99;
+        return pa - pb;
+      }
+      if (sortMode === 'due') {
+        const da = a.metadata?.due ?? '\uffff';
+        const db = b.metadata?.due ?? '\uffff';
+        return da.localeCompare(db);
+      }
+      if (sortMode === 'newest') {
+        // Use claim time as proxy for "newest"
+        const ta = a.claim?.claimedAt ?? '';
+        const tb = b.claim?.claimedAt ?? '';
+        return tb.localeCompare(ta);
+      }
+      if (sortMode === 'activity') {
+        const ta = a.claim?.claimedAt ?? '';
+        const tb = b.claim?.claimedAt ?? '';
+        return tb.localeCompare(ta);
+      }
+      return 0;
+    });
+    return sorted;
+  }, [sortMode]);
+
   const filteredColumns = useMemo<BoardColumn[]>(() => {
     if (!activeBoard && !optimisticColumns) return [];
 
-    if (filter === 'unclaimed') {
-      return baseColumns.filter((col) => col.phase === 'unclaimed');
+    let cols = baseColumns;
+
+    // Phase filter
+    if (filter.phases.length > 0) {
+      const phaseSet = new Set(filter.phases);
+      cols = cols.filter((col) => phaseSet.has(col.phase));
     }
 
-    if (filter === 'mine') {
-      return baseColumns
+    // Card-level filters
+    const needCardFilter = !!(filter.claimant || filter.priority || filter.hasLabels);
+    if (needCardFilter) {
+      cols = cols
         .map((col) => ({
           ...col,
-          cards: col.cards.filter(
-            (card) => card.claim?.claimant === currentUser,
-          ),
+          cards: col.cards.filter((card) => {
+            if (filter.claimant && card.claim?.claimant !== filter.claimant) return false;
+            if (filter.priority && card.metadata?.priority !== filter.priority) return false;
+            if (filter.hasLabels && (!card.metadata?.labels || card.metadata.labels.length === 0)) return false;
+            return true;
+          }),
         }))
-        .filter((col) => col.cards.length > 0);
+        .filter((col) => col.cards.length > 0 || filter.phases.length > 0);
     }
 
-    return baseColumns;
+    // Sort cards within each column
+    if (sortMode !== 'default') {
+      cols = cols.map((col) => ({ ...col, cards: sortCards(col.cards) }));
+    }
+
+    return cols;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeBoard, optimisticColumns, filter, currentUser]);
+  }, [activeBoard, optimisticColumns, filter, currentUser, sortMode, sortCards]);
+
+  // ---------------------------------------------------------------------------
+  // Flat list of all visible cards (for keyboard navigation)
+  // ---------------------------------------------------------------------------
+
+  const allCards = useMemo(() => {
+    return filteredColumns.flatMap((col) =>
+      col.cards.map((card) => ({ card, columnPhase: col.phase })),
+    );
+  }, [filteredColumns]);
+
+  /** The card ID that currently has keyboard focus. */
+  const focusedCardId = focusedCardIndex >= 0 && focusedCardIndex < allCards.length
+    ? allCards[focusedCardIndex].card.id
+    : undefined;
+
+  // ---------------------------------------------------------------------------
+  // Keyboard shortcuts
+  // ---------------------------------------------------------------------------
+
+  const shortcuts = useMemo<ShortcutDef[]>(() => [
+    {
+      key: '?',
+      description: 'Toggle shortcut overlay',
+      handler: () => setShowShortcuts((v) => !v),
+    },
+    {
+      key: 'Escape',
+      description: 'Close detail panel / overlay',
+      handler: () => {
+        if (showShortcuts) {
+          setShowShortcuts(false);
+        } else if (selectedCardId) {
+          setSelectedCardId(null);
+        } else {
+          setFocusedCardIndex(-1);
+        }
+      },
+    },
+    {
+      key: 'ArrowRight',
+      description: 'Navigate to next column',
+      handler: () => {
+        if (filteredColumns.length === 0 || allCards.length === 0) return;
+        const currentColPhase = focusedCardIndex >= 0 && focusedCardIndex < allCards.length
+          ? allCards[focusedCardIndex].columnPhase
+          : undefined;
+        const colIdx = currentColPhase
+          ? filteredColumns.findIndex((c) => c.phase === currentColPhase)
+          : -1;
+        const nextColIdx = Math.min(colIdx + 1, filteredColumns.length - 1);
+        const nextCol = filteredColumns[nextColIdx];
+        if (!nextCol || nextCol.cards.length === 0) return;
+        const globalIdx = allCards.findIndex((c) => c.card.id === nextCol.cards[0].id);
+        if (globalIdx >= 0) setFocusedCardIndex(globalIdx);
+      },
+    },
+    {
+      key: 'ArrowLeft',
+      description: 'Navigate to previous column',
+      handler: () => {
+        if (filteredColumns.length === 0 || allCards.length === 0) return;
+        const currentColPhase = focusedCardIndex >= 0 && focusedCardIndex < allCards.length
+          ? allCards[focusedCardIndex].columnPhase
+          : undefined;
+        const colIdx = currentColPhase
+          ? filteredColumns.findIndex((c) => c.phase === currentColPhase)
+          : filteredColumns.length;
+        const prevColIdx = Math.max(colIdx - 1, 0);
+        const prevCol = filteredColumns[prevColIdx];
+        if (!prevCol || prevCol.cards.length === 0) return;
+        const globalIdx = allCards.findIndex((c) => c.card.id === prevCol.cards[0].id);
+        if (globalIdx >= 0) setFocusedCardIndex(globalIdx);
+      },
+    },
+    {
+      key: 'ArrowDown',
+      description: 'Navigate to next card',
+      handler: () => {
+        if (allCards.length === 0) return;
+        setFocusedCardIndex((prev) => Math.min(prev + 1, allCards.length - 1));
+      },
+    },
+    {
+      key: 'ArrowUp',
+      description: 'Navigate to previous card',
+      handler: () => {
+        if (allCards.length === 0) return;
+        setFocusedCardIndex((prev) => Math.max(prev <= 0 ? 0 : prev - 1, 0));
+      },
+    },
+    {
+      key: 'Enter',
+      description: 'Open selected card detail',
+      handler: () => {
+        if (focusedCardIndex >= 0 && focusedCardIndex < allCards.length) {
+          setSelectedCardId(allCards[focusedCardIndex].card.id);
+        }
+      },
+    },
+    {
+      key: 'c',
+      description: 'Claim / release focused card',
+      handler: () => {
+        if (focusedCardIndex >= 0 && focusedCardIndex < allCards.length) {
+          setSelectedCardId(allCards[focusedCardIndex].card.id);
+        }
+      },
+    },
+    {
+      key: 'e',
+      description: 'Edit focused card',
+      handler: () => {
+        if (focusedCardIndex >= 0 && focusedCardIndex < allCards.length) {
+          setSelectedCardId(allCards[focusedCardIndex].card.id);
+        }
+      },
+    },
+    {
+      key: '/',
+      description: 'Focus search bar',
+      ignoreInputs: true,
+      handler: () => {
+        searchInputRef.current?.focus();
+      },
+    },
+  ], [showShortcuts, selectedCardId, filteredColumns, allCards, focusedCardIndex]);
+
+  useKeyboardShortcuts(shortcuts);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -278,6 +556,7 @@ export function Board() {
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">Wheatley</h1>
             <RepoStatusIndicator />
+            <SearchBar branch={branch} onResultClick={(cardId) => setSelectedCardId(cardId)} inputRef={searchInputRef} />
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
@@ -314,15 +593,42 @@ export function Board() {
               )}
             </div>
 
-            {/* Filter dropdown */}
+            {/* Quick filter presets */}
+            <div className="flex items-center gap-1 text-sm">
+              <button
+                type="button"
+                onClick={() => setFilter(defaultFilter())}
+                className={`px-2 py-1 rounded border ${isFilterEmpty(filter) ? 'bg-blue-50 text-blue-700 border-blue-300 font-medium' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter({ ...defaultFilter(), phases: ['unclaimed'] })}
+                className={`px-2 py-1 rounded border ${filter.phases.length === 1 && filter.phases[0] === 'unclaimed' && !filter.claimant ? 'bg-blue-50 text-blue-700 border-blue-300 font-medium' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+              >
+                Unclaimed
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter({ ...defaultFilter(), claimant: currentUser })}
+                className={`px-2 py-1 rounded border ${filter.claimant === currentUser && currentUser ? 'bg-blue-50 text-blue-700 border-blue-300 font-medium' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+              >
+                Mine
+              </button>
+            </div>
+
+            {/* Sort control */}
             <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as FilterMode)}
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
               className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All</option>
-              <option value="unclaimed">Unclaimed Only</option>
-              <option value="mine">My Claims</option>
+              <option value="default">Sort: Default</option>
+              <option value="priority">Sort: Priority</option>
+              <option value="due">Sort: Due Date</option>
+              <option value="newest">Sort: Newest First</option>
+              <option value="activity">Sort: Last Activity</option>
             </select>
 
             {/* View mode toggle */}
@@ -388,8 +694,150 @@ export function Board() {
         </div>
       </header>
 
+      {/* Compound filter bar */}
+      <div className="bg-white border-b px-4 py-2 flex items-center gap-3 flex-wrap text-sm">
+        {/* Phase multi-select */}
+        <label className="flex items-center gap-1 text-gray-600">
+          Phase:
+          <select
+            multiple
+            value={filter.phases}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions, (o) => o.value as BoardPhase);
+              setFilter((prev) => ({ ...prev, phases: selected }));
+            }}
+            className="border border-gray-300 rounded px-1 py-0.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 h-16 text-xs"
+          >
+            {(['unclaimed', 'planning', 'speccing', 'implementing', 'verifying', 'done'] as BoardPhase[]).map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </label>
+
+        {/* Claimant */}
+        <label className="flex items-center gap-1 text-gray-600">
+          Claimant:
+          <input
+            type="text"
+            value={filter.claimant}
+            onChange={(e) => setFilter((prev) => ({ ...prev, claimant: e.target.value }))}
+            placeholder="name..."
+            className="border border-gray-300 rounded px-2 py-0.5 w-28 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+        </label>
+
+        {/* Priority */}
+        <label className="flex items-center gap-1 text-gray-600">
+          Priority:
+          <select
+            value={filter.priority}
+            onChange={(e) => setFilter((prev) => ({ ...prev, priority: e.target.value }))}
+            className="border border-gray-300 rounded px-1 py-0.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          >
+            <option value="">Any</option>
+            <option value="P0">P0</option>
+            <option value="P1">P1</option>
+            <option value="P2">P2</option>
+            <option value="P3">P3</option>
+          </select>
+        </label>
+
+        {/* Has labels */}
+        <label className="flex items-center gap-1 text-gray-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filter.hasLabels}
+            onChange={(e) => setFilter((prev) => ({ ...prev, hasLabels: e.target.checked }))}
+          />
+          Has labels
+        </label>
+
+        {/* Clear filters */}
+        {!isFilterEmpty(filter) && (
+          <button
+            type="button"
+            onClick={() => setFilter(defaultFilter())}
+            className="text-xs text-red-500 hover:text-red-700 underline"
+          >
+            Clear filters
+          </button>
+        )}
+
+        <div className="border-l border-gray-200 h-6 mx-1" />
+
+        {/* Saved presets */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowPresetMenu((v) => !v)}
+            className="px-2 py-0.5 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+          >
+            Presets
+          </button>
+          {showPresetMenu && (
+            <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
+              {/* Save current */}
+              <form
+                className="px-3 py-2 border-b flex gap-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const trimmed = presetName.trim();
+                  if (!trimmed) return;
+                  const next = [...presets.filter((p) => p.name !== trimmed), { name: trimmed, filter: { ...filter } }].slice(-10);
+                  setPresets(next);
+                  savePresets(next);
+                  setPresetName('');
+                }}
+              >
+                <input
+                  type="text"
+                  value={presetName}
+                  onChange={(e) => setPresetName(e.target.value)}
+                  placeholder="Preset name..."
+                  className="flex-1 text-xs border border-gray-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                />
+                <button
+                  type="submit"
+                  className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Save
+                </button>
+              </form>
+              {presets.length === 0 && (
+                <div className="px-3 py-2 text-xs text-gray-400">No saved presets</div>
+              )}
+              {presets.map((p) => (
+                <div key={p.name} className="flex items-center justify-between px-3 py-1.5 hover:bg-gray-50 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilter({ ...p.filter });
+                      setShowPresetMenu(false);
+                    }}
+                    className="text-xs text-gray-700 flex-1 text-left truncate"
+                  >
+                    {p.name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = presets.filter((x) => x.name !== p.name);
+                      setPresets(next);
+                      savePresets(next);
+                    }}
+                    className="text-xs text-red-400 hover:text-red-600"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Board */}
-      <main className="p-4 overflow-x-auto">
+      <main className="p-4">
         {activeLoading && (
           <div className="flex items-center justify-center h-64">
             <div className="text-gray-400 text-lg">Loading board…</div>
@@ -420,24 +868,29 @@ export function Board() {
         )}
 
         {(activeBoard || optimisticColumns) && (
-          <div className="flex gap-4 min-h-[calc(100vh-120px)]">
-            {filteredColumns.map((column) => (
-              <Column
-                key={column.phase}
-                column={column}
-                onCardClick={handleCardClick}
-                currentUser={currentUser}
-                branch={branch}
-                onConflict={handleConflict}
-                validDropTargets={isConsolidated ? new Set() : validDropTargets}
-                draggingCardId={isConsolidated ? undefined : dragState?.cardId}
-                onDrop={isConsolidated ? undefined : handleColumnDrop}
-                onCardDragStart={isConsolidated ? undefined : handleDragStart}
-                onCardDragEnd={isConsolidated ? undefined : handleDragEnd}
-                onAddCard={isConsolidated ? undefined : (phase) => setCreateCardPhase(phase)}
-              />
-            ))}
-          </div>
+          <ScrollIndicators>
+            <div className="flex gap-4 min-h-[calc(100vh-120px)]">
+              {filteredColumns.map((column) => (
+                <Column
+                  key={column.phase}
+                  column={column}
+                  onCardClick={handleCardClick}
+                  currentUser={currentUser}
+                  branch={branch}
+                  onConflict={handleConflict}
+                  validDropTargets={isConsolidated ? new Set() : validDropTargets}
+                  draggingCardId={isConsolidated ? undefined : dragState?.cardId}
+                  onDrop={isConsolidated ? undefined : handleColumnDrop}
+                  onCardDragStart={isConsolidated ? undefined : handleDragStart}
+                  onCardDragEnd={isConsolidated ? undefined : handleDragEnd}
+                  onAddCard={isConsolidated ? undefined : (phase) => setCreateCardPhase(phase)}
+                  collapsed={collapsedColumns.has(column.phase)}
+                  onToggleCollapse={() => handleToggleCollapse(column.phase)}
+                  focusedCardId={focusedCardId}
+                />
+              ))}
+            </div>
+          </ScrollIndicators>
         )}
 
         {activeBoard && activeBoard.metadata.totalCards === 0 && (
@@ -489,6 +942,14 @@ export function Board() {
       {/* Activity Feed Panel */}
       {showActivityFeed && (
         <ActivityFeed onClose={() => setShowActivityFeed(false)} />
+      )}
+
+      {/* Keyboard Shortcuts Overlay */}
+      {showShortcuts && (
+        <ShortcutOverlay
+          shortcuts={shortcuts.map((s) => ({ key: s.key, description: s.description }))}
+          onClose={() => setShowShortcuts(false)}
+        />
       )}
 
       {/* Create Card Modal */}

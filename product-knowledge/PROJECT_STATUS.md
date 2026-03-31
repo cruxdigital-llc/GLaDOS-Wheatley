@@ -82,21 +82,26 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Comments**: Per-spec comment thread, append-only markdown format, author sanitization
 - [x] **Task Checkboxes**: Interactive `tasks.md` checkbox toggling with optimistic updates
 
-### 8. Backlog / Upcoming
+### 8. Phase 8 — Search, Metadata & Navigation
 
-- [ ] Phase 8: Search, Metadata & Navigation (3 features, 17 items)
+- [x] **Search & Filtering**: Full-text search across titles/specs/comments/claimants, compound filters, URL persistence, saved presets
+- [x] **Labels, Priority & Due Dates**: YAML frontmatter metadata, priority badges (P0-P3), overdue highlighting, sort controls
+- [x] **Board Navigation & UX**: Keyboard shortcuts with overlay, column collapse/expand, horizontal scroll indicators, card timeline
+
+### 9. Backlog / Upcoming
+
 - [ ] Phase 9: GitHub Integration & GLaDOS Workflows (4 features, 22 items)
 - [ ] Phase 10: Authentication, Teams & Multi-Project (4 features, 18 items)
 - [ ] Phase 11: Views, Bulk Operations & Production Polish (6 features, 23 items)
 
 ## Known Issues / Technical Debt
 
-- No horizontal scroll indicators in board UI
 - Roadmap parser hardcoded to GLaDOS numbering format (X.Y.Z)
 - Card editing limited to allowlisted spec files (no arbitrary path editing)
 - No PR/MR visibility or management
 - No auth for cloud deployments
 - Button-in-button HTML nesting in Card component (accessibility/validity issue)
+- Search results show markdown bold markers as literal text (should render as HTML bold)
 
 ## Recent Changes
 
@@ -110,3 +115,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-29: Full product walkthrough completed (WALKTHROUGH.md) — all 16 features verified.
 - 2026-03-29: **PHASE 6 COMPLETE** — 416 tests passing, 21/21 roadmap items done. Worktree isolation, dirty state detection, git identity, SSE, event log.
 - 2026-03-29: **PHASE 7 COMPLETE** — 416 tests passing, 20/20 roadmap items done. Card CRUD, inline spec editing, comments, task checkboxes. MR review: fixed path traversal, injection, error handling.
+- 2026-03-29: **PHASE 8 COMPLETE** — 416 tests passing, 17/17 roadmap items done. Full-text search, YAML frontmatter metadata, keyboard shortcuts, column collapse, scroll indicators, card timeline. MR review: fixed branch validation, label injection, concurrent array mutation.
