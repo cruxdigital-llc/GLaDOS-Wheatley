@@ -52,5 +52,4 @@ services:
       - ./index.html:/app/index.html
       - ./package.json:/app/package.json
       - /app/node_modules
-      - ${REPO_PATH:-.}:/repo:ro
     command: npx vite --host 0.0.0.0

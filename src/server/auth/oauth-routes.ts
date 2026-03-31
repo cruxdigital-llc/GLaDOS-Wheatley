@@ -330,7 +330,9 @@ function callbackHtml(jwt: string): string {
   try {
     localStorage.setItem('wheatley_token', ${JSON.stringify(jwt)});
   } catch (e) {
-    // Fallback: pass token in URL hash
+    document.querySelector('p').textContent =
+      'Unable to store authentication token. Please disable private browsing or allow localStorage for this site, then try again.';
+    throw e;
   }
   window.location.href = '/';
 </script>
