@@ -12,8 +12,8 @@ import type { AuthConfig } from './types.js';
 let generatedSecret: string | undefined;
 
 export function loadAuthConfig(): AuthConfig {
-  const wheatleyMode = process.env['WHEATLEY_MODE'] ?? 'local';
-  const mode: AuthConfig['mode'] = wheatleyMode === 'remote' ? 'cloud' : 'local';
+  const hasCloudAuth = !!(process.env['WHEATLEY_JWT_SECRET'] || process.env['GITHUB_CLIENT_ID'] || process.env['GITLAB_CLIENT_ID']);
+  const mode: AuthConfig['mode'] = hasCloudAuth ? 'cloud' : 'local';
 
   let jwtSecret = process.env['WHEATLEY_JWT_SECRET'];
   if (!jwtSecret) {

@@ -3,8 +3,6 @@ services:
     build:
       context: .
       target: development
-    ports:
-      - "3000:3000"
     environment:
       - WHEATLEY_MODE=local
       - WHEATLEY_REPO_PATH=/repo
@@ -15,7 +13,7 @@ services:
       - ./index.html:/app/index.html
       - ./package.json:/app/package.json
       - /app/node_modules
-      - ${WHEATLEY_REPO_PATH:-.}:/repo:ro
+      - ${REPO_PATH:-.}:/repo:ro
 
   server:
     build:
@@ -24,8 +22,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - WHEATLEY_MODE=local
+      - WHEATLEY_MODE=${WHEATLEY_MODE:-local}
       - WHEATLEY_REPO_PATH=/repo
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - GITHUB_OWNER=${GITHUB_OWNER:-}
+      - GITHUB_REPO=${GITHUB_REPO:-}
     volumes:
       - ./src:/app/src
       - ./tsconfig.json:/app/tsconfig.json
@@ -33,7 +34,7 @@ services:
       - ./index.html:/app/index.html
       - ./package.json:/app/package.json
       - /app/node_modules
-      - ${WHEATLEY_REPO_PATH:-.}:/repo
+      - ${REPO_PATH:-.}:/repo
     command: npx tsx watch src/server/index.ts
 
   frontend:
@@ -43,8 +44,6 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - WHEATLEY_MODE=local
-      - WHEATLEY_REPO_PATH=/repo
       - WHEATLEY_API_URL=http://server:3000
     volumes:
       - ./src:/app/src
@@ -53,5 +52,5 @@ services:
       - ./index.html:/app/index.html
       - ./package.json:/app/package.json
       - /app/node_modules
-      - ${WHEATLEY_REPO_PATH:-.}:/repo:ro
+      - ${REPO_PATH:-.}:/repo:ro
     command: npx vite --host 0.0.0.0
