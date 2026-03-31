@@ -107,8 +107,9 @@ export function NotificationBell({ onCardClick }: NotificationBellProps) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative text-sm px-2 py-1 rounded border bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+        className="relative text-sm px-2 py-1 rounded border bg-white text-gray-600 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
         aria-label="Notifications"
+        title="Notifications"
       >
         {/* Bell icon (SVG) */}
         <svg
@@ -133,9 +134,9 @@ export function NotificationBell({ onCardClick }: NotificationBellProps) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-            <span className="text-sm font-medium text-gray-700">Notifications</span>
+        <div className="absolute right-0 top-full mt-1 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Notifications</span>
             {unreadCount > 0 && (
               <button
                 type="button"
@@ -149,7 +150,7 @@ export function NotificationBell({ onCardClick }: NotificationBellProps) {
 
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 && (
-              <div className="px-3 py-6 text-center text-sm text-gray-400">
+              <div className="px-3 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
                 No notifications
               </div>
             )}
@@ -158,7 +159,7 @@ export function NotificationBell({ onCardClick }: NotificationBellProps) {
                 key={notif.id}
                 type="button"
                 onClick={() => handleNotificationClick(notif)}
-                className={`w-full text-left px-3 py-2 border-b border-gray-50 hover:bg-gray-50 ${
+                className={`w-full text-left px-3 py-2 border-b border-gray-50 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${
                   notif.read ? 'opacity-60' : ''
                 }`}
               >
@@ -167,9 +168,9 @@ export function NotificationBell({ onCardClick }: NotificationBellProps) {
                     <span className="mt-1.5 w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                   )}
                   <div className={!notif.read ? '' : 'ml-4'}>
-                    <div className="text-sm font-medium text-gray-800">{notif.title}</div>
-                    <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.body}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">
+                    <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{notif.title}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{notif.body}</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {new Date(notif.createdAt).toLocaleString()}
                     </div>
                   </div>

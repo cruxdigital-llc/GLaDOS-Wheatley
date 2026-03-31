@@ -32,9 +32,13 @@ import ListView from './ListView.js';
 import TimelineView from './TimelineView.js';
 import CalendarView from './CalendarView.js';
 import { BulkActionBar } from './BulkActionBar.js';
-import { DarkModeToggle } from './DarkModeToggle.js';
+import { FilterDrawer } from './FilterDrawer.js';
+import { SettingsMenu } from './SettingsMenu.js';
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts.js';
 import type { ShortcutDef } from '../hooks/use-keyboard-shortcuts.js';
+import { phaseDisplayName } from '../../shared/display-names.js';
+
+const VIEW_LABELS: Record<string, string> = { board: 'Board', list: 'List', timeline: 'Timeline', calendar: 'Calendar' };
 
 type ViewMode = 'single' | 'consolidated';
 type BoardView = 'board' | 'list' | 'timeline' | 'calendar';
@@ -140,10 +144,10 @@ export function Board() {
   const [filter, setFilter] = useState<CompoundFilter>(filterFromURL);
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [presets, setPresets] = useState<SavedPreset[]>(loadPresets);
-  const [presetName, setPresetName] = useState('');
-  const [showPresetMenu, setShowPresetMenu] = useState(false);
   const [conflictInfo, setConflictInfo] = useState<{ claimedBy: string } | null>(null);
   const [userNameWarning, setUserNameWarning] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [editingDisplayName, setEditingDisplayName] = useState(false);
 
   // Drag state
   const [dragState, setDragState] = useState<DragState | null>(null);
@@ -572,81 +576,116 @@ export function Board() {
 
   useKeyboardShortcuts(shortcuts);
 
+  const activeFilterCount = (filter.phases.length > 0 ? 1 : 0) + (filter.claimant ? 1 : 0) + (filter.priority ? 1 : 0) + (filter.hasLabels ? 1 : 0);
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* Header */}
+      {/* Header — Row 1: Primary bar */}
       <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm">
-        <div className="max-w-full mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-full mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          {/* Left: Title + Repo */}
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gray-900">Wheatley</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Wheatley</h1>
+            <RepoSelector
+              currentRepo={currentRepo}
+              onRepoChange={(repoId) => {
+                setCurrentRepo(repoId);
+                void queryClient.invalidateQueries({ queryKey: ['board'] });
+              }}
+            />
             <RepoStatusIndicator />
-            <SearchBar branch={branch} onResultClick={(cardId) => setSelectedCardId(cardId)} inputRef={searchInputRef} />
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap">
+          {/* Center: View switcher */}
+          <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden text-sm">
+            {(['board', 'list', 'timeline', 'calendar'] as BoardView[]).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setBoardView(v)}
+                className={`px-3 py-1.5 ${v !== 'board' ? 'border-l border-gray-300 dark:border-gray-600' : ''} ${boardView === v ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+              >
+                {VIEW_LABELS[v] ?? v}
+              </button>
+            ))}
+          </div>
+
+          {/* Right: User name, search, notifications, settings */}
+          <div className="flex items-center gap-3">
+            <SearchBar branch={branch} onResultClick={(cardId) => setSelectedCardId(cardId)} inputRef={searchInputRef} />
+
             {activeBoard && (
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400 hidden lg:block">
                 {activeBoard.metadata.totalCards} cards &middot;{' '}
-                {activeBoard.metadata.completedCount} done &middot;{' '}
-                {activeBoard.metadata.claimedCount} claimed
-                {'branchCount' in activeBoard.metadata && (
-                  <> &middot; {activeBoard.metadata.branchCount} branches</>
-                )}
+                {activeBoard.metadata.completedCount} done
               </div>
             )}
 
-            {/* User identity input */}
-            <div className="flex flex-col items-start">
+            {/* Display name (text, not input) */}
+            {editingDisplayName ? (
               <div className="flex items-center gap-1">
                 <input
                   type="text"
                   value={currentUser}
                   onChange={handleUserChange}
-                  placeholder="Your name…"
-                  className={`text-sm border rounded px-2 py-1 w-36 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${userNameWarning ? 'border-yellow-400 focus:ring-yellow-400' : 'border-gray-300'}`}
+                  onBlur={() => setEditingDisplayName(false)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEditingDisplayName(false); }}
+                  autoFocus
+                  placeholder="Your name..."
+                  className={`text-sm border rounded px-2 py-1 w-32 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${userNameWarning ? 'border-yellow-400 focus:ring-yellow-400' : 'border-gray-300 dark:border-gray-600'}`}
                 />
-                {gitIdentity?.source === 'git-config' && currentUser === gitIdentity?.name && (
-                  <span className="text-xs text-gray-400" title={`From git config${gitIdentity.email ? ` (${gitIdentity.email})` : ''}`}>git</span>
-                )}
-                {gitIdentity?.source === 'env' && (
-                  <span className="text-xs text-gray-400" title="From WHEATLEY_COMMIT_AUTHOR">env</span>
+                {userNameWarning && (
+                  <span className="text-xs text-yellow-600">{userNameWarning}</span>
                 )}
               </div>
-              {userNameWarning && (
-                <span className="text-xs text-yellow-600 mt-0.5">{userNameWarning}</span>
+            ) : (
+              <span
+                className="text-sm text-gray-700 dark:text-gray-300 cursor-default"
+                title={currentUser || 'No display name set'}
+              >
+                {currentUser || <span className="text-gray-400 italic">Anonymous</span>}
+              </span>
+            )}
+
+            <NotificationBell onCardClick={(cardId) => setSelectedCardId(cardId)} />
+
+            <SettingsMenu
+              showActivityFeed={showActivityFeed}
+              onToggleActivityFeed={() => setShowActivityFeed((v) => !v)}
+              showHealthPanel={showHealthPanel}
+              onToggleHealthPanel={() => setShowHealthPanel((v) => !v)}
+              viewAllBranches={viewMode === 'consolidated'}
+              onToggleViewAllBranches={() => setViewMode((v) => v === 'consolidated' ? 'single' : 'consolidated')}
+              onEditDisplayName={() => setEditingDisplayName(true)}
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Toolbar */}
+        <div className="max-w-full mx-auto px-4 py-2 flex items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-700">
+          {/* Left: Filter toggle + Sort */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setFilterOpen((v) => !v)}
+              className={`relative text-sm px-3 py-1 rounded-lg border transition-colors ${
+                filterOpen || !isFilterEmpty(filter)
+                  ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-600 font-medium'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
               )}
-            </div>
+            </button>
 
-            {/* Quick filter presets */}
-            <div className="flex items-center gap-1 text-sm">
-              <button
-                type="button"
-                onClick={() => setFilter(defaultFilter())}
-                className={`px-2 py-1 rounded border ${isFilterEmpty(filter) ? 'bg-blue-50 text-blue-700 border-blue-300 font-medium' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter({ ...defaultFilter(), phases: ['unclaimed'] })}
-                className={`px-2 py-1 rounded border ${filter.phases.length === 1 && filter.phases[0] === 'unclaimed' && !filter.claimant ? 'bg-blue-50 text-blue-700 border-blue-300 font-medium' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-              >
-                Unclaimed
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter({ ...defaultFilter(), claimant: currentUser })}
-                className={`px-2 py-1 rounded border ${filter.claimant === currentUser && currentUser ? 'bg-blue-50 text-blue-700 border-blue-300 font-medium' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-              >
-                Mine
-              </button>
-            </div>
-
-            {/* Sort control */}
             <select
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as SortMode)}
-              className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="default">Sort: Default</option>
               <option value="priority">Sort: Priority</option>
@@ -654,43 +693,14 @@ export function Board() {
               <option value="newest">Sort: Newest First</option>
               <option value="activity">Sort: Last Activity</option>
             </select>
+          </div>
 
-            {/* View type switcher (Board / List / Timeline / Calendar) */}
-            <div className="flex rounded border border-gray-300 dark:border-gray-600 overflow-hidden text-sm">
-              {(['board', 'list', 'timeline', 'calendar'] as BoardView[]).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setBoardView(v)}
-                  className={`px-2 py-1 capitalize ${v !== 'board' ? 'border-l border-gray-300 dark:border-gray-600' : ''} ${boardView === v ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
+          {/* Right: Branch selector + Sync */}
+          <div className="flex items-center gap-3">
+            {viewMode === 'single' && (
+              <BranchSelector selectedBranch={branch} onBranchChange={setBranch} />
+            )}
 
-            {/* Branch mode toggle */}
-            <div className="flex rounded border border-gray-300 dark:border-gray-600 overflow-hidden text-sm">
-              <button
-                type="button"
-                onClick={() => setViewMode('single')}
-                className={`px-2 py-1 ${viewMode === 'single' ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-              >
-                Single
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('consolidated')}
-                className={`px-2 py-1 border-l border-gray-300 dark:border-gray-600 ${viewMode === 'consolidated' ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-              >
-                All Branches
-              </button>
-            </div>
-
-            {/* Dark mode toggle */}
-            <DarkModeToggle />
-
-            {/* Sync button */}
             <button
               type="button"
               disabled={syncing}
@@ -705,189 +715,26 @@ export function Board() {
                   setSyncing(false);
                 }
               }}
-              className="text-sm px-2 py-1 rounded border bg-white text-gray-600 border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+              className="text-sm px-3 py-1 rounded-lg border bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+              title="Sync with repository"
             >
-              {syncing ? 'Syncing…' : 'Sync'}
+              {syncing ? 'Syncing...' : 'Sync'}
             </button>
-
-            {/* Notification bell */}
-            <NotificationBell onCardClick={(cardId) => setSelectedCardId(cardId)} />
-
-            {/* Repo selector */}
-            <RepoSelector
-              currentRepo={currentRepo}
-              onRepoChange={(repoId) => {
-                setCurrentRepo(repoId);
-                void queryClient.invalidateQueries({ queryKey: ['board'] });
-              }}
-            />
-
-            {/* Activity feed button */}
-            <button
-              type="button"
-              onClick={() => setShowActivityFeed((v) => !v)}
-              className={`text-sm px-2 py-1 rounded border ${showActivityFeed ? 'bg-purple-50 text-purple-700 border-purple-300' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-            >
-              Activity
-            </button>
-
-            {/* Branch health button */}
-            <button
-              type="button"
-              onClick={() => setShowHealthPanel((v) => !v)}
-              className={`text-sm px-2 py-1 rounded border ${showHealthPanel ? 'bg-teal-50 text-teal-700 border-teal-300' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-            >
-              Health
-            </button>
-
-            {viewMode === 'single' && (
-              <BranchSelector selectedBranch={branch} onBranchChange={setBranch} />
-            )}
           </div>
         </div>
       </header>
 
-      {/* Compound filter bar */}
-      <div className="bg-white border-b px-4 py-2 flex items-center gap-3 flex-wrap text-sm">
-        {/* Phase multi-select */}
-        <label className="flex items-center gap-1 text-gray-600">
-          Phase:
-          <select
-            multiple
-            value={filter.phases}
-            onChange={(e) => {
-              const selected = Array.from(e.target.selectedOptions, (o) => o.value as BoardPhase);
-              setFilter((prev) => ({ ...prev, phases: selected }));
-            }}
-            className="border border-gray-300 rounded px-1 py-0.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 h-16 text-xs"
-          >
-            {(['unclaimed', 'planning', 'speccing', 'implementing', 'verifying', 'done'] as BoardPhase[]).map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </label>
-
-        {/* Claimant */}
-        <label className="flex items-center gap-1 text-gray-600">
-          Claimant:
-          <input
-            type="text"
-            value={filter.claimant}
-            onChange={(e) => setFilter((prev) => ({ ...prev, claimant: e.target.value }))}
-            placeholder="name..."
-            className="border border-gray-300 rounded px-2 py-0.5 w-28 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
-          />
-        </label>
-
-        {/* Priority */}
-        <label className="flex items-center gap-1 text-gray-600">
-          Priority:
-          <select
-            value={filter.priority}
-            onChange={(e) => setFilter((prev) => ({ ...prev, priority: e.target.value }))}
-            className="border border-gray-300 rounded px-1 py-0.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
-          >
-            <option value="">Any</option>
-            <option value="P0">P0</option>
-            <option value="P1">P1</option>
-            <option value="P2">P2</option>
-            <option value="P3">P3</option>
-          </select>
-        </label>
-
-        {/* Has labels */}
-        <label className="flex items-center gap-1 text-gray-600 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={filter.hasLabels}
-            onChange={(e) => setFilter((prev) => ({ ...prev, hasLabels: e.target.checked }))}
-          />
-          Has labels
-        </label>
-
-        {/* Clear filters */}
-        {!isFilterEmpty(filter) && (
-          <button
-            type="button"
-            onClick={() => setFilter(defaultFilter())}
-            className="text-xs text-red-500 hover:text-red-700 underline"
-          >
-            Clear filters
-          </button>
-        )}
-
-        <div className="border-l border-gray-200 h-6 mx-1" />
-
-        {/* Saved presets */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowPresetMenu((v) => !v)}
-            className="px-2 py-0.5 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
-          >
-            Presets
-          </button>
-          {showPresetMenu && (
-            <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
-              {/* Save current */}
-              <form
-                className="px-3 py-2 border-b flex gap-1"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const trimmed = presetName.trim();
-                  if (!trimmed) return;
-                  const next = [...presets.filter((p) => p.name !== trimmed), { name: trimmed, filter: { ...filter } }].slice(-10);
-                  setPresets(next);
-                  savePresets(next);
-                  setPresetName('');
-                }}
-              >
-                <input
-                  type="text"
-                  value={presetName}
-                  onChange={(e) => setPresetName(e.target.value)}
-                  placeholder="Preset name..."
-                  className="flex-1 text-xs border border-gray-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                />
-                <button
-                  type="submit"
-                  className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Save
-                </button>
-              </form>
-              {presets.length === 0 && (
-                <div className="px-3 py-2 text-xs text-gray-400">No saved presets</div>
-              )}
-              {presets.map((p) => (
-                <div key={p.name} className="flex items-center justify-between px-3 py-1.5 hover:bg-gray-50 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilter({ ...p.filter });
-                      setShowPresetMenu(false);
-                    }}
-                    className="text-xs text-gray-700 flex-1 text-left truncate"
-                  >
-                    {p.name}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = presets.filter((x) => x.name !== p.name);
-                      setPresets(next);
-                      savePresets(next);
-                    }}
-                    className="text-xs text-red-400 hover:text-red-600"
-                  >
-                    &times;
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Collapsible Filter Drawer */}
+      <FilterDrawer
+        isOpen={filterOpen}
+        filter={filter}
+        onFilterChange={setFilter}
+        currentUser={currentUser}
+        presets={presets}
+        onPresetsChange={(next) => { setPresets(next); savePresets(next); }}
+        onClear={() => setFilter(defaultFilter())}
+        isFilterEmpty={isFilterEmpty(filter)}
+      />
 
       {/* Board */}
       <main className="p-4">

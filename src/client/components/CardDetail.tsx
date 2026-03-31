@@ -111,7 +111,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
     if (fileName === 'tasks.md') {
       const lines = content.split('\n');
       return (
-        <div className="bg-gray-50 border rounded-lg p-4 text-sm text-gray-800 space-y-0.5">
+        <div className="bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 text-sm text-gray-800 dark:text-gray-200 space-y-0.5">
           {lines.map((line, idx) => {
             const isChecked = line.includes('- [x]');
             const isCheckbox = line.includes('- [x]') || line.includes('- [ ]');
@@ -136,7 +136,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
     }
 
     return (
-      <pre className="bg-gray-50 border rounded-lg p-4 text-sm text-gray-800 overflow-x-auto whitespace-pre-wrap">
+      <pre className="bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 text-sm text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre-wrap">
         {content}
       </pre>
     );
@@ -144,9 +144,9 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
 
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-end z-50">
-      <div className="w-full max-w-2xl bg-white shadow-xl overflow-y-auto flex flex-col">
+      <div className="w-full max-w-2xl bg-white dark:bg-gray-900 shadow-xl overflow-y-auto flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-6 py-4 z-10">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-700 px-6 py-4 z-10">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               {isRenaming ? (
@@ -171,7 +171,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
                     type="text"
                     value={renameTitle}
                     onChange={(e) => setRenameTitle(e.target.value)}
-                    className="text-lg font-semibold text-gray-900 border-b-2 border-blue-400 focus:outline-none w-full"
+                    className="text-lg font-semibold text-gray-900 dark:text-gray-100 border-b-2 border-blue-400 focus:outline-none w-full dark:bg-gray-800"
                     autoFocus
                   />
                   <button type="submit" className="text-xs px-2 py-1 rounded bg-blue-600 text-white">Save</button>
@@ -179,14 +179,14 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
                 </form>
               ) : (
                 <h2
-                  className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-blue-600"
+                  className="text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600"
                   onClick={() => setIsRenaming(true)}
                   title="Click to rename"
                 >
                   {card.title}
                 </h2>
               )}
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {card.id} &middot; {card.phase} &middot; {card.source}
               </p>
             </div>
@@ -205,7 +205,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
                     }
                   }
                 }}
-                className="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50"
+                className="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900"
                 title="Delete card"
               >
                 Delete
@@ -213,7 +213,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
               <button
                 type="button"
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none"
               >
                 &times;
               </button>
@@ -230,8 +230,8 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
         )}
 
         {/* Metadata section */}
-        <div className="px-6 py-4 border-b space-y-3">
-          <h3 className="text-sm font-semibold text-gray-700">Metadata</h3>
+        <div className="px-6 py-4 border-b dark:border-gray-700 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Metadata</h3>
           <div className="flex flex-wrap items-end gap-4">
             {/* Priority */}
             <label className="flex flex-col gap-1 text-xs text-gray-600">
@@ -239,7 +239,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
               <select
                 value={metaPriority}
                 onChange={(e) => setMetaPriority(e.target.value)}
-                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
               >
                 <option value="">None</option>
                 <option value="P0">P0</option>
@@ -256,7 +256,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
                 type="date"
                 value={metaDue}
                 onChange={(e) => setMetaDue(e.target.value)}
-                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
               />
             </label>
 
@@ -278,7 +278,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
               {metaLabels.map((label) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200"
+                  className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700"
                 >
                   {label}
                   <button
@@ -306,7 +306,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
                   value={newLabel}
                   onChange={(e) => setNewLabel(e.target.value)}
                   placeholder="Add label..."
-                  className="text-xs border border-gray-300 rounded px-2 py-0.5 w-24 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="text-xs border border-gray-300 rounded px-2 py-0.5 w-24 focus:outline-none focus:ring-1 focus:ring-blue-400 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
                 />
               </form>
             </div>
@@ -339,7 +339,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
             Object.entries(specContents).map(([fileName, content]) => (
               <div key={fileName}>
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                     <span className="text-gray-400">&#128196;</span>
                     {fileName}
                   </h3>
@@ -347,7 +347,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
                     <button
                       type="button"
                       onClick={() => setEditingFile(fileName)}
-                      className="text-xs px-2 py-0.5 rounded border border-gray-300 text-gray-500 hover:bg-gray-50"
+                      className="text-xs px-2 py-0.5 rounded border border-gray-300 text-gray-500 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
                     >
                       Edit
                     </button>
