@@ -24,6 +24,14 @@ function stripHeader(content: string): string {
   return content.replace(/^<!--[\s\S]*?-->\s*\n?/, '');
 }
 
+/** Returns true if the string contains any control character (charCode < 32). */
+function hasControlChar(s: string): boolean {
+  for (let i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) < 32) return true;
+  }
+  return false;
+}
+
 // --- ROADMAP.md Validator ---
 
 const PHASE_HEADING_RE = /^## Phase (\d+): (.+)$/;
@@ -459,15 +467,74 @@ export function validateClaims(content: string): ValidationResult {
     if (line.startsWith('- [')) {
       const match = line.match(CLAIM_ENTRY_RE);
       if (!match) {
-        errors.push({
-          file,
-          line: lineNum,
-          message: `Malformed claim entry: "${line}"`,
-          rule: 'CLAIMS.entry_format',
-        });
+        // Before emitting a general entry_format error, check if the line is
+        // close to valid but fails on a specific field — claimant_format or
+        // item_id_format. Use a looser regex to extract potential fields.
+        const looseMatch = line.match(
+          /^- \[(claimed|released|expired)\] (.+?) \| (.+?) \| (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)/,
+        );
+        if (looseMatch) {
+          const itemId = looseMatch[2];
+          const claimant = looseMatch[3];
+          if (!/^\d+\.\d+\.\d+$/.test(itemId)) {
+            errors.push({
+              file,
+              line: lineNum,
+              message: `Invalid item ID "${itemId}": must match \\d+\\.\\d+\\.\\d+`,
+              rule: 'CLAIMS.item_id_format',
+            });
+          } else if (!claimant || claimant.includes('|') || hasControlChar(claimant)) {
+            errors.push({
+              file,
+              line: lineNum,
+              message: `Invalid claimant "${claimant}": must be non-empty and contain no pipe or control characters`,
+              rule: 'CLAIMS.claimant_format',
+            });
+          } else {
+            errors.push({
+              file,
+              line: lineNum,
+              message: `Malformed claim entry: "${line}"`,
+              rule: 'CLAIMS.entry_format',
+            });
+          }
+        } else {
+          errors.push({
+            file,
+            line: lineNum,
+            message: `Malformed claim entry: "${line}"`,
+            rule: 'CLAIMS.entry_format',
+          });
+        }
       } else {
         const status = match[1];
+        const itemId = match[2];
+        const claimant = match[3];
+        const claimedAt = match[4];
         const hasReleaseTs = !!match[6];
+        const releaseTs = match[6];
+
+        // Check item_id_format (belt-and-suspenders; the regex already enforces
+        // this, but emit the named rule for explicit diagnosis)
+        if (!/^\d+\.\d+\.\d+$/.test(itemId)) {
+          errors.push({
+            file,
+            line: lineNum,
+            message: `Invalid item ID "${itemId}": must match \\d+\\.\\d+\\.\\d+`,
+            rule: 'CLAIMS.item_id_format',
+          });
+        }
+
+        // Check claimant_format
+        if (!claimant || claimant.includes('|') || hasControlChar(claimant)) {
+          errors.push({
+            file,
+            line: lineNum,
+            message: `Invalid claimant "${claimant}": must be non-empty and contain no pipe or control characters`,
+            rule: 'CLAIMS.claimant_format',
+          });
+        }
+
         // Warn if released/expired entries lack a release timestamp
         if ((status === 'released' || status === 'expired') && !hasReleaseTs) {
           warnings.push({
@@ -476,6 +543,20 @@ export function validateClaims(content: string): ValidationResult {
             message: `${status} claim entry is missing a release timestamp`,
             suggestion: `Add a release timestamp: ... | YYYY-MM-DDTHH:MM:SSZ`,
           });
+        }
+
+        // Check timestamp_order: RELEASE_TS must be strictly after CLAIMED_AT
+        if (hasReleaseTs) {
+          const claimedAtDate = new Date(claimedAt);
+          const releaseTsDate = new Date(releaseTs);
+          if (releaseTsDate <= claimedAtDate) {
+            errors.push({
+              file,
+              line: lineNum,
+              message: `Release timestamp "${releaseTs}" must be strictly after claimed timestamp "${claimedAt}"`,
+              rule: 'CLAIMS.timestamp_order',
+            });
+          }
         }
       }
     }

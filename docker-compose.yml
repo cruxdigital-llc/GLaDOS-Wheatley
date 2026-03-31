@@ -33,7 +33,7 @@ services:
       - ./index.html:/app/index.html
       - ./package.json:/app/package.json
       - /app/node_modules
-      - ${WHEATLEY_REPO_PATH:-.}:/repo:ro
+      - ${WHEATLEY_REPO_PATH:-.}:/repo
     command: npx tsx watch src/server/index.ts
 
   frontend:

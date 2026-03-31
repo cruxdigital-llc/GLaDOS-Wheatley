@@ -3,15 +3,24 @@
  *
  * GET /api/board — full board state (optional ?branch= query param)
  * GET /api/board/card/:id — card detail with spec contents
+ *
+ * Claims are always read from the coordination branch (resolved via ClaimService),
+ * while roadmap, specs, and status are read from the requested view branch.
  */
 
 import type { FastifyInstance } from 'fastify';
 import type { BoardService } from '../board-service.js';
+import type { ClaimService } from '../claim-service.js';
 
-export function boardRoutes(app: FastifyInstance, boardService: BoardService): void {
+export function boardRoutes(
+  app: FastifyInstance,
+  boardService: BoardService,
+  claimService: ClaimService,
+): void {
   app.get<{ Querystring: { branch?: string } }>('/api/board', async (request) => {
     const branch = request.query.branch || undefined;
-    return boardService.getBoardState(branch);
+    const coordinationBranch = await claimService.getCoordinationBranch();
+    return boardService.getBoardState(branch, coordinationBranch);
   });
 
   app.get<{
@@ -30,7 +39,8 @@ export function boardRoutes(app: FastifyInstance, boardService: BoardService): v
     }
 
     const branch = request.query.branch || undefined;
-    const result = await boardService.getCardDetail(id, branch);
+    const coordinationBranch = await claimService.getCoordinationBranch();
+    const result = await boardService.getCardDetail(id, branch, coordinationBranch);
 
     if (!result) {
       return reply.status(404).send({

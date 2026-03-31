@@ -155,6 +155,11 @@ export interface BoardCard {
   statusTask?: StatusTask;
   /** Active claim on this item (if any) */
   claim?: ClaimEntry;
+  /**
+   * True when this card has an active claim but no spec entry and no status task
+   * on the viewed branch. Indicates the claim may be orphaned or premature.
+   */
+  stale?: boolean;
 }
 
 export interface BoardColumn {

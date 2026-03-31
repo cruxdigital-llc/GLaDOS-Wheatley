@@ -22,15 +22,24 @@ export class BoardService {
     this.adapter = adapter;
   }
 
-  /** Get the full board state for the given branch. */
-  async getBoardState(branch?: string): Promise<BoardState> {
+  /**
+   * Get the full board state for the given branch.
+   *
+   * @param branch - The branch to read roadmap, specs, and status from (the "viewed" branch).
+   * @param coordinationBranch - The branch to always read claims from. When omitted, claims
+   *   are read from the same branch as everything else (backward-compatible).
+   */
+  async getBoardState(branch?: string, coordinationBranch?: string): Promise<BoardState> {
     const ref = branch ?? undefined;
+    // Claims are always read from the coordination branch when specified; fall back to the
+    // viewed branch so existing callers that omit coordinationBranch are unaffected.
+    const claimsRef = coordinationBranch ?? ref;
 
     // Read all source files in parallel
     const [roadmapContent, statusContent, claimsContent, specDirs] = await Promise.all([
       this.adapter.readFile('product-knowledge/ROADMAP.md', ref),
       this.adapter.readFile('product-knowledge/PROJECT_STATUS.md', ref),
-      this.adapter.readFile('product-knowledge/claims.md', ref),
+      this.adapter.readFile('product-knowledge/claims.md', claimsRef),
       this.adapter.listDirectory('specs', ref),
     ]);
 
@@ -50,11 +59,12 @@ export class BoardService {
   async getCardDetail(
     cardId: string,
     branch?: string,
+    coordinationBranch?: string,
   ): Promise<{
     card: BoardCard;
     specContents?: Record<string, string>;
   } | null> {
-    const board = await this.getBoardState(branch);
+    const board = await this.getBoardState(branch, coordinationBranch);
 
     let foundCard: BoardCard | undefined;
     for (const column of board.columns) {

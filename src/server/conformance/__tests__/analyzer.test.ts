@@ -10,6 +10,7 @@ function createMockAdapter(overrides: Partial<GitAdapter> = {}): GitAdapter {
     getCurrentBranch: vi.fn().mockResolvedValue('main'),
     getDefaultBranch: vi.fn().mockResolvedValue('main'),
     getLatestSha: vi.fn().mockResolvedValue('abc123'),
+    writeFile: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
