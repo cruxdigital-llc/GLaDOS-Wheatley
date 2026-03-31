@@ -1,6 +1,6 @@
 <!--
 GLaDOS-MANAGED DOCUMENT
-Last Updated: 2026-03-28
+Last Updated: 2026-03-29
 To modify: Edit this file directly. GLaDOS will read the current state before making future updates.
 -->
 
@@ -181,26 +181,263 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 5.1 Agent Activity Feed
 
-- [ ] 5.1.1 Define agent trace log format (or adopt existing GLaDOS trace format)
-- [ ] 5.1.2 Parse agent trace logs from `specs/` session directories
-- [ ] 5.1.3 Activity feed UI: real-time view of what each agent is doing
-- [ ] 5.1.4 Agent identification: map git committer identity to agent/human label
+- [x] 5.1.1 Define agent trace log format (or adopt existing GLaDOS trace format)
+- [x] 5.1.2 Parse agent trace logs from `specs/` session directories
+- [x] 5.1.3 Activity feed UI: real-time view of what each agent is doing
+- [x] 5.1.4 Agent identification: map git committer identity to agent/human label
 
 ### 5.2 Claim TTL & Auto-Release
 
-- [ ] 5.2.1 Configurable TTL per claim (default: X hours)
-- [ ] 5.2.2 Staleness detector: flag claims with no associated commit activity within TTL window
-- [ ] 5.2.3 Auto-release: commit a release to claims.md when TTL expires
-- [ ] 5.2.4 Grace period notification: warn claimant before auto-release
+- [x] 5.2.1 Configurable TTL per claim (default: 24 hours)
+- [x] 5.2.2 Staleness detector: flag claims with no associated commit activity within TTL window
+- [x] 5.2.3 Auto-release: commit a release to claims.md when TTL expires
+- [x] 5.2.4 Grace period notification: warn claimant before auto-release
 
 ### 5.3 Conflict Early Warning
 
-- [ ] 5.3.1 Cross-branch file overlap detection: identify when two branches are editing the same files
-- [ ] 5.3.2 Warning indicators on affected cards
-- [ ] 5.3.3 Suggested resolution: recommend which branch should merge first
+- [x] 5.3.1 Cross-branch file overlap detection: identify when two branches are editing the same files
+- [x] 5.3.2 Warning indicators on affected cards
+- [x] 5.3.3 Suggested resolution: recommend which branch should merge first
 
 ### 5.4 Notification Hooks
 
-- [ ] 5.4.1 Webhook system: configurable outbound webhooks for events (claim, release, phase transition, conflict)
-- [ ] 5.4.2 Slack integration: pre-built webhook formatter for Slack
-- [ ] 5.4.3 Event log: persistent log of all Wheatley events for audit
+- [x] 5.4.1 Webhook system: configurable outbound webhooks for events (claim, release, phase transition, conflict)
+- [x] 5.4.2 Slack integration: pre-built webhook formatter for Slack
+- [x] 5.4.3 Event log: persistent log of all Wheatley events for audit
+
+## Phase 6: Robust Git Engine & Real-Time Sync
+
+**Goal**: Make git writes bulletproof for local developers and add real-time data flow.
+
+### 6.1 Worktree Isolation
+
+- [ ] 6.1.1 Use `git worktree` for all write operations so Wheatley never touches the developer's working tree or index
+- [ ] 6.1.2 Dedicated Wheatley worktree lifecycle: auto-create on server start, clean up on shutdown
+- [ ] 6.1.3 All commits (claims, transitions, activity) target the worktree, then push to origin
+- [ ] 6.1.4 Fallback for repos that don't support worktrees (bare repos, older git versions)
+
+### 6.2 Dirty State & Conflict Handling
+
+- [ ] 6.2.1 Remove the "working tree not clean" hard failure — reads should always work regardless of dirty state
+- [ ] 6.2.2 Detect and report untracked/modified/staged files as board-level status indicator ("repo has uncommitted changes")
+- [ ] 6.2.3 Handle push conflicts gracefully: pull-rebase-retry loop (up to 3 attempts) instead of `reset --hard`
+- [ ] 6.2.4 Merge conflict detection on pull: surface conflicted files in the UI with paths and conflict markers
+- [ ] 6.2.5 Manual conflict resolution prompt: link to files that need resolution, block writes until resolved
+
+### 6.3 Git Identity & Config
+
+- [ ] 6.3.1 Auto-detect username from `git config user.name` and pre-populate the UI identity field
+- [ ] 6.3.2 Auto-detect email from `git config user.email` for commit attribution
+- [ ] 6.3.3 Configurable commit author override via `WHEATLEY_COMMIT_AUTHOR` env var
+- [ ] 6.3.4 Display detected git identity in the UI header (replace manual text input with auto-detected + editable)
+
+### 6.4 Sync & Real-Time Updates
+
+- [ ] 6.4.1 Manual "Sync" button in the UI header: triggers immediate git pull + board re-parse
+- [ ] 6.4.2 Server-Sent Events (SSE) endpoint: push board-change events to connected clients (replace polling)
+- [ ] 6.4.3 Frontend SSE client: subscribe to real-time updates, fall back to polling if SSE disconnects
+- [ ] 6.4.4 Inbound webhook receiver (`POST /api/webhooks/github`, `POST /api/webhooks/gitlab`): accept push events to trigger re-sync in cloud mode
+- [ ] 6.4.5 Optimistic UI: update board state immediately on write operations, reconcile on next sync
+
+### 6.5 Persistent Event Log
+
+- [ ] 6.5.1 Replace in-memory event log with file-backed storage (`product-knowledge/events.md`)
+- [ ] 6.5.2 Event log rotation: archive events older than configurable threshold
+- [ ] 6.5.3 Event replay: reconstruct board state from event log for debugging
+
+## Phase 7: Content Editing & Card Management
+
+**Goal**: Transform from read-only dashboard to a full project management tool that writes back to GLaDOS artifacts.
+
+### 7.1 Card Creation
+
+- [ ] 7.1.1 "New Card" button per column: create a card in the target phase
+- [ ] 7.1.2 Card creation form: title, description, optional parent phase/section
+- [ ] 7.1.3 Backend: create spec directory (`specs/YYYY-MM-DD_feature_name/`) with README.md and tasks.md scaffolds
+- [ ] 7.1.4 Backend: append new roadmap item to ROADMAP.md under the correct phase/section
+- [ ] 7.1.5 Auto-assign item number based on existing numbering scheme in the section
+
+### 7.2 Inline Spec Editing
+
+- [ ] 7.2.1 Markdown editor component with live preview (split-pane or toggle)
+- [ ] 7.2.2 Edit README.md from the card detail panel (feature description, status, overview)
+- [ ] 7.2.3 Edit tasks.md from the card detail panel (add/remove/reorder tasks)
+- [ ] 7.2.4 Task checkbox toggling: click a checkbox in the task list to toggle `[x]`/`[ ]` and commit
+- [ ] 7.2.5 Edit plan.md and requirements.md if present
+- [ ] 7.2.6 Save commits with descriptive messages: `wheatley: update {spec-name}/README.md`
+
+### 7.3 Per-Card Comments & Discussion
+
+- [ ] 7.3.1 Comment thread UI in the card detail panel (below spec content)
+- [ ] 7.3.2 Comments stored as append-only entries in `specs/{feature}/comments.md`
+- [ ] 7.3.3 Each comment: author, timestamp, markdown body
+- [ ] 7.3.4 Comment notifications: emit webhook events when a comment is added
+- [ ] 7.3.5 @mention support: reference other users in comments with autocomplete
+
+### 7.4 Roadmap Editing
+
+- [ ] 7.4.1 Edit card title from the board (inline rename)
+- [ ] 7.4.2 Delete/archive a card: move spec directory to `specs/_archived/` or remove roadmap line
+- [ ] 7.4.3 Reorder items within a phase section in ROADMAP.md
+- [ ] 7.4.4 Undo last edit: revert the most recent Wheatley commit with `git revert`
+
+## Phase 8: Search, Metadata & Navigation
+
+**Goal**: Make the board usable at scale with search, rich metadata, and keyboard-driven navigation.
+
+### 8.1 Search & Advanced Filtering
+
+- [ ] 8.1.1 Full-text search bar: search across card titles, spec content, comments, and claimant names
+- [ ] 8.1.2 Search results panel with highlighted matches and click-to-open
+- [ ] 8.1.3 Compound filters: combine phase, claimant, label, priority, date range, and free text
+- [ ] 8.1.4 Filter state persisted in URL query params (shareable filtered views)
+- [ ] 8.1.5 Saved filter presets per user (stored in localStorage or git-backed config)
+
+### 8.2 Labels, Priority & Due Dates
+
+- [ ] 8.2.1 Label system: custom key-value tags stored as YAML frontmatter in spec README.md
+- [ ] 8.2.2 Label management UI: create, edit, delete labels with custom colors
+- [ ] 8.2.3 Priority field (P0–P3): stored in spec frontmatter, displayed as colored badge on cards
+- [ ] 8.2.4 Due date field: stored in spec frontmatter, displayed on card, highlight overdue items in red
+- [ ] 8.2.5 Sort by priority, due date, creation date, or last activity
+- [ ] 8.2.6 Bulk label/priority assignment from multi-select mode
+
+### 8.3 Board Navigation & UX
+
+- [ ] 8.3.1 Visible horizontal scroll indicators (left/right arrows) when columns overflow
+- [ ] 8.3.2 Keyboard shortcuts: arrow keys to navigate cards, `c` to claim, `e` to edit, `Enter` to open detail
+- [ ] 8.3.3 Keyboard shortcut overlay (press `?` to show all shortcuts)
+- [ ] 8.3.4 Column collapse/expand: minimize columns to save horizontal space
+- [ ] 8.3.5 Card count badges always visible; empty columns auto-collapse option
+- [ ] 8.3.6 Card timeline: visual history of phase transitions, claims, and edits for each card
+
+## Phase 9: GitHub Integration & GLaDOS Workflows
+
+**Goal**: Deep integration with GitHub PRs/CI and the ability to trigger GLaDOS agent workflows from the board.
+
+### 9.1 Pull Request / Merge Request Visibility
+
+- [ ] 9.1.1 Link cards to PRs/MRs: detect PRs whose branch matches a spec's feature branch (`feat/{spec-name}`)
+- [ ] 9.1.2 PR/MR status badge on cards: open, draft, merged, closed, review requested
+- [ ] 9.1.3 CI/check status badge: passing, failing, pending (GitHub check runs / GitLab pipelines)
+- [ ] 9.1.4 PR/MR detail in card panel: title, description, reviewer list, review status, merge status
+- [ ] 9.1.5 "View PR/MR" link from card detail panel (opens GitHub/GitLab in new tab)
+- [ ] 9.1.6 Platform abstraction: unified PR interface over Octokit (GitHub) and GitLab REST API
+
+### 9.2 Pull Request / Merge Request Management
+
+- [ ] 9.2.1 "Create PR/MR" action from card detail: generate PR from card's feature branch to base branch
+- [ ] 9.2.2 PR/MR template auto-fill: populate description from spec README.md and tasks.md
+- [ ] 9.2.3 Request review action: assign reviewers to a card's PR/MR from the board
+- [ ] 9.2.4 Merge action: merge from the board (with strategy selector: merge, squash, rebase)
+- [ ] 9.2.5 Auto-transition card to "Verifying" when PR/MR is opened, "Done" when merged
+
+### 9.3 GLaDOS Workflow Triggers
+
+- [ ] 9.3.1 Define GLaDOS runner interface: how Wheatley invokes agent workflows (subprocess, API, queue)
+- [ ] 9.3.2 "Run Plan" button on Unclaimed/Planning cards: invoke `glados:plan-feature` with card context
+- [ ] 9.3.3 "Run Spec" button on Planning cards: invoke `glados:spec-feature` with plan context
+- [ ] 9.3.4 "Run Implement" button on Speccing cards: invoke `glados:implement-feature` with spec context
+- [ ] 9.3.5 "Run Verify" button on Implementing cards: invoke `glados:verify-feature` with implementation context
+- [ ] 9.3.6 Workflow progress panel: stream agent stdout/stderr to a terminal-like UI within the card
+- [ ] 9.3.7 Workflow cancel button: kill a running agent workflow
+- [ ] 9.3.8 Auto-transition card phase when a GLaDOS workflow completes successfully
+
+### 9.4 Parser Flexibility & Configuration
+
+- [ ] 9.4.1 Parser configuration schema: define roadmap format as a config object (regex patterns, capture group mappings, section hierarchy)
+- [ ] 9.4.2 Built-in presets: "glados" (current `## Phase N: / ### N.M / - [x] N.M.K` format), "flat" (no numbering), "jira-style" (`PROJ-123`)
+- [ ] 9.4.3 Custom parser config file: `wheatley.config.json` or `wheatley.config.ts` at repo root
+- [ ] 9.4.4 Parser config validation: reject configs with ReDoS-vulnerable patterns or invalid capture groups
+- [ ] 9.4.5 Incremental parsing: only re-parse changed files on git events (diff-based cache invalidation)
+- [ ] 9.4.6 Response caching with ETag/If-None-Match for API endpoints
+
+## Phase 10: Authentication, Teams & Multi-Project
+
+**Goal**: Secure the cloud-deployed board for team use. Local mode requires no auth.
+
+### 10.1 Local Mode Identity (No Auth)
+
+- [ ] 10.1.1 Local mode skips all authentication — if you can reach the server, you have full access
+- [ ] 10.1.2 Identity derived from `git config user.name` / `user.email` (set up in Phase 6.3)
+- [ ] 10.1.3 All API endpoints are open; role = editor by default
+
+### 10.2 Cloud Mode Authentication (GitHub & GitLab OAuth Only)
+
+- [ ] 10.2.1 GitHub OAuth2 integration: login flow, token exchange, profile fetch for identity
+- [ ] 10.2.2 GitLab OAuth2 integration: login flow, token exchange, profile fetch for identity
+- [ ] 10.2.3 OAuth provider selection: auto-detect from repo remote URL (github.com → GitHub, gitlab.com → GitLab), or manual config
+- [ ] 10.2.4 Session management: JWT tokens with configurable expiry, refresh token rotation
+- [ ] 10.2.5 API key authentication for headless/CI access (`WHEATLEY_API_KEY` header) — bypasses OAuth
+- [ ] 10.2.6 Login page: provider buttons only (no username/password form), redirect to OAuth consent screen
+
+### 10.3 Authorization & Roles
+
+- [ ] 10.3.1 Role model: viewer (read-only), editor (claim, transition, edit), admin (webhooks, config, user management)
+- [ ] 10.3.2 Per-endpoint authorization middleware (viewers cannot POST/DELETE)
+- [ ] 10.3.3 Role assignment UI for admins
+- [ ] 10.3.4 Auto-role from GitHub/GitLab: map org owners → admin, org members → editor, outside collaborators → viewer
+- [ ] 10.3.5 Repo-level permission check: only users with write access to the repo get editor role
+
+### 10.3 Per-User Notifications
+
+- [ ] 10.3.1 Notification preferences per user: which events to receive (claim, release, transition, comment, @mention)
+- [ ] 10.3.2 In-app notification bell with unread count and dropdown
+- [ ] 10.3.3 Email notification delivery (via configurable SMTP or SendGrid)
+- [ ] 10.3.4 Slack DM notifications: route events to individual Slack users based on identity mapping
+
+### 10.4 Multi-Repo Support
+
+- [ ] 10.4.1 Configuration file for multiple repo sources (`wheatley.config.json` or env-based)
+- [ ] 10.4.2 Repo selector in the UI header (switch between managed repos)
+- [ ] 10.4.3 Per-repo adapter instantiation with independent git connections and parser configs
+- [ ] 10.4.4 Cross-repo dashboard: aggregate view of cards across multiple repos with repo badges
+
+## Phase 11: Views, Bulk Operations & Production Polish
+
+**Goal**: Feature parity with modern project management tools and production-grade quality.
+
+### 11.1 Multiple Views
+
+- [ ] 11.1.1 List view: table layout with sortable columns (title, phase, assignee, priority, due date, last activity)
+- [ ] 11.1.2 Timeline view: horizontal Gantt-style chart showing card lifespans across phases
+- [ ] 11.1.3 View switcher in the header (Board / List / Timeline)
+- [ ] 11.1.4 Calendar view: cards plotted by due date on a month/week calendar grid
+
+### 11.2 Bulk Operations
+
+- [ ] 11.2.1 Multi-select mode: Shift+Click or checkbox to select multiple cards
+- [ ] 11.2.2 Bulk move: transition all selected cards to a target phase
+- [ ] 11.2.3 Bulk assign: claim or reassign all selected cards to a user
+- [ ] 11.2.4 Bulk label/priority: apply labels or priority to all selected cards
+- [ ] 11.2.5 Bulk delete/archive: remove or archive selected cards
+
+### 11.3 Card Relationships
+
+- [ ] 11.3.1 Parent/child relationships: nest sub-tasks under a parent card (stored as frontmatter references)
+- [ ] 11.3.2 Blocks/blocked-by relationships: flag dependencies between cards
+- [ ] 11.3.3 Dependency visualization: show blocked cards with a chain icon, tooltip listing blockers
+- [ ] 11.3.4 Cycle detection: prevent circular dependency chains
+
+### 11.4 UI Polish
+
+- [ ] 11.4.1 Dark mode theme with system preference detection and manual toggle
+- [ ] 11.4.2 Responsive design for tablet and mobile viewports
+- [ ] 11.4.3 Frontend virtualized lists for boards with 100+ cards (react-window or similar)
+- [ ] 11.4.4 Undo/redo for recent board actions (in-memory action stack with revert-commit support)
+- [ ] 11.4.5 Drag-and-drop polish: smooth animations, ghost preview, touch support
+
+### 11.5 Operational Tooling
+
+- [ ] 11.5.1 Structured JSON logging with configurable log levels (debug, info, warn, error)
+- [ ] 11.5.2 Prometheus metrics endpoint (`/metrics`): request latency, git operation duration, active connections
+- [ ] 11.5.3 Startup self-test: validate git connectivity, permissions, repo conformance, and required env vars
+- [ ] 11.5.4 Graceful shutdown: drain in-flight requests, close SSE connections, flush event log
+
+### 11.6 Testing & Quality
+
+- [ ] 11.6.1 End-to-end tests with Playwright: board load, claim, release, transition, drag-drop, edit, search
+- [ ] 11.6.2 Load testing: concurrent claim/release/edit under contention (k6 or Artillery)
+- [ ] 11.6.3 Snapshot tests for all UI components
+- [ ] 11.6.4 API contract tests: OpenAPI spec generation and request/response validation
+- [ ] 11.6.5 Git edge-case test suite: dirty tree, merge conflicts, detached HEAD, shallow clones, missing remote
