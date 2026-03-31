@@ -492,3 +492,57 @@ export async function cancelWorkflow(runId: string): Promise<void> {
 export async function listActiveWorkflows(): Promise<{ runs: WorkflowRun[] }> {
   return fetchJson<{ runs: WorkflowRun[] }>(`${API_BASE}/workflows?active=true`);
 }
+
+// ---------------------------------------------------------------------------
+// Per-User Notifications
+// ---------------------------------------------------------------------------
+
+export interface NotificationData {
+  id: string;
+  event: string;
+  title: string;
+  body: string;
+  cardId?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export async function fetchNotifications(
+  unread?: boolean,
+): Promise<{ notifications: NotificationData[] }> {
+  const params = new URLSearchParams();
+  if (unread) params.set('unread', 'true');
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  return fetchJson<{ notifications: NotificationData[] }>(
+    `${API_BASE}/user-notifications${qs}`,
+  );
+}
+
+export async function fetchUnreadCount(): Promise<{ count: number }> {
+  return fetchJson<{ count: number }>(`${API_BASE}/user-notifications/count`);
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await fetchJson(`${API_BASE}/user-notifications/${encodeURIComponent(id)}/read`, {
+    method: 'PUT',
+  });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await fetchJson(`${API_BASE}/user-notifications/read-all`, {
+    method: 'PUT',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Multi-Repo
+// ---------------------------------------------------------------------------
+
+export interface RepoInfo {
+  id: string;
+  name: string;
+}
+
+export async function fetchRepos(): Promise<{ repos: RepoInfo[]; defaultRepo: string }> {
+  return fetchJson<{ repos: RepoInfo[]; defaultRepo: string }>(`${API_BASE}/repos`);
+}

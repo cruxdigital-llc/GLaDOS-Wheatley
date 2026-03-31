@@ -97,7 +97,7 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 
 ### 10. Backlog / Upcoming
 
-- [ ] Phase 10: Authentication, Teams & Multi-Project (4 features, 18 items)
+- [x] Phase 10: Authentication, Teams & Multi-Project (4 features, 18 items)
 - [ ] Phase 11: Views, Bulk Operations & Production Polish (6 features, 23 items)
 
 ## Known Issues / Technical Debt
@@ -122,3 +122,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-29: **PHASE 7 COMPLETE** — 416 tests passing, 20/20 roadmap items done. Card CRUD, inline spec editing, comments, task checkboxes. MR review: fixed path traversal, injection, error handling.
 - 2026-03-29: **PHASE 8 COMPLETE** — 416 tests passing, 17/17 roadmap items done. Full-text search, YAML frontmatter metadata, keyboard shortcuts, column collapse, scroll indicators, card timeline. MR review: fixed branch validation, label injection, concurrent array mutation.
 - 2026-03-29: **PHASE 9 COMPLETE** — 416 tests passing, 25/25 roadmap items done. GitHub/GitLab platform adapters, PR panels, GLaDOS workflow subprocess runner, parser config presets, ETag caching. MR review: fixed SSRF guard, specDir validation, memory leak, API mismatches.
+- 2026-03-29: **PHASE 10 COMPLETE** — 416 tests passing, 18/18 roadmap items done. JWT auth, OAuth2 GitHub/GitLab, role-based authorization, in-memory notifications, multi-repo support. MR review: fixed timing-safe API key comparison, OAuth CSRF state parameter, fetch error handling, userId injection, auth route exclusion.
