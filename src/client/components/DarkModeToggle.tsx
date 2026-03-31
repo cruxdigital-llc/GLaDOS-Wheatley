@@ -41,7 +41,6 @@ export function DarkModeToggle() {
     localStorage.setItem('wheatley_theme', theme);
   }, [theme]);
 
-  // Listen for system preference changes
   useEffect(() => {
     if (theme !== 'system') return;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -59,19 +58,26 @@ export function DarkModeToggle() {
   };
 
   const icons: Record<Theme, string> = {
-    light: '\u2600', // sun
-    dark: '\u263E',  // moon
-    system: '\u2699', // gear
+    light: '\u2600',
+    dark: '\u263E',
+    system: '\u2699',
+  };
+
+  const labels: Record<Theme, string> = {
+    light: 'Light',
+    dark: 'Dark',
+    system: 'Auto',
   };
 
   return (
     <button
       type="button"
       onClick={cycle}
-      className="text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+      className="wh-btn flex items-center gap-1.5"
       title={`Theme: ${theme}`}
     >
-      {icons[theme]} {theme === 'system' ? 'Auto' : theme === 'dark' ? 'Dark' : 'Light'}
+      <span className="text-sm leading-none">{icons[theme]}</span>
+      <span className="font-heading text-[0.7rem]">{labels[theme]}</span>
     </button>
   );
 }

@@ -9,13 +9,13 @@ import React, { useState } from 'react';
 import type { BoardColumn as BoardColumnType, BoardCard, BoardPhase } from '../../shared/grammar/types.js';
 import { Card } from './Card.js';
 
-const COLUMN_HEADER_COLORS: Record<string, string> = {
-  unclaimed: 'border-t-gray-400',
-  planning: 'border-t-blue-400',
-  speccing: 'border-t-purple-400',
-  implementing: 'border-t-yellow-400',
-  verifying: 'border-t-orange-400',
-  done: 'border-t-green-400',
+const PHASE_ACCENT_COLOR: Record<string, string> = {
+  unclaimed: 'var(--phase-unclaimed)',
+  planning: 'var(--phase-planning)',
+  speccing: 'var(--phase-speccing)',
+  implementing: 'var(--phase-implementing)',
+  verifying: 'var(--phase-verifying)',
+  done: 'var(--phase-done)',
 };
 
 interface ColumnProps {
@@ -24,23 +24,14 @@ interface ColumnProps {
   currentUser?: string;
   branch?: string;
   onConflict?: (claimedBy: string) => void;
-  /** Set of phases that are valid drop targets for the card currently being dragged. */
   validDropTargets?: Set<BoardPhase>;
-  /** The card ID currently being dragged (used for visual feedback). */
   draggingCardId?: string;
-  /** Called when a card is dropped onto this column. */
   onDrop?: (cardId: string, fromPhase: BoardPhase, toPhase: BoardPhase) => void;
-  /** Forwarded to Card — called when a drag starts. */
   onCardDragStart?: (cardId: string, fromPhase: BoardPhase) => void;
-  /** Forwarded to Card — called when a drag ends. */
   onCardDragEnd?: () => void;
-  /** Called when the user clicks the "+" button to add a card. */
   onAddCard?: (phase: BoardPhase) => void;
-  /** Card ID that should show a keyboard-navigation focus ring. */
   focusedCardId?: string;
-  /** Whether this column is collapsed. */
   collapsed?: boolean;
-  /** Called when the collapse/expand toggle is clicked. */
   onToggleCollapse?: () => void;
 }
 
@@ -60,7 +51,7 @@ export function Column({
   collapsed,
   onToggleCollapse,
 }: ColumnProps) {
-  const borderColor = COLUMN_HEADER_COLORS[column.phase] ?? 'border-t-gray-400';
+  const accentColor = PHASE_ACCENT_COLOR[column.phase] ?? 'var(--phase-unclaimed)';
   const [isDragOver, setIsDragOver] = useState(false);
 
   const isDragging = !!draggingCardId;
@@ -75,7 +66,6 @@ export function Column({
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    // Only clear if we're leaving the column container (not entering a child)
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragOver(false);
     }
@@ -92,40 +82,48 @@ export function Column({
     }
   };
 
-  let dropZoneClass = '';
-  if (isDragOver && isValidTarget) {
-    dropZoneClass = 'ring-2 ring-blue-400 bg-blue-50';
-  } else if (isValidTarget) {
-    dropZoneClass = 'ring-2 ring-blue-200';
-  } else if (isInvalidTarget) {
-    dropZoneClass = 'opacity-40';
-  }
+  const dropClass = isDragOver && isValidTarget
+    ? 'wh-drag-over'
+    : isValidTarget
+      ? 'wh-drag-target'
+      : isInvalidTarget
+        ? 'wh-drag-invalid'
+        : '';
 
   if (collapsed) {
     return (
       <div
-        className={`flex flex-col bg-gray-50 rounded-lg border-t-4 ${borderColor} min-w-[48px] max-w-[48px] transition-all ${dropZoneClass}`}
+        className={`wh-column flex flex-col min-w-[48px] max-w-[48px] transition-all ${dropClass}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <div className="flex flex-col items-center py-2 gap-1">
+        {/* Accent bar */}
+        <div
+          className="h-1 rounded-t-[inherit]"
+          style={{ background: accentColor }}
+        />
+        <div className="flex flex-col items-center py-3 gap-2">
           {onToggleCollapse && (
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="text-gray-400 hover:text-gray-600 text-xs leading-none"
+              className="text-[0.7rem] leading-none transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
               title="Expand column"
             >
               &#9656;
             </button>
           )}
-          <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
+          <span
+            className="font-heading text-[0.65rem] font-semibold rounded-full px-1.5 py-0.5"
+            style={{ background: 'var(--column-bg)', color: 'var(--color-text-muted)' }}
+          >
             {column.cards.length}
           </span>
           <span
-            className="text-xs font-semibold text-gray-700 whitespace-nowrap"
-            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+            className="font-heading text-[0.7rem] font-semibold whitespace-nowrap"
+            style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', color: 'var(--color-text-secondary)' }}
           >
             {column.title}
           </span>
@@ -136,45 +134,77 @@ export function Column({
 
   return (
     <div
-      className={`flex flex-col bg-gray-50 rounded-lg border-t-4 ${borderColor} min-w-[280px] max-w-[320px] transition-all ${dropZoneClass}`}
+      className={`wh-column flex flex-col transition-all ${dropClass}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div className="px-3 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-1">
+      {/* Phase accent bar */}
+      <div
+        className="h-1 rounded-t-[inherit]"
+        style={{ background: accentColor }}
+      />
+
+      {/* Column header */}
+      <div className="px-3.5 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
           {onToggleCollapse && (
             <button
               type="button"
               onClick={onToggleCollapse}
-              className="text-gray-400 hover:text-gray-600 text-xs leading-none"
+              className="text-[0.7rem] leading-none transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
               title="Collapse column"
             >
               &#9662;
             </button>
           )}
-          <h2 className="text-sm font-semibold text-gray-700">{column.title}</h2>
+          <h2
+            className="font-heading text-[0.8rem] font-semibold tracking-wide uppercase"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            {column.title}
+          </h2>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {onAddCard && (
             <button
               type="button"
               onClick={() => onAddCard(column.phase)}
-              className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded w-5 h-5 flex items-center justify-center text-sm leading-none"
+              className="w-5 h-5 flex items-center justify-center rounded text-[0.8rem] leading-none transition-all"
+              style={{ color: 'var(--color-text-muted)' }}
               title="Add card"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--color-primary)';
+                e.currentTarget.style.background = 'var(--color-primary-subtle)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--color-text-muted)';
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
               +
             </button>
           )}
-          <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
+          <span
+            className="font-heading text-[0.65rem] font-semibold rounded-full px-2 py-0.5"
+            style={{
+              background: 'var(--column-bg)',
+              color: 'var(--color-text-muted)',
+            }}
+          >
             {column.cards.length}
           </span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
+      {/* Cards */}
+      <div className="flex-1 overflow-y-auto px-2.5 pb-2.5 space-y-2 wh-stagger">
         {column.cards.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-4">
+          <p
+            className="text-[0.75rem] text-center py-8 font-heading"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
             {isDragOver ? 'Drop here' : 'No items'}
           </p>
         ) : (
@@ -194,7 +224,10 @@ export function Column({
           ))
         )}
         {isDragOver && column.cards.length > 0 && (
-          <div className="h-1 rounded bg-blue-300 mx-1" />
+          <div
+            className="h-0.5 rounded mx-2"
+            style={{ background: 'var(--color-primary)' }}
+          />
         )}
       </div>
     </div>

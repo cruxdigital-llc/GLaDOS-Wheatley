@@ -573,124 +573,65 @@ export function Board() {
   useKeyboardShortcuts(shortcuts);
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm">
-        <div className="max-w-full mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gray-900">Wheatley</h1>
+    <div className="min-h-screen" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+      {/* ══════ Header ══════ */}
+      <header className="wh-header sticky top-0 z-40">
+        <div className="max-w-full mx-auto px-5 py-3 flex items-center justify-between gap-4">
+          {/* Left: Brand + Status */}
+          <div className="flex items-center gap-4 shrink-0">
+            <h1 className="font-brand text-lg tracking-wide" style={{ color: 'var(--color-text)' }}>
+              WHEATLEY
+            </h1>
             <RepoStatusIndicator />
-            <SearchBar branch={branch} onResultClick={(cardId) => setSelectedCardId(cardId)} inputRef={searchInputRef} />
-          </div>
-
-          <div className="flex items-center gap-4 flex-wrap">
             {activeBoard && (
-              <div className="text-xs text-gray-500">
-                {activeBoard.metadata.totalCards} cards &middot;{' '}
-                {activeBoard.metadata.completedCount} done &middot;{' '}
-                {activeBoard.metadata.claimedCount} claimed
+              <div className="hidden md:flex items-center gap-1.5 font-mono text-[0.65rem]" style={{ color: 'var(--color-text-muted)' }}>
+                <span>{activeBoard.metadata.totalCards} cards</span>
+                <span style={{ color: 'var(--color-border)' }}>/</span>
+                <span>{activeBoard.metadata.completedCount} done</span>
+                <span style={{ color: 'var(--color-border)' }}>/</span>
+                <span>{activeBoard.metadata.claimedCount} claimed</span>
                 {'branchCount' in activeBoard.metadata && (
-                  <> &middot; {activeBoard.metadata.branchCount} branches</>
+                  <>
+                    <span style={{ color: 'var(--color-border)' }}>/</span>
+                    <span>{(activeBoard.metadata as Record<string, unknown>).branchCount as number} branches</span>
+                  </>
                 )}
               </div>
             )}
+          </div>
 
-            {/* User identity input */}
+          {/* Center: Search */}
+          <div className="flex-1 max-w-md mx-4">
+            <SearchBar branch={branch} onResultClick={(cardId) => setSelectedCardId(cardId)} inputRef={searchInputRef} />
+          </div>
+
+          {/* Right: Controls */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* User identity */}
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-1">
                 <input
                   type="text"
                   value={currentUser}
                   onChange={handleUserChange}
-                  placeholder="Your name…"
-                  className={`text-sm border rounded px-2 py-1 w-36 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 ${userNameWarning ? 'border-yellow-400 focus:ring-yellow-400' : 'border-gray-300'}`}
+                  placeholder="Your name..."
+                  className={`wh-input w-32 ${userNameWarning ? '!border-yellow-400' : ''}`}
                 />
                 {gitIdentity?.source === 'git-config' && currentUser === gitIdentity?.name && (
-                  <span className="text-xs text-gray-400" title={`From git config${gitIdentity.email ? ` (${gitIdentity.email})` : ''}`}>git</span>
+                  <span className="font-mono text-[0.6rem]" style={{ color: 'var(--color-text-muted)' }} title={`From git config${gitIdentity.email ? ` (${gitIdentity.email})` : ''}`}>git</span>
                 )}
                 {gitIdentity?.source === 'env' && (
-                  <span className="text-xs text-gray-400" title="From WHEATLEY_COMMIT_AUTHOR">env</span>
+                  <span className="font-mono text-[0.6rem]" style={{ color: 'var(--color-text-muted)' }} title="From WHEATLEY_COMMIT_AUTHOR">env</span>
                 )}
               </div>
               {userNameWarning && (
-                <span className="text-xs text-yellow-600 mt-0.5">{userNameWarning}</span>
+                <span className="text-[0.65rem] text-yellow-500 mt-0.5">{userNameWarning}</span>
               )}
             </div>
 
-            {/* Quick filter presets */}
-            <div className="flex items-center gap-1 text-sm">
-              <button
-                type="button"
-                onClick={() => setFilter(defaultFilter())}
-                className={`px-2 py-1 rounded border ${isFilterEmpty(filter) ? 'bg-blue-50 text-blue-700 border-blue-300 font-medium' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter({ ...defaultFilter(), phases: ['unclaimed'] })}
-                className={`px-2 py-1 rounded border ${filter.phases.length === 1 && filter.phases[0] === 'unclaimed' && !filter.claimant ? 'bg-blue-50 text-blue-700 border-blue-300 font-medium' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-              >
-                Unclaimed
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter({ ...defaultFilter(), claimant: currentUser })}
-                className={`px-2 py-1 rounded border ${filter.claimant === currentUser && currentUser ? 'bg-blue-50 text-blue-700 border-blue-300 font-medium' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-              >
-                Mine
-              </button>
-            </div>
+            <div style={{ width: 1, height: 20, background: 'var(--color-border)' }} />
 
-            {/* Sort control */}
-            <select
-              value={sortMode}
-              onChange={(e) => setSortMode(e.target.value as SortMode)}
-              className="text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="default">Sort: Default</option>
-              <option value="priority">Sort: Priority</option>
-              <option value="due">Sort: Due Date</option>
-              <option value="newest">Sort: Newest First</option>
-              <option value="activity">Sort: Last Activity</option>
-            </select>
-
-            {/* View type switcher (Board / List / Timeline / Calendar) */}
-            <div className="flex rounded border border-gray-300 dark:border-gray-600 overflow-hidden text-sm">
-              {(['board', 'list', 'timeline', 'calendar'] as BoardView[]).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setBoardView(v)}
-                  className={`px-2 py-1 capitalize ${v !== 'board' ? 'border-l border-gray-300 dark:border-gray-600' : ''} ${boardView === v ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
-
-            {/* Branch mode toggle */}
-            <div className="flex rounded border border-gray-300 dark:border-gray-600 overflow-hidden text-sm">
-              <button
-                type="button"
-                onClick={() => setViewMode('single')}
-                className={`px-2 py-1 ${viewMode === 'single' ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-              >
-                Single
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('consolidated')}
-                className={`px-2 py-1 border-l border-gray-300 dark:border-gray-600 ${viewMode === 'consolidated' ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-              >
-                All Branches
-              </button>
-            </div>
-
-            {/* Dark mode toggle */}
-            <DarkModeToggle />
-
-            {/* Sync button */}
+            {/* Sync */}
             <button
               type="button"
               disabled={syncing}
@@ -699,21 +640,18 @@ export function Board() {
                 try {
                   await triggerSync();
                   void queryClient.invalidateQueries({ queryKey: ['board'] });
-                } catch {
-                  // Silently fail — user can retry
-                } finally {
+                } catch { /* retry */ } finally {
                   setSyncing(false);
                 }
               }}
-              className="text-sm px-2 py-1 rounded border bg-white text-gray-600 border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+              className="wh-btn disabled:opacity-50"
             >
-              {syncing ? 'Syncing…' : 'Sync'}
+              {syncing ? 'Syncing...' : 'Sync'}
             </button>
 
-            {/* Notification bell */}
             <NotificationBell onCardClick={(cardId) => setSelectedCardId(cardId)} />
+            <DarkModeToggle />
 
-            {/* Repo selector */}
             <RepoSelector
               currentRepo={currentRepo}
               onRepoChange={(repoId) => {
@@ -721,36 +659,110 @@ export function Board() {
                 void queryClient.invalidateQueries({ queryKey: ['board'] });
               }}
             />
-
-            {/* Activity feed button */}
-            <button
-              type="button"
-              onClick={() => setShowActivityFeed((v) => !v)}
-              className={`text-sm px-2 py-1 rounded border ${showActivityFeed ? 'bg-purple-50 text-purple-700 border-purple-300' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-            >
-              Activity
-            </button>
-
-            {/* Branch health button */}
-            <button
-              type="button"
-              onClick={() => setShowHealthPanel((v) => !v)}
-              className={`text-sm px-2 py-1 rounded border ${showHealthPanel ? 'bg-teal-50 text-teal-700 border-teal-300' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-            >
-              Health
-            </button>
-
-            {viewMode === 'single' && (
-              <BranchSelector selectedBranch={branch} onBranchChange={setBranch} />
-            )}
           </div>
         </div>
       </header>
 
-      {/* Compound filter bar */}
-      <div className="bg-white border-b px-4 py-2 flex items-center gap-3 flex-wrap text-sm">
-        {/* Phase multi-select */}
-        <label className="flex items-center gap-1 text-gray-600">
+      {/* ══════ Toolbar ══════ */}
+      <div className="wh-filter-bar px-5 py-2 flex items-center gap-3 flex-wrap">
+        {/* Quick filters */}
+        <div className="wh-toggle-group">
+          <button
+            type="button"
+            onClick={() => setFilter(defaultFilter())}
+            className={isFilterEmpty(filter) ? 'active' : ''}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter({ ...defaultFilter(), phases: ['unclaimed'] })}
+            className={filter.phases.length === 1 && filter.phases[0] === 'unclaimed' && !filter.claimant ? 'active' : ''}
+          >
+            Unclaimed
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter({ ...defaultFilter(), claimant: currentUser })}
+            className={filter.claimant === currentUser && currentUser ? 'active' : ''}
+          >
+            Mine
+          </button>
+        </div>
+
+        {/* Sort */}
+        <select
+          value={sortMode}
+          onChange={(e) => setSortMode(e.target.value as SortMode)}
+          className="wh-input text-[0.75rem]"
+        >
+          <option value="default">Sort: Default</option>
+          <option value="priority">Sort: Priority</option>
+          <option value="due">Sort: Due Date</option>
+          <option value="newest">Sort: Newest</option>
+          <option value="activity">Sort: Activity</option>
+        </select>
+
+        <div style={{ width: 1, height: 20, background: 'var(--color-border-subtle)' }} />
+
+        {/* View switcher */}
+        <div className="wh-toggle-group">
+          {(['board', 'list', 'timeline', 'calendar'] as BoardView[]).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setBoardView(v)}
+              className={`capitalize ${boardView === v ? 'active' : ''}`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+
+        {/* Branch mode */}
+        <div className="wh-toggle-group">
+          <button
+            type="button"
+            onClick={() => setViewMode('single')}
+            className={viewMode === 'single' ? 'active' : ''}
+          >
+            Single
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('consolidated')}
+            className={viewMode === 'consolidated' ? 'active' : ''}
+          >
+            All Branches
+          </button>
+        </div>
+
+        {viewMode === 'single' && (
+          <BranchSelector selectedBranch={branch} onBranchChange={setBranch} />
+        )}
+
+        <div className="flex-1" />
+
+        {/* Right-side toolbar controls */}
+        <button
+          type="button"
+          onClick={() => setShowActivityFeed((v) => !v)}
+          className={`wh-btn ${showActivityFeed ? 'wh-btn-active' : ''}`}
+        >
+          Activity
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowHealthPanel((v) => !v)}
+          className={`wh-btn ${showHealthPanel ? 'wh-btn-active' : ''}`}
+        >
+          Health
+        </button>
+
+        {/* Expanded filters */}
+        <div style={{ width: 1, height: 20, background: 'var(--color-border-subtle)' }} />
+
+        <label className="flex items-center gap-1.5 font-heading text-[0.7rem] font-medium" style={{ color: 'var(--color-text-secondary)' }}>
           Phase:
           <select
             multiple
@@ -759,7 +771,7 @@ export function Board() {
               const selected = Array.from(e.target.selectedOptions, (o) => o.value as BoardPhase);
               setFilter((prev) => ({ ...prev, phases: selected }));
             }}
-            className="border border-gray-300 rounded px-1 py-0.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 h-16 text-xs"
+            className="wh-input h-14 text-[0.7rem]"
           >
             {(['unclaimed', 'planning', 'speccing', 'implementing', 'verifying', 'done'] as BoardPhase[]).map((p) => (
               <option key={p} value={p}>{p}</option>
@@ -767,25 +779,23 @@ export function Board() {
           </select>
         </label>
 
-        {/* Claimant */}
-        <label className="flex items-center gap-1 text-gray-600">
+        <label className="flex items-center gap-1.5 font-heading text-[0.7rem] font-medium" style={{ color: 'var(--color-text-secondary)' }}>
           Claimant:
           <input
             type="text"
             value={filter.claimant}
             onChange={(e) => setFilter((prev) => ({ ...prev, claimant: e.target.value }))}
             placeholder="name..."
-            className="border border-gray-300 rounded px-2 py-0.5 w-28 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="wh-input w-24 text-[0.7rem]"
           />
         </label>
 
-        {/* Priority */}
-        <label className="flex items-center gap-1 text-gray-600">
+        <label className="flex items-center gap-1.5 font-heading text-[0.7rem] font-medium" style={{ color: 'var(--color-text-secondary)' }}>
           Priority:
           <select
             value={filter.priority}
             onChange={(e) => setFilter((prev) => ({ ...prev, priority: e.target.value }))}
-            className="border border-gray-300 rounded px-1 py-0.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="wh-input text-[0.7rem]"
           >
             <option value="">Any</option>
             <option value="P0">P0</option>
@@ -795,43 +805,40 @@ export function Board() {
           </select>
         </label>
 
-        {/* Has labels */}
-        <label className="flex items-center gap-1 text-gray-600 cursor-pointer">
+        <label className="flex items-center gap-1.5 cursor-pointer font-heading text-[0.7rem] font-medium" style={{ color: 'var(--color-text-secondary)' }}>
           <input
             type="checkbox"
             checked={filter.hasLabels}
             onChange={(e) => setFilter((prev) => ({ ...prev, hasLabels: e.target.checked }))}
+            className="accent-[var(--color-primary)]"
           />
-          Has labels
+          Labels
         </label>
 
-        {/* Clear filters */}
         {!isFilterEmpty(filter) && (
           <button
             type="button"
             onClick={() => setFilter(defaultFilter())}
-            className="text-xs text-red-500 hover:text-red-700 underline"
+            className="text-[0.7rem] font-medium text-red-400 hover:text-red-500 transition-colors"
           >
-            Clear filters
+            Clear
           </button>
         )}
 
-        <div className="border-l border-gray-200 h-6 mx-1" />
-
-        {/* Saved presets */}
+        {/* Presets */}
         <div className="relative">
           <button
             type="button"
             onClick={() => setShowPresetMenu((v) => !v)}
-            className="px-2 py-0.5 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+            className="wh-btn"
           >
             Presets
           </button>
           {showPresetMenu && (
-            <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
-              {/* Save current */}
+            <div className="wh-dropdown absolute top-full right-0 mt-1 w-56 z-30 py-1">
               <form
-                className="px-3 py-2 border-b flex gap-1"
+                className="px-3 py-2 flex gap-1"
+                style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
                 onSubmit={(e) => {
                   e.preventDefault();
                   const trimmed = presetName.trim();
@@ -847,27 +854,25 @@ export function Board() {
                   value={presetName}
                   onChange={(e) => setPresetName(e.target.value)}
                   placeholder="Preset name..."
-                  className="flex-1 text-xs border border-gray-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="wh-input flex-1 text-[0.7rem]"
                 />
-                <button
-                  type="submit"
-                  className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-700"
-                >
+                <button type="submit" className="wh-btn wh-btn-primary text-[0.7rem]">
                   Save
                 </button>
               </form>
               {presets.length === 0 && (
-                <div className="px-3 py-2 text-xs text-gray-400">No saved presets</div>
+                <div className="px-3 py-2 text-[0.7rem]" style={{ color: 'var(--color-text-muted)' }}>No saved presets</div>
               )}
               {presets.map((p) => (
-                <div key={p.name} className="flex items-center justify-between px-3 py-1.5 hover:bg-gray-50 gap-2">
+                <div key={p.name} className="flex items-center justify-between px-3 py-1.5 gap-2 transition-colors hover:bg-[var(--color-surface-hover)]">
                   <button
                     type="button"
                     onClick={() => {
                       setFilter({ ...p.filter });
                       setShowPresetMenu(false);
                     }}
-                    className="text-xs text-gray-700 flex-1 text-left truncate"
+                    className="text-[0.7rem] flex-1 text-left truncate"
+                    style={{ color: 'var(--color-text)' }}
                   >
                     {p.name}
                   </button>
@@ -878,7 +883,7 @@ export function Board() {
                       setPresets(next);
                       savePresets(next);
                     }}
-                    className="text-xs text-red-400 hover:text-red-600"
+                    className="text-[0.7rem] text-red-400 hover:text-red-500"
                   >
                     &times;
                   </button>
@@ -889,40 +894,49 @@ export function Board() {
         </div>
       </div>
 
-      {/* Board */}
-      <main className="p-4">
+      {/* ══════ Board ══════ */}
+      <main className="p-5">
         {activeLoading && (
           <div className="flex items-center justify-center h-64">
-            <div className="text-gray-400 text-lg">Loading board…</div>
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--color-border)', borderTopColor: 'transparent' }} />
+              <span className="font-heading text-sm" style={{ color: 'var(--color-text-muted)' }}>Loading board...</span>
+            </div>
           </div>
         )}
 
         {error && viewMode === 'single' && (
           <div className="flex items-center justify-center h-64">
-            <div className="text-red-500 text-center">
-              <p className="text-lg font-medium">Failed to load board</p>
-              <p className="text-sm mt-1">{(error as Error).message}</p>
+            <div className="text-center">
+              <p className="font-heading text-lg font-semibold text-red-400">Failed to load board</p>
+              <p className="text-sm mt-1.5" style={{ color: 'var(--color-text-muted)' }}>{(error as Error).message}</p>
             </div>
           </div>
         )}
 
-        {/* Transition error toast */}
         {transitionError && (
-          <div className="mb-3 flex items-center justify-between gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            <span>{transitionError}</span>
+          <div
+            className="wh-animate-in mb-4 flex items-center justify-between gap-2 rounded-lg px-4 py-2.5 text-sm"
+            style={{
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              color: '#f87171',
+            }}
+          >
+            <span className="font-heading font-medium">{transitionError}</span>
             <button
               type="button"
               onClick={() => setTransitionError(null)}
-              className="text-red-400 hover:text-red-600"
+              className="text-red-400 hover:text-red-300 transition-colors"
             >
-              ✕
+              &times;
             </button>
           </div>
         )}
 
         {(activeBoard || optimisticColumns) && boardView === 'board' && (
           <ScrollIndicators>
-            <div className="flex gap-4 min-h-[calc(100vh-120px)]">
+            <div className="flex gap-4 min-h-[calc(100vh-140px)] wh-stagger">
               {filteredColumns.map((column) => (
                 <Column
                   key={column.phase}
@@ -970,9 +984,9 @@ export function Board() {
 
         {activeBoard && activeBoard.metadata.totalCards === 0 && (
           <div className="flex items-center justify-center h-64">
-            <div className="text-gray-400 text-center">
-              <p className="text-lg font-medium">No tasks found</p>
-              <p className="text-sm mt-1">
+            <div className="text-center">
+              <p className="font-brand text-lg" style={{ color: 'var(--color-text-muted)' }}>No tasks found</p>
+              <p className="text-sm mt-2" style={{ color: 'var(--color-text-muted)' }}>
                 This repository may not have a conforming ROADMAP.md or specs/ directory.
               </p>
             </div>

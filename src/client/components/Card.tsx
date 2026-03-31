@@ -12,20 +12,29 @@ import { useClaimItem, useReleaseItem } from '../hooks/use-claims.js';
 import { useWorkflowStatus } from '../hooks/use-workflow-status.js';
 import { ClaimConflictError } from '../api.js';
 
-const PRIORITY_COLORS: Record<string, string> = {
+const PHASE_ACCENT: Record<string, string> = {
+  unclaimed: 'wh-phase-unclaimed',
+  planning: 'wh-phase-planning',
+  speccing: 'wh-phase-speccing',
+  implementing: 'wh-phase-implementing',
+  verifying: 'wh-phase-verifying',
+  done: 'wh-phase-done',
+};
+
+const PHASE_BADGE_STYLE: Record<string, string> = {
+  unclaimed: 'bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400',
+  planning: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400',
+  speccing: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400',
+  implementing: 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
+  verifying: 'bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
+  done: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
+};
+
+const PRIORITY_STYLE: Record<string, string> = {
   P0: 'bg-red-500 text-white',
   P1: 'bg-orange-400 text-white',
   P2: 'bg-yellow-400 text-gray-900',
-  P3: 'bg-gray-300 text-gray-700',
-};
-
-const PHASE_COLORS: Record<string, string> = {
-  unclaimed: 'bg-gray-100 text-gray-700',
-  planning: 'bg-blue-100 text-blue-700',
-  speccing: 'bg-purple-100 text-purple-700',
-  implementing: 'bg-yellow-100 text-yellow-700',
-  verifying: 'bg-orange-100 text-orange-700',
-  done: 'bg-green-100 text-green-700',
+  P3: 'bg-stone-300 text-stone-600 dark:bg-stone-700 dark:text-stone-400',
 };
 
 interface CardProps {
@@ -33,17 +42,11 @@ interface CardProps {
   onClick?: (card: BoardCard) => void;
   currentUser?: string;
   branch?: string;
-  /** The coordination branch claims are read from. When it differs from `branch`,
-   *  an indicator is shown on cards that have an active claim. */
   coordinationBranch?: string;
   onConflict?: (claimedBy: string) => void;
-  /** Called when drag starts on this card. */
   onDragStart?: (cardId: string, fromPhase: BoardPhase) => void;
-  /** Called when drag ends (dropped or cancelled). */
   onDragEnd?: () => void;
-  /** True when this card is being dragged (shows reduced opacity). */
   isDragging?: boolean;
-  /** True when this card has keyboard-navigation focus. */
   isFocused?: boolean;
 }
 
@@ -72,7 +75,8 @@ export function Card({
   isDragging,
   isFocused,
 }: CardProps) {
-  const phaseColor = PHASE_COLORS[card.phase] ?? 'bg-gray-100 text-gray-700';
+  const phaseAccent = PHASE_ACCENT[card.phase] ?? 'wh-phase-unclaimed';
+  const phaseBadge = PHASE_BADGE_STYLE[card.phase] ?? PHASE_BADGE_STYLE.unclaimed;
 
   const claimMutation = useClaimItem(branch);
   const releaseMutation = useReleaseItem(branch);
@@ -129,148 +133,195 @@ export function Card({
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      className={`transition-opacity ${isDragging ? 'opacity-40' : 'opacity-100'}`}
+      className={`transition-all duration-200 ${isDragging ? 'opacity-30 scale-95' : 'opacity-100'}`}
     >
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onClick?.(card)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(card); } }}
-      className={`w-full text-left bg-white rounded-lg shadow-sm border p-3 hover:shadow-md transition-shadow cursor-pointer ${isFocused ? 'border-blue-500 ring-2 ring-blue-400' : 'border-gray-200'}`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium text-gray-900 leading-tight">
-          {card.title}
-        </h3>
-        {card.source === 'spec' && (
-          <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">
-            spec
-          </span>
-        )}
-      </div>
-
-      <div className="mt-2 flex items-center gap-2 flex-wrap">
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${phaseColor}`}>
-          {card.phase}
-        </span>
-        {card.metadata?.priority && (
-          <span className={`text-xs px-1.5 py-0.5 rounded font-semibold leading-none ${PRIORITY_COLORS[card.metadata.priority]}`}>
-            {card.metadata.priority}
-          </span>
-        )}
-        <span className="text-xs text-gray-400">{card.id}</span>
-      </div>
-
-      {/* Metadata: labels and due date */}
-      {(card.metadata?.labels?.length || card.metadata?.due) && (
-        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-          {card.metadata.labels?.slice(0, 2).map((label) => (
-            <span
-              key={label}
-              className="text-xs px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200"
-            >
-              {label}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onClick?.(card)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(card); } }}
+        className={`wh-card ${phaseAccent} w-full text-left p-3.5 cursor-pointer ${
+          isFocused ? 'ring-2 ring-[var(--color-primary)] border-[var(--color-primary)]' : ''
+        }`}
+      >
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-heading text-[0.82rem] font-semibold leading-snug" style={{ color: 'var(--color-text)' }}>
+            {card.title}
+          </h3>
+          {card.source === 'spec' && (
+            <span className="shrink-0 font-mono text-[0.6rem] tracking-wider uppercase px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-500 dark:bg-indigo-950 dark:text-indigo-400">
+              spec
             </span>
-          ))}
-          {card.metadata.due && (
+          )}
+        </div>
+
+        {/* Badges row */}
+        <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+          <span className={`wh-badge ${phaseBadge}`}>
+            {card.phase}
+          </span>
+          {card.metadata?.priority && (
+            <span className={`wh-badge ${PRIORITY_STYLE[card.metadata.priority]}`}>
+              {card.metadata.priority}
+            </span>
+          )}
+          <span className="font-mono text-[0.6rem] tracking-wide" style={{ color: 'var(--color-text-muted)' }}>
+            {card.id}
+          </span>
+        </div>
+
+        {/* Labels & due date */}
+        {(card.metadata?.labels?.length || card.metadata?.due) && (
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+            {card.metadata.labels?.slice(0, 2).map((label) => (
+              <span
+                key={label}
+                className="text-[0.65rem] font-medium px-2 py-0.5 rounded-full border"
+                style={{
+                  background: 'var(--color-primary-subtle)',
+                  color: 'var(--color-primary)',
+                  borderColor: 'var(--color-border)',
+                }}
+              >
+                {label}
+              </span>
+            ))}
+            {card.metadata.due && (
+              <span
+                className={`text-[0.65rem] font-medium px-2 py-0.5 rounded ${
+                  card.metadata.due < new Date().toISOString().slice(0, 10)
+                    ? 'bg-red-50 text-red-500 dark:bg-red-950 dark:text-red-400'
+                    : ''
+                }`}
+                style={
+                  card.metadata.due >= new Date().toISOString().slice(0, 10)
+                    ? { color: 'var(--color-text-muted)' }
+                    : undefined
+                }
+              >
+                {card.metadata.due}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Claimant */}
+        {card.claim && (
+          <div className="mt-2.5 flex items-center gap-2">
             <span
-              className={`text-xs px-1.5 py-0.5 rounded ${
-                card.metadata.due < new Date().toISOString().slice(0, 10)
-                  ? 'bg-red-50 text-red-600 border border-red-200'
-                  : 'text-gray-500'
+              className={`inline-flex items-center gap-1 text-[0.7rem] font-medium px-2.5 py-0.5 rounded-full border ${
+                isOwnClaim
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800'
+                  : ''
               }`}
+              style={
+                !isOwnClaim
+                  ? {
+                      background: 'var(--color-surface-hover)',
+                      color: 'var(--color-text-secondary)',
+                      borderColor: 'var(--color-border)',
+                    }
+                  : undefined
+              }
             >
-              {card.metadata.due}
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${
+                isOwnClaim ? 'bg-emerald-400' : 'bg-stone-400 dark:bg-stone-600'
+              }`} />
+              {isOwnClaim ? 'You' : card.claim.claimant}
             </span>
-          )}
-        </div>
-      )}
-
-      {/* Claimant badge */}
-      {card.claim && (
-        <div className="mt-2 flex flex-col gap-0.5">
-          <span
-            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border w-fit font-medium ${
-              isOwnClaim
-                ? 'bg-green-50 text-green-700 border-green-200'
-                : 'bg-gray-100 text-gray-600 border-gray-200'
-            }`}
-          >
-            {isOwnClaim ? 'You' : card.claim.claimant}
-          </span>
-          <span className="text-xs text-gray-400">{formatClaimTime(card.claim.claimedAt)}</span>
-          {/* Cross-branch indicator: shown when the claim comes from a different branch */}
-          {coordinationBranch && branch && coordinationBranch !== branch && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 w-fit">
-              coordination branch
+            <span className="text-[0.6rem]" style={{ color: 'var(--color-text-muted)' }}>
+              {formatClaimTime(card.claim.claimedAt)}
             </span>
-          )}
-        </div>
-      )}
-
-      {/* Stale claim warning: claim exists but no spec or status activity on viewed branch */}
-      {card.stale && (
-        <div className="mt-1">
-          <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
-            stale claim
-          </span>
-        </div>
-      )}
-
-      {/* Claim / Release buttons */}
-      <div className="mt-2 flex gap-2">
-        {canClaim && (
-          <button
-            type="button"
-            onClick={handleClaim}
-            disabled={claimMutation.isPending}
-            className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {claimMutation.isPending ? 'Claiming…' : 'Claim'}
-          </button>
+            {coordinationBranch && branch && coordinationBranch !== branch && (
+              <span
+                className="text-[0.6rem] px-1.5 py-0.5 rounded"
+                style={{ background: 'var(--column-bg)', color: 'var(--color-text-muted)' }}
+              >
+                coord branch
+              </span>
+            )}
+          </div>
         )}
-        {isOwnClaim && (
-          <button
-            type="button"
-            onClick={handleRelease}
-            disabled={releaseMutation.isPending}
-            className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {releaseMutation.isPending ? 'Releasing…' : 'Release'}
-          </button>
+
+        {/* Stale claim warning */}
+        {card.stale && (
+          <div className="mt-1.5">
+            <span className="text-[0.65rem] font-medium px-2 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800">
+              stale claim
+            </span>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="mt-2.5 flex gap-2">
+          {canClaim && (
+            <button
+              type="button"
+              onClick={handleClaim}
+              disabled={claimMutation.isPending}
+              className="wh-btn-primary text-[0.7rem] font-medium px-3 py-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: 'var(--color-primary)',
+                color: 'white',
+                border: 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {claimMutation.isPending ? 'Claiming...' : 'Claim'}
+            </button>
+          )}
+          {isOwnClaim && (
+            <button
+              type="button"
+              onClick={handleRelease}
+              disabled={releaseMutation.isPending}
+              className="text-[0.7rem] font-medium px-3 py-1 rounded-md border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              style={{
+                borderColor: 'var(--color-border)',
+                color: 'var(--color-text-secondary)',
+                background: 'transparent',
+              }}
+            >
+              {releaseMutation.isPending ? 'Releasing...' : 'Release'}
+            </button>
+          )}
+        </div>
+
+        {/* Branch badges */}
+        {card.branches && card.branches.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {card.branches.map((b) => (
+              <span
+                key={b}
+                className="font-mono text-[0.6rem] px-1.5 py-0.5 rounded"
+                style={{
+                  background: 'var(--color-primary-subtle)',
+                  color: 'var(--color-primary)',
+                }}
+              >
+                {b}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {card.statusTask && (
+          <div className="mt-1.5 text-[0.7rem] truncate" style={{ color: 'var(--color-text-muted)' }}>
+            {card.statusTask.description}
+          </div>
+        )}
+
+        {/* GLaDOS workflow badge */}
+        {isWorkflowRunning && (
+          <div className="mt-2.5">
+            <span className="wh-glow-pulse inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-md bg-violet-50 text-violet-600 border border-violet-200 dark:bg-violet-950 dark:text-violet-400 dark:border-violet-800">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-500" />
+              GLaDOS Active
+            </span>
+          </div>
         )}
       </div>
-
-      {/* Branch badges — shown in consolidated view when card appears on multiple branches */}
-      {card.branches && card.branches.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {card.branches.map((b) => (
-            <span
-              key={b}
-              className="text-xs px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200"
-            >
-              {b}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {card.statusTask && (
-        <div className="mt-1 text-xs text-gray-400 truncate">
-          {card.statusTask.description}
-        </div>
-      )}
-
-      {/* GLaDOS workflow status badge */}
-      {isWorkflowRunning && (
-        <div className="mt-2">
-          <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 animate-pulse">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-500" />
-            GLaDOS Running...
-          </span>
-        </div>
-      )}
-    </div>
     </div>
   );
 }

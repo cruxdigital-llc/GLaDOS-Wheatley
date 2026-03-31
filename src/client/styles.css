@@ -1,3 +1,370 @@
 @import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Design Tokens ─── */
+:root {
+  /* Fonts */
+  --font-brand: 'Audiowide', sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'Nunito Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Light palette */
+  --color-bg: #f4f2ee;
+  --color-bg-subtle: #eae7e0;
+  --color-surface: #ffffff;
+  --color-surface-hover: #fafaf8;
+  --color-surface-raised: #ffffff;
+  --color-border: #d6d3cc;
+  --color-border-subtle: #e8e5de;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #6b6560;
+  --color-text-muted: #9e9891;
+
+  /* Accent */
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-primary-subtle: #eef2ff;
+
+  /* Phase accents */
+  --phase-unclaimed: #78716c;
+  --phase-planning: #3b82f6;
+  --phase-speccing: #a855f7;
+  --phase-implementing: #f59e0b;
+  --phase-verifying: #f97316;
+  --phase-done: #10b981;
+
+  /* Priority */
+  --priority-p0: #ef4444;
+  --priority-p1: #f97316;
+  --priority-p2: #eab308;
+  --priority-p3: #9ca3af;
+
+  /* Surfaces */
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(0, 0, 0, 0.06);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --card-shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+
+  /* Column */
+  --column-bg: rgba(0, 0, 0, 0.02);
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* Noise overlay */
+  --noise-opacity: 0.015;
+}
+
+.dark {
+  --color-bg: #0f1117;
+  --color-bg-subtle: #161923;
+  --color-surface: #1a1d27;
+  --color-surface-hover: #1e2130;
+  --color-surface-raised: #22253a;
+  --color-border: #2a2d3a;
+  --color-border-subtle: #1f2233;
+  --color-text: #e8e6e3;
+  --color-text-secondary: #9b97a0;
+  --color-text-muted: #5c5966;
+
+  --color-primary-subtle: #1e1b4b;
+
+  --card-bg: rgba(26, 29, 39, 0.75);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
+  --card-shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
+
+  --column-bg: rgba(255, 255, 255, 0.02);
+
+  --noise-opacity: 0.03;
+}
+
+/* ─── Base ─── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* Noise texture overlay on body */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ─── Typography utility classes ─── */
+.font-brand {
+  font-family: var(--font-brand);
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ─── Card glass effect ─── */
+.wh-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.wh-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
+  border-color: var(--color-border);
+}
+
+.wh-card:active {
+  transform: translateY(0);
+}
+
+/* ─── Phase accent borders (left strip on cards) ─── */
+.wh-phase-unclaimed { border-left: 3px solid var(--phase-unclaimed); }
+.wh-phase-planning { border-left: 3px solid var(--phase-planning); }
+.wh-phase-speccing { border-left: 3px solid var(--phase-speccing); }
+.wh-phase-implementing { border-left: 3px solid var(--phase-implementing); }
+.wh-phase-verifying { border-left: 3px solid var(--phase-verifying); }
+.wh-phase-done { border-left: 3px solid var(--phase-done); }
+
+/* ─── Column ─── */
+.wh-column {
+  background: var(--column-bg);
+  border-radius: var(--radius-lg);
+  min-width: 290px;
+  max-width: 330px;
+}
+
+/* ─── Phase badge pills ─── */
+.wh-badge {
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+/* ─── Button base ─── */
+.wh-btn {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wh-btn:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-text-muted);
+}
+
+.wh-btn-active {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.wh-btn-primary {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.wh-btn-primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+/* ─── Input base ─── */
+.wh-input {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wh-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.wh-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ─── Header ─── */
+.wh-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ─── Filter bar ─── */
+.wh-filter-bar {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* ─── Toggle group (segmented control) ─── */
+.wh-toggle-group {
+  display: inline-flex;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.wh-toggle-group button {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-right: 1px solid var(--color-border);
+}
+
+.wh-toggle-group button:last-child {
+  border-right: none;
+}
+
+.wh-toggle-group button:hover {
+  background: var(--color-surface-hover);
+}
+
+.wh-toggle-group button.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* ─── Animations ─── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.wh-animate-in {
+  animation: fadeInUp 0.25s ease-out both;
+}
+
+/* Stagger children */
+.wh-stagger > * {
+  animation: fadeInUp 0.3s ease-out both;
+}
+.wh-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.wh-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.wh-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.wh-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.wh-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.wh-stagger > *:nth-child(6) { animation-delay: 200ms; }
+
+/* Workflow running glow */
+.wh-glow-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ─── Focus ring ─── */
+.wh-focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-primary);
+}
+
+/* ─── Dropdown / Popover ─── */
+.wh-dropdown {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+  animation: fadeInUp 0.15s ease-out;
+}
+
+/* ─── Drag states ─── */
+.wh-drag-target {
+  border: 2px dashed var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.wh-drag-over {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.1);
+}
+
+.wh-drag-invalid {
+  opacity: 0.3;
+}

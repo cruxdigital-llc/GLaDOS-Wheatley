@@ -12,15 +12,14 @@ import { searchCards } from '../api.js';
 interface SearchBarProps {
   branch?: string;
   onResultClick: (cardId: string) => void;
-  /** Optional external ref to the underlying input element (e.g. for keyboard shortcut focus). */
   inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-const MATCH_TYPE_COLORS: Record<string, string> = {
-  title: 'bg-blue-100 text-blue-700',
-  spec: 'bg-green-100 text-green-700',
-  comment: 'bg-purple-100 text-purple-700',
-  claimant: 'bg-orange-100 text-orange-700',
+const MATCH_TYPE_STYLE: Record<string, string> = {
+  title: 'bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400',
+  spec: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
+  comment: 'bg-purple-50 text-purple-600 dark:bg-purple-950 dark:text-purple-400',
+  claimant: 'bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
 };
 
 export function SearchBar({ branch, onResultClick, inputRef: externalInputRef }: SearchBarProps) {
@@ -31,7 +30,6 @@ export function SearchBar({ branch, onResultClick, inputRef: externalInputRef }:
   const internalInputRef = useRef<HTMLInputElement>(null);
   const inputRef = externalInputRef ?? internalInputRef;
 
-  // Debounce the query by 300ms
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query.trim());
@@ -39,7 +37,6 @@ export function SearchBar({ branch, onResultClick, inputRef: externalInputRef }:
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Open dropdown when we have a debounced query with 2+ chars
   useEffect(() => {
     if (debouncedQuery.length >= 2) {
       setIsOpen(true);
@@ -55,7 +52,6 @@ export function SearchBar({ branch, onResultClick, inputRef: externalInputRef }:
     staleTime: 10_000,
   });
 
-  // Close on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -66,7 +62,6 @@ export function SearchBar({ branch, onResultClick, inputRef: externalInputRef }:
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close on Escape
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setIsOpen(false);
@@ -84,9 +79,12 @@ export function SearchBar({ branch, onResultClick, inputRef: externalInputRef }:
   );
 
   return (
-    <div ref={containerRef} className="relative">
-      <div className="flex items-center">
-        <span className="absolute left-2 text-gray-400 text-sm pointer-events-none">
+    <div ref={containerRef} className="relative w-full">
+      <div className="relative">
+        <span
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[0.75rem] pointer-events-none"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
           &#128269;
         </span>
         <input
@@ -98,69 +96,64 @@ export function SearchBar({ branch, onResultClick, inputRef: externalInputRef }:
             if (debouncedQuery.length >= 2) setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Search cards..."
-          className="text-sm border border-gray-300 rounded px-2 py-1 pl-7 w-56 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Search cards... ( / )"
+          className="wh-input w-full pl-8 pr-3"
         />
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-200 rounded shadow-lg z-50 max-h-96 overflow-y-auto">
+        <div className="wh-dropdown absolute top-full left-0 mt-2 w-full min-w-[320px] z-50 max-h-96 overflow-y-auto">
           {isLoading && (
-            <div className="flex items-center justify-center py-4 text-sm text-gray-400">
-              <svg
-                className="animate-spin h-4 w-4 mr-2 text-blue-500"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
-              Searching...
+            <div className="flex items-center justify-center py-6 gap-2">
+              <div
+                className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin"
+                style={{ borderColor: 'var(--color-border)', borderTopColor: 'transparent' }}
+              />
+              <span className="font-heading text-[0.75rem]" style={{ color: 'var(--color-text-muted)' }}>
+                Searching...
+              </span>
             </div>
           )}
 
           {!isLoading && data && data.results.length === 0 && (
-            <div className="py-4 text-center text-sm text-gray-400">
-              No results
+            <div className="py-6 text-center">
+              <span className="font-heading text-[0.75rem]" style={{ color: 'var(--color-text-muted)' }}>
+                No results
+              </span>
             </div>
           )}
 
           {!isLoading && data && data.results.length > 0 && (
-            <ul className="divide-y divide-gray-100">
+            <ul style={{ borderColor: 'var(--color-border-subtle)' }}>
               {data.results.map((result) => (
                 <li key={`${result.cardId}-${result.matchType}`}>
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                    className="w-full text-left px-3.5 py-2.5 transition-colors wh-focus-ring"
+                    style={{ background: 'transparent' }}
                     onClick={() => handleResultClick(result.cardId)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--color-surface-hover)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900 truncate flex-1">
+                      <span className="font-heading text-[0.8rem] font-medium truncate flex-1" style={{ color: 'var(--color-text)' }}>
                         {result.title}
                       </span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 whitespace-nowrap">
+                      <span className="wh-badge bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400 whitespace-nowrap">
                         {result.phase}
                       </span>
                       <span
-                        className={`text-xs px-1.5 py-0.5 rounded whitespace-nowrap ${MATCH_TYPE_COLORS[result.matchType] ?? 'bg-gray-100 text-gray-600'}`}
+                        className={`wh-badge whitespace-nowrap ${MATCH_TYPE_STYLE[result.matchType] ?? 'bg-stone-100 text-stone-500'}`}
                       >
                         {result.matchType}
                       </span>
                     </div>
                     {result.matchContext && (
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      <p className="text-[0.7rem] mt-1 truncate" style={{ color: 'var(--color-text-muted)' }}>
                         {result.matchContext}
                       </p>
                     )}
