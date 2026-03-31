@@ -169,4 +169,47 @@ describe('loadAuthConfig', () => {
     process.env['WHEATLEY_JWT_EXPIRY'] = '0';
     expect(() => loadAuthConfig()).toThrow(/WHEATLEY_JWT_EXPIRY must be a positive integer/);
   });
+
+  it('warns when cloud mode has GitHub env vars but no OAuth', () => {
+    process.env['WHEATLEY_JWT_SECRET'] = 'test-secret';
+    process.env['WHEATLEY_API_KEY'] = 'test-key';
+    process.env['GITHUB_OWNER'] = 'some-org';
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    loadAuthConfig();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('GitHub repo config but no OAuth configured'),
+    );
+  });
+
+  it('warns when cloud mode has GitLab env vars but no OAuth', () => {
+    process.env['WHEATLEY_JWT_SECRET'] = 'test-secret';
+    process.env['WHEATLEY_API_KEY'] = 'test-key';
+    process.env['GITLAB_PROJECT_ID'] = '42';
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    loadAuthConfig();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('GitLab project config but no OAuth configured'),
+    );
+  });
+
+  it('does not warn when OAuth is properly configured', () => {
+    process.env['WHEATLEY_JWT_SECRET'] = 'test-secret';
+    process.env['GITHUB_CLIENT_ID'] = 'gh-id';
+    process.env['GITHUB_CLIENT_SECRET'] = 'gh-secret';
+    process.env['GITHUB_OAUTH_CALLBACK'] = 'http://localhost:3000/auth/callback/github';
+    process.env['GITHUB_OWNER'] = 'some-org';
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    loadAuthConfig();
+
+    // Should not warn about missing OAuth — it's configured
+    const githubNoOauthWarns = warnSpy.mock.calls.filter(
+      ([msg]) => typeof msg === 'string' && msg.includes('no OAuth configured'),
+    );
+    expect(githubNoOauthWarns).toHaveLength(0);
+  });
 });

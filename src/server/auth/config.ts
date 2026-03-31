@@ -79,6 +79,25 @@ export function loadAuthConfig(): AuthConfig {
     );
   }
 
+  // Advisory: warn if cloud mode has no OAuth but platform env vars suggest one is needed
+  if (mode === 'cloud' && !github && !gitlab) {
+    const hasGithubHints = !!(process.env['GITHUB_OWNER'] || process.env['GITHUB_TOKEN']);
+    const hasGitlabHints = !!process.env['GITLAB_PROJECT_ID'];
+
+    if (hasGithubHints) {
+      console.warn(
+        '[auth] Cloud mode detected with GitHub repo config but no OAuth configured. ' +
+        'Set GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, and GITHUB_OAUTH_CALLBACK to enable user login.',
+      );
+    }
+    if (hasGitlabHints) {
+      console.warn(
+        '[auth] Cloud mode detected with GitLab project config but no OAuth configured. ' +
+        'Set GITLAB_CLIENT_ID, GITLAB_CLIENT_SECRET, and GITLAB_OAUTH_CALLBACK to enable user login.',
+      );
+    }
+  }
+
   return {
     mode,
     jwtSecret,
