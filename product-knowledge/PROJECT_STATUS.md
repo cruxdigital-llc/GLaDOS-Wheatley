@@ -75,9 +75,15 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Sync & Real-Time**: SSE endpoint, Sync button, GitHub/GitLab webhook receivers, polling fallback
 - [x] **Persistent Event Log**: File-backed events.md, rotation, replay API
 
-### 7. Backlog / Upcoming
+### 7. Phase 7 — Content Editing & Card Management
 
-- [ ] Phase 7: Content Editing & Card Management (4 features, 18 items)
+- [x] **Card CRUD**: Create cards via modal, rename inline, delete with confirmation, ROADMAP.md auto-update
+- [x] **Inline Spec Editing**: MarkdownEditor component, save/cancel, allowlisted file types, content size limit
+- [x] **Comments**: Per-spec comment thread, append-only markdown format, author sanitization
+- [x] **Task Checkboxes**: Interactive `tasks.md` checkbox toggling with optimistic updates
+
+### 8. Backlog / Upcoming
+
 - [ ] Phase 8: Search, Metadata & Navigation (3 features, 17 items)
 - [ ] Phase 9: GitHub Integration & GLaDOS Workflows (4 features, 22 items)
 - [ ] Phase 10: Authentication, Teams & Multi-Project (4 features, 18 items)
@@ -87,7 +93,7 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 
 - No horizontal scroll indicators in board UI
 - Roadmap parser hardcoded to GLaDOS numbering format (X.Y.Z)
-- No card editing, creation, or comments
+- Card editing limited to allowlisted spec files (no arbitrary path editing)
 - No PR/MR visibility or management
 - No auth for cloud deployments
 - Button-in-button HTML nesting in Card component (accessibility/validity issue)
@@ -103,3 +109,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-29: Roadmap revised: phases 6-11 rewritten based on product feedback (git robustness, editing, search, GitHub/GitLab integration, auth, polish).
 - 2026-03-29: Full product walkthrough completed (WALKTHROUGH.md) — all 16 features verified.
 - 2026-03-29: **PHASE 6 COMPLETE** — 416 tests passing, 21/21 roadmap items done. Worktree isolation, dirty state detection, git identity, SSE, event log.
+- 2026-03-29: **PHASE 7 COMPLETE** — 416 tests passing, 20/20 roadmap items done. Card CRUD, inline spec editing, comments, task checkboxes. MR review: fixed path traversal, injection, error handling.

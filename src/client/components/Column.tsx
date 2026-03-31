@@ -34,6 +34,8 @@ interface ColumnProps {
   onCardDragStart?: (cardId: string, fromPhase: BoardPhase) => void;
   /** Forwarded to Card — called when a drag ends. */
   onCardDragEnd?: () => void;
+  /** Called when the user clicks the "+" button to add a card. */
+  onAddCard?: (phase: BoardPhase) => void;
 }
 
 export function Column({
@@ -47,6 +49,7 @@ export function Column({
   onDrop,
   onCardDragStart,
   onCardDragEnd,
+  onAddCard,
 }: ColumnProps) {
   const borderColor = COLUMN_HEADER_COLORS[column.phase] ?? 'border-t-gray-400';
   const [isDragOver, setIsDragOver] = useState(false);
@@ -98,9 +101,21 @@ export function Column({
     >
       <div className="px-3 py-2 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-700">{column.title}</h2>
-        <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
-          {column.cards.length}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {onAddCard && (
+            <button
+              type="button"
+              onClick={() => onAddCard(column.phase)}
+              className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded w-5 h-5 flex items-center justify-center text-sm leading-none"
+              title="Add card"
+            >
+              +
+            </button>
+          )}
+          <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
+            {column.cards.length}
+          </span>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">

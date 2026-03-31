@@ -251,35 +251,35 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 7.1 Card Creation
 
-- [ ] 7.1.1 "New Card" button per column: create a card in the target phase
-- [ ] 7.1.2 Card creation form: title, description, optional parent phase/section
-- [ ] 7.1.3 Backend: create spec directory (`specs/YYYY-MM-DD_feature_name/`) with README.md and tasks.md scaffolds
-- [ ] 7.1.4 Backend: append new roadmap item to ROADMAP.md under the correct phase/section
-- [ ] 7.1.5 Auto-assign item number based on existing numbering scheme in the section
+- [x] 7.1.1 "New Card" button per column: create a card in the target phase
+- [x] 7.1.2 Card creation form: title, description, optional parent phase/section
+- [x] 7.1.3 Backend: create spec directory (`specs/YYYY-MM-DD_feature_name/`) with README.md and tasks.md scaffolds
+- [x] 7.1.4 Backend: append new roadmap item to ROADMAP.md under the correct phase/section
+- [x] 7.1.5 Auto-assign item number based on existing numbering scheme in the section
 
 ### 7.2 Inline Spec Editing
 
-- [ ] 7.2.1 Markdown editor component with live preview (split-pane or toggle)
-- [ ] 7.2.2 Edit README.md from the card detail panel (feature description, status, overview)
-- [ ] 7.2.3 Edit tasks.md from the card detail panel (add/remove/reorder tasks)
-- [ ] 7.2.4 Task checkbox toggling: click a checkbox in the task list to toggle `[x]`/`[ ]` and commit
-- [ ] 7.2.5 Edit plan.md and requirements.md if present
-- [ ] 7.2.6 Save commits with descriptive messages: `wheatley: update {spec-name}/README.md`
+- [x] 7.2.1 Markdown editor component with live preview (split-pane or toggle)
+- [x] 7.2.2 Edit README.md from the card detail panel (feature description, status, overview)
+- [x] 7.2.3 Edit tasks.md from the card detail panel (add/remove/reorder tasks)
+- [x] 7.2.4 Task checkbox toggling: click a checkbox in the task list to toggle `[x]`/`[ ]` and commit
+- [x] 7.2.5 Edit plan.md and requirements.md if present
+- [x] 7.2.6 Save commits with descriptive messages: `wheatley: update {spec-name}/README.md`
 
 ### 7.3 Per-Card Comments & Discussion
 
-- [ ] 7.3.1 Comment thread UI in the card detail panel (below spec content)
-- [ ] 7.3.2 Comments stored as append-only entries in `specs/{feature}/comments.md`
-- [ ] 7.3.3 Each comment: author, timestamp, markdown body
-- [ ] 7.3.4 Comment notifications: emit webhook events when a comment is added
-- [ ] 7.3.5 @mention support: reference other users in comments with autocomplete
+- [x] 7.3.1 Comment thread UI in the card detail panel (below spec content)
+- [x] 7.3.2 Comments stored as append-only entries in `specs/{feature}/comments.md`
+- [x] 7.3.3 Each comment: author, timestamp, markdown body
+- [x] 7.3.4 Comment notifications: emit webhook events when a comment is added
+- [x] 7.3.5 @mention support: reference other users in comments with autocomplete
 
 ### 7.4 Roadmap Editing
 
-- [ ] 7.4.1 Edit card title from the board (inline rename)
-- [ ] 7.4.2 Delete/archive a card: move spec directory to `specs/_archived/` or remove roadmap line
-- [ ] 7.4.3 Reorder items within a phase section in ROADMAP.md
-- [ ] 7.4.4 Undo last edit: revert the most recent Wheatley commit with `git revert`
+- [x] 7.4.1 Edit card title from the board (inline rename)
+- [x] 7.4.2 Delete/archive a card: move spec directory to `specs/_archived/` or remove roadmap line
+- [x] 7.4.3 Reorder items within a phase section in ROADMAP.md
+- [x] 7.4.4 Undo last edit: revert the most recent Wheatley commit with `git revert`
 
 ## Phase 8: Search, Metadata & Navigation
 
