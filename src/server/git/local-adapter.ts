@@ -192,6 +192,29 @@ export class LocalGitAdapter implements GitAdapter {
     }
   }
 
+  async getCommitsBehind(branch: string, baseBranch: string): Promise<number> {
+    try {
+      const safeB = this.safeRef(branch);
+      const safeBase = this.safeRef(baseBranch);
+      // rev-list --count baseBranch..branch gives commits on baseBranch not on branch
+      const output = await this.git.raw(['rev-list', '--count', `${safeB}..${safeBase}`]);
+      return parseInt(output.trim(), 10) || 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  async getLastCommitDate(branch: string): Promise<string | null> {
+    try {
+      const safeB = this.safeRef(branch);
+      const output = await this.git.raw(['log', '-1', '--format=%cI', safeB]);
+      const trimmed = output.trim();
+      return trimmed || null;
+    } catch {
+      return null;
+    }
+  }
+
   private async listFromGit(path: string, ref: string): Promise<DirectoryEntry[]> {
     const treePath = path.endsWith('/') ? path : `${path}/`;
     const output = await this.git.raw(['ls-tree', ref, treePath]);

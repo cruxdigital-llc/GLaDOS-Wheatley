@@ -5,7 +5,14 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchBoard, fetchCardDetail, fetchBranches } from '../api.js';
+import {
+  fetchBoard,
+  fetchCardDetail,
+  fetchBranches,
+  fetchConsolidatedBoard,
+  fetchBranchHealth,
+  type ConsolidatedBoardQuery,
+} from '../api.js';
 
 export function useBoard(branch?: string) {
   return useQuery({
@@ -28,5 +35,23 @@ export function useBranches() {
     queryKey: ['branches'],
     queryFn: fetchBranches,
     staleTime: 60_000, // Branches change infrequently
+  });
+}
+
+export function useConsolidatedBoard(query?: ConsolidatedBoardQuery, enabled = true) {
+  return useQuery({
+    queryKey: ['board', 'consolidated', query],
+    queryFn: () => fetchConsolidatedBoard(query),
+    refetchInterval: 60_000,
+    enabled,
+  });
+}
+
+export function useBranchHealth(base?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['branches', 'health', base],
+    queryFn: () => fetchBranchHealth(base),
+    staleTime: 60_000,
+    enabled,
   });
 }

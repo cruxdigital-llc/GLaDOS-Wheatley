@@ -156,24 +156,24 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 4.1 Branch Enumeration & Scanning
 
-- [ ] 4.1.1 List all active branches (filter: configurable prefix/pattern, e.g., `feat/*`)
-- [ ] 4.1.2 Parse board state from each active branch independently
-- [ ] 4.1.3 Caching layer: avoid re-parsing branches that haven't changed since last scan
-- [ ] 4.1.4 Configurable scan scope: which branches to include/exclude
+- [x] 4.1.1 List all active branches (filter: configurable prefix/pattern, e.g., `feat/*`)
+- [x] 4.1.2 Parse board state from each active branch independently
+- [x] 4.1.3 Caching layer: avoid re-parsing branches that haven't changed since last scan
+- [x] 4.1.4 Configurable scan scope: which branches to include/exclude
 
 ### 4.2 Consolidated Board View
 
-- [ ] 4.2.1 Unified board that merges cards from all scanned branches
-- [ ] 4.2.2 Branch badge on each card: which branch a spec lives on
-- [ ] 4.2.3 Deduplication: same spec appearing on multiple branches shown once with branch indicators
-- [ ] 4.2.4 Toggle between single-branch view and consolidated view
+- [x] 4.2.1 Unified board that merges cards from all scanned branches
+- [x] 4.2.2 Branch badge on each card: which branch a spec lives on
+- [x] 4.2.3 Deduplication: same spec appearing on multiple branches shown once with branch indicators
+- [x] 4.2.4 Toggle between single-branch view and consolidated view
 
 ### 4.3 Branch Diff & Health
 
-- [ ] 4.3.1 Visual diff: specs that exist on a feature branch but not on main
-- [ ] 4.3.2 Commits-behind indicator: how far a feature branch is behind main
-- [ ] 4.3.3 Merge conflict risk: flag branches with overlapping file changes
-- [ ] 4.3.4 Branch age indicator: last commit timestamp per branch
+- [x] 4.3.1 Visual diff: specs that exist on a feature branch but not on main
+- [x] 4.3.2 Commits-behind indicator: how far a feature branch is behind main
+- [x] 4.3.3 Merge conflict risk: flag branches with overlapping file changes
+- [x] 4.3.4 Branch age indicator: last commit timestamp per branch
 
 ## Phase 5: Team & Agent Coordination
 

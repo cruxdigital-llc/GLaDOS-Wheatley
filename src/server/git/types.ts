@@ -54,6 +54,18 @@ export interface GitAdapter {
    * Throws Error for all other failures.
    */
   writeFile(path: string, content: string, message: string, branch?: string): Promise<void>;
+
+  /**
+   * Get the number of commits that `branch` is behind `baseBranch`.
+   * Returns 0 if the branch is up-to-date or on error.
+   */
+  getCommitsBehind(branch: string, baseBranch: string): Promise<number>;
+
+  /**
+   * Get the ISO 8601 date string of the most recent commit on `branch`.
+   * Returns null on error.
+   */
+  getLastCommitDate(branch: string): Promise<string | null>;
 }
 
 export interface GitHubConfig {

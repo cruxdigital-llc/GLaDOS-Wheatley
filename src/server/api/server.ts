@@ -11,6 +11,8 @@ import { BoardService } from './board-service.js';
 import { ClaimService } from './claim-service.js';
 import { TransitionService } from './transition-service.js';
 import { WorkflowService } from './workflow-service.js';
+import { BranchScanner } from './branch-scanner.js';
+import { BranchHealthService } from './branch-health.js';
 import { errorHandler } from './error-handler.js';
 import { healthRoutes } from './routes/health.js';
 import { boardRoutes } from './routes/board.js';
@@ -47,11 +49,13 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const gladosWebhookUrl = process.env['GLADOS_WEBHOOK_URL'];
   const workflowService = new WorkflowService(gladosWebhookUrl);
   const transitionService = new TransitionService(options.adapter, workflowService);
+  const branchScanner = new BranchScanner(options.adapter);
+  const branchHealthService = new BranchHealthService(options.adapter);
 
   // Routes (all registered as plain function calls for consistency)
   healthRoutes(app);
-  boardRoutes(app, boardService, claimService);
-  branchRoutes(app, options.adapter, boardService);
+  boardRoutes(app, boardService, claimService, options.adapter, branchScanner);
+  branchRoutes(app, options.adapter, boardService, branchHealthService);
   conformanceRoutes(app, options.adapter);
   claimsRoutes(app, claimService);
   transitionRoutes(app, transitionService);
