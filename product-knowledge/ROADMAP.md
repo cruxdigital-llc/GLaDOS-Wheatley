@@ -399,45 +399,103 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 11.1 Multiple Views
 
-- [ ] 11.1.1 List view: table layout with sortable columns (title, phase, assignee, priority, due date, last activity)
-- [ ] 11.1.2 Timeline view: horizontal Gantt-style chart showing card lifespans across phases
-- [ ] 11.1.3 View switcher in the header (Board / List / Timeline)
-- [ ] 11.1.4 Calendar view: cards plotted by due date on a month/week calendar grid
+- [x] 11.1.1 List view: table layout with sortable columns (title, phase, assignee, priority, due date, last activity)
+- [x] 11.1.2 Timeline view: horizontal Gantt-style chart showing card lifespans across phases
+- [x] 11.1.3 View switcher in the header (Board / List / Timeline)
+- [x] 11.1.4 Calendar view: cards plotted by due date on a month/week calendar grid
 
 ### 11.2 Bulk Operations
 
-- [ ] 11.2.1 Multi-select mode: Shift+Click or checkbox to select multiple cards
-- [ ] 11.2.2 Bulk move: transition all selected cards to a target phase
-- [ ] 11.2.3 Bulk assign: claim or reassign all selected cards to a user
-- [ ] 11.2.4 Bulk label/priority: apply labels or priority to all selected cards
-- [ ] 11.2.5 Bulk delete/archive: remove or archive selected cards
+- [x] 11.2.1 Multi-select mode: Shift+Click or checkbox to select multiple cards
+- [x] 11.2.2 Bulk move: transition all selected cards to a target phase
+- [x] 11.2.3 Bulk assign: claim or reassign all selected cards to a user
+- [x] 11.2.4 Bulk label/priority: apply labels or priority to all selected cards
+- [x] 11.2.5 Bulk delete/archive: remove or archive selected cards
 
 ### 11.3 Card Relationships
 
-- [ ] 11.3.1 Parent/child relationships: nest sub-tasks under a parent card (stored as frontmatter references)
-- [ ] 11.3.2 Blocks/blocked-by relationships: flag dependencies between cards
-- [ ] 11.3.3 Dependency visualization: show blocked cards with a chain icon, tooltip listing blockers
-- [ ] 11.3.4 Cycle detection: prevent circular dependency chains
+- [x] 11.3.1 Parent/child relationships: nest sub-tasks under a parent card (stored as frontmatter references)
+- [x] 11.3.2 Blocks/blocked-by relationships: flag dependencies between cards
+- [x] 11.3.3 Dependency visualization: show blocked cards with a chain icon, tooltip listing blockers
+- [x] 11.3.4 Cycle detection: prevent circular dependency chains
 
 ### 11.4 UI Polish
 
-- [ ] 11.4.1 Dark mode theme with system preference detection and manual toggle
-- [ ] 11.4.2 Responsive design for tablet and mobile viewports
-- [ ] 11.4.3 Frontend virtualized lists for boards with 100+ cards (react-window or similar)
-- [ ] 11.4.4 Undo/redo for recent board actions (in-memory action stack with revert-commit support)
-- [ ] 11.4.5 Drag-and-drop polish: smooth animations, ghost preview, touch support
+- [x] 11.4.1 Dark mode theme with system preference detection and manual toggle
+- [x] 11.4.2 Responsive design for tablet and mobile viewports
+- [x] 11.4.3 Frontend virtualized lists for boards with 100+ cards (react-window or similar)
+- [x] 11.4.4 Undo/redo for recent board actions (in-memory action stack with revert-commit support)
+- [x] 11.4.5 Drag-and-drop polish: smooth animations, ghost preview, touch support
 
 ### 11.5 Operational Tooling
 
-- [ ] 11.5.1 Structured JSON logging with configurable log levels (debug, info, warn, error)
-- [ ] 11.5.2 Prometheus metrics endpoint (`/metrics`): request latency, git operation duration, active connections
-- [ ] 11.5.3 Startup self-test: validate git connectivity, permissions, repo conformance, and required env vars
-- [ ] 11.5.4 Graceful shutdown: drain in-flight requests, close SSE connections, flush event log
+- [x] 11.5.1 Structured JSON logging with configurable log levels (debug, info, warn, error)
+- [x] 11.5.2 Prometheus metrics endpoint (`/metrics`): request latency, git operation duration, active connections
+- [x] 11.5.3 Startup self-test: validate git connectivity, permissions, repo conformance, and required env vars
+- [x] 11.5.4 Graceful shutdown: drain in-flight requests, close SSE connections, flush event log
 
 ### 11.6 Testing & Quality
 
-- [ ] 11.6.1 End-to-end tests with Playwright: board load, claim, release, transition, drag-drop, edit, search
-- [ ] 11.6.2 Load testing: concurrent claim/release/edit under contention (k6 or Artillery)
-- [ ] 11.6.3 Snapshot tests for all UI components
-- [ ] 11.6.4 API contract tests: OpenAPI spec generation and request/response validation
-- [ ] 11.6.5 Git edge-case test suite: dirty tree, merge conflicts, detached HEAD, shallow clones, missing remote
+- [x] 11.6.1 End-to-end tests with Playwright: board load, claim, release, transition, drag-drop, edit, search
+- [x] 11.6.2 Load testing: concurrent claim/release/edit under contention (k6 or Artillery)
+- [x] 11.6.3 Snapshot tests for all UI components
+- [x] 11.6.4 API contract tests: OpenAPI spec generation and request/response validation
+- [x] 11.6.5 Git edge-case test suite: dirty tree, merge conflicts, detached HEAD, shallow clones, missing remote
+
+## Phase 12: API Documentation, Export & Integration
+
+**Goal**: Make Wheatley easy to integrate with external tools and provide data portability.
+
+### 12.1 OpenAPI Documentation
+
+- [ ] 12.1.1 Generate OpenAPI 3.1 spec from Fastify route definitions (fastify-swagger or manual)
+- [ ] 12.1.2 Serve Swagger UI at `/docs` for interactive API exploration
+- [ ] 12.1.3 Per-endpoint request/response schema with examples
+- [ ] 12.1.4 API versioning strategy (URL prefix `/api/v1/` or Accept header)
+
+### 12.2 Data Export & Import
+
+- [ ] 12.2.1 CSV export: download board state as CSV (cards, phases, metadata, claims)
+- [ ] 12.2.2 JSON export: full board snapshot as machine-readable JSON
+- [ ] 12.2.3 CSV/JSON import: bulk-create cards from uploaded file with validation
+- [ ] 12.2.4 Jira import: parse Jira CSV export and map to Wheatley card model
+- [ ] 12.2.5 Archive/snapshot: create timestamped board snapshot for historical tracking
+
+### 12.3 Webhooks & Integration
+
+- [ ] 12.3.1 Outbound webhook management UI: add, edit, test, delete webhook subscriptions
+- [ ] 12.3.2 Webhook payload signing: HMAC-SHA256 signature in `X-Wheatley-Signature` header
+- [ ] 12.3.3 Webhook retry: exponential backoff on delivery failure (max 3 retries)
+- [ ] 12.3.4 Inbound webhook API: accept events from external tools to update board state
+- [ ] 12.3.5 Zapier/n8n compatible triggers: standardized event payloads for no-code automation
+
+### 12.4 Plugin System
+
+- [ ] 12.4.1 Plugin interface: define lifecycle hooks (onCardCreate, onTransition, onClaim, etc.)
+- [ ] 12.4.2 Plugin loader: discover and load plugins from `plugins/` directory or npm packages
+- [ ] 12.4.3 Built-in plugin: auto-label cards based on spec directory content
+- [ ] 12.4.4 Built-in plugin: Slack channel sync (mirror board changes to a Slack channel)
+
+## Phase 13: Analytics, Reporting & Insights
+
+**Goal**: Provide data-driven insights into project velocity, bottlenecks, and team productivity.
+
+### 13.1 Board Analytics
+
+- [ ] 13.1.1 Cycle time calculation: average time cards spend in each phase
+- [ ] 13.1.2 Throughput chart: cards completed per day/week/sprint (line chart)
+- [ ] 13.1.3 Phase distribution chart: current cards per phase (bar/pie chart)
+- [ ] 13.1.4 Cumulative flow diagram: stacked area chart of cards across phases over time
+
+### 13.2 Team Metrics
+
+- [ ] 13.2.1 Per-agent/user workload: cards claimed, completed, average cycle time
+- [ ] 13.2.2 Activity heatmap: contribution calendar showing commits/claims per day
+- [ ] 13.2.3 Bottleneck detection: flag phases where cards accumulate with high average age
+
+### 13.3 Reporting
+
+- [ ] 13.3.1 Scheduled reports: configurable weekly/monthly email digest of board metrics
+- [ ] 13.3.2 PDF report generation: downloadable summary with charts and key metrics
+- [ ] 13.3.3 Dashboard view: dedicated analytics page with configurable widget grid
+- [ ] 13.3.4 Custom date range selector for all analytics views

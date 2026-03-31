@@ -54,6 +54,9 @@ import { UserNotificationService } from '../notifications/notification-service.j
 import { userNotificationRoutes } from './routes/user-notifications.js';
 import { RepoManager } from '../multi-repo/repo-manager.js';
 import { repoRoutes } from './routes/repos.js';
+import { bulkRoutes } from './routes/bulk.js';
+import { relationshipRoutes } from './routes/relationships.js';
+import { metricsRoutes } from './routes/metrics.js';
 
 export interface ServerOptions {
   adapter: GitAdapter;
@@ -185,6 +188,9 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   pullRequestRoutes(app, platformAdapter, prLinkService);
   userNotificationRoutes(app, userNotificationService);
   repoRoutes(app, repoManager);
+  bulkRoutes(app, cardService, claimService, transitionService, options.adapter);
+  relationshipRoutes(app, options.adapter, boardService);
+  metricsRoutes(app);
 
   return app;
 }

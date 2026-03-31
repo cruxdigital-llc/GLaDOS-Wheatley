@@ -8,8 +8,11 @@
 import { createServer } from './api/server.js';
 import { createGitAdapter, configFromEnv } from './git/factory.js';
 import { WorktreeManager } from './git/worktree-manager.js';
+import { runStartupChecks } from './startup-check.js';
+import { initLogging, logger } from './logging.js';
 
 async function main(): Promise<void> {
+  initLogging();
   const config = configFromEnv();
   let worktreeManager: WorktreeManager | undefined;
 
@@ -30,6 +33,19 @@ async function main(): Promise<void> {
 
   const adapter = createGitAdapter(config, worktreeManager);
 
+  // Run startup checks
+  const checkResult = await runStartupChecks(adapter, config.mode);
+  for (const check of checkResult.checks) {
+    if (check.passed) {
+      logger.info(`Startup check [${check.name}]: ${check.message}`);
+    } else {
+      logger.warn(`Startup check [${check.name}]: ${check.message}`);
+    }
+  }
+  if (!checkResult.passed) {
+    logger.warn('Some startup checks failed — server will start but may have limited functionality');
+  }
+
   const host = process.env.HOST ?? '0.0.0.0';
   const port = parseInt(process.env.PORT ?? '3000', 10);
 
@@ -47,18 +63,32 @@ async function main(): Promise<void> {
     corsOrigin,
   });
 
-  // Graceful shutdown for Docker — clean up worktree
+  // Graceful shutdown for Docker — drain connections, flush logs, clean up worktree
+  let shuttingDown = false;
   const shutdown = async (signal: string) => {
-    server.log.info(`Received ${signal}, shutting down gracefully...`);
+    if (shuttingDown) return; // Prevent double shutdown
+    shuttingDown = true;
+    logger.info(`Received ${signal}, shutting down gracefully...`);
+
+    // Close server (drains in-flight requests, closes SSE connections)
+    try {
+      await server.close();
+      logger.info('Server connections drained');
+    } catch {
+      // Best-effort
+    }
+
+    // Clean up worktree
     if (worktreeManager) {
       try {
         await worktreeManager.destroy();
-        server.log.info('Worktree cleaned up');
+        logger.info('Worktree cleaned up');
       } catch {
         // Best-effort cleanup
       }
     }
-    await server.close();
+
+    logger.info('Shutdown complete');
     process.exit(0);
   };
 

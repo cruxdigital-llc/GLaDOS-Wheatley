@@ -31,12 +31,18 @@ export function pullRequestRoutes(
     Params: { cardId: string };
   }>('/api/prs/card/:cardId', async (request, reply) => {
     const { cardId } = request.params;
-    if (!/^\d+\.\d+\.\d+$/.test(cardId)) {
+    // Roadmap items: "1.2.3", spec items: "2026-03-28_feature_foo"
+    if (!/^[\w.\-]+$/.test(cardId)) {
       return reply.status(400).send({
         statusCode: 400,
         error: 'Bad Request',
         message: `Invalid card ID format: "${cardId}"`,
       });
+    }
+    // PR link derivation only works for numeric roadmap IDs;
+    // spec-sourced cards get an empty result rather than an error
+    if (!/^\d+\.\d+\.\d+$/.test(cardId)) {
+      return [];
     }
     const prs = await prLinkService.findPRsForCard(cardId);
     return prs;
