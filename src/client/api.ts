@@ -95,3 +95,61 @@ export async function releaseItem(itemId: string, claimant?: string): Promise<Cl
     method: 'DELETE',
   });
 }
+
+// ---------------------------------------------------------------------------
+// Transitions
+// ---------------------------------------------------------------------------
+
+export interface TransitionRequest {
+  itemId: string;
+  from: string;
+  to: string;
+  branch?: string;
+}
+
+export async function executeTransition(
+  itemId: string,
+  from: string,
+  to: string,
+  branch?: string,
+): Promise<void> {
+  const body: TransitionRequest = { itemId, from, to };
+  if (branch) body.branch = branch;
+
+  const response = await fetch(`${API_BASE}/transitions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    let message = `API error: ${response.status} ${response.statusText}`;
+    try {
+      const err = (await response.json()) as { message?: string };
+      if (err.message) message = err.message;
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Workflow status
+// ---------------------------------------------------------------------------
+
+export type WorkflowStatusCode = 'idle' | 'running' | 'done' | 'error';
+
+export interface WorkflowStatusResponse {
+  itemId: string;
+  status: WorkflowStatusCode;
+  action?: string;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
+export async function fetchWorkflowStatus(itemId: string): Promise<WorkflowStatusResponse> {
+  return fetchJson<WorkflowStatusResponse>(
+    `${API_BASE}/workflow/${encodeURIComponent(itemId)}`,
+  );
+}

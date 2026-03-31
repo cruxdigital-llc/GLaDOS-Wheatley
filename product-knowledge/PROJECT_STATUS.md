@@ -47,9 +47,15 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Claim Operations (Frontend)**: Claim/Release buttons, conflict modal, filter dropdown, user identity
 - [x] **Cross-Branch Claim Visibility**: Coordination branch claim reads, stale claim detection, visual indicators
 
-### 3. Backlog / Upcoming
+### 3. Phase 3 — Phase Transitions & Workflow Triggers
 
-- [ ] Phase 3: Phase Transitions & Workflow Triggers
+- [x] **Phase Transition Engine**: valid transitions, file actions, commit generation, validation
+- [x] **Drag-and-Drop UI**: native HTML5 DnD, drop zone validation, optimistic updates, confirmation dialog
+- [x] **GLaDOS Workflow Integration**: webhook system, workflow status polling, "GLaDOS Running..." UI feedback
+- [x] **Status Writeback**: PROJECT_STATUS.md updates, spec directory file creation, machine-parseable commits
+
+### 4. Backlog / Upcoming
+
 - [ ] Phase 4: Multi-Branch Awareness
 - [ ] Phase 5: Team & Agent Coordination
 
@@ -65,4 +71,7 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-28: Feature 2.2 (Claim Operations Backend) complete — 234 tests, GitAdapter write ops, claim/release API, conflict detection.
 - 2026-03-28: Feature 2.3 (Claim Operations Frontend) complete — Claim/Release UI, conflict modal, filters.
 - 2026-03-28: Feature 2.4 (Cross-Branch Claims) complete — 241 tests, coordination branch reads, stale detection.
-- 2026-03-28: **PHASE 2 COMPLETE** — 241 tests passing, 18/18 roadmap items done.
+- 2026-03-28: **PHASE 2 COMPLETE** — 246 tests passing, 18/18 roadmap items done.
+- 2026-03-28: Feature 3.1 (Phase Transition Engine) complete — 307 tests, validation, actions, service, API.
+- 2026-03-28: Features 3.2-3.4 complete — drag-and-drop, GLaDOS webhooks, status writeback.
+- 2026-03-28: **PHASE 3 COMPLETE** — 316 tests passing, 15/15 roadmap items done.
