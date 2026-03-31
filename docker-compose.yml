@@ -1,0 +1,14 @@
+services:
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "3000:3000"
+    environment:
+      - WHEATLEY_MODE=local
+      - WHEATLEY_REPO_PATH=/repo
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ${WHEATLEY_REPO_PATH:-.}:/repo:ro
