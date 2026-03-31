@@ -40,8 +40,12 @@ if (config.mode === 'local') {
       const email = envAuthor.match(/<(.+?)>/)?.[1] ?? null;
       cachedLocalIdentity = { name, email };
     } else if (adapter) {
-      const git = await adapter.getGitIdentity();
-      cachedLocalIdentity = { name: git.name, email: git.email };
+      try {
+        const git = await adapter.getGitIdentity();
+        cachedLocalIdentity = { name: git.name, email: git.email };
+      } catch {
+        cachedLocalIdentity = { name: null, email: null };
+      }
     } else {
       cachedLocalIdentity = { name: null, email: null };
     }
@@ -84,16 +88,23 @@ const authHook = authMiddleware(authConfig, options.adapter);
 
 **File**: `src/client/api.ts`
 
-Replace the current `fetchJson` function:
+Extract a `getStoredToken()` helper with try/catch for localStorage safety, then replace the current `fetchJson` function:
 
 ```ts
+function getStoredToken(): string | null {
+  try {
+    return typeof window !== 'undefined'
+      ? localStorage.getItem('wheatley_token')
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  // Attach JWT if available (cloud mode)
-  const token = typeof window !== 'undefined'
-    ? localStorage.getItem('wheatley_token')
-    : null;
+  const token = getStoredToken();
   const headers: Record<string, string> = {
-    ...(options?.headers as Record<string, string>),
+    ...(options?.headers as Record<string, string> | undefined),
   };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -102,11 +113,12 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...options, headers });
 
   if (response.status === 401) {
-    // Token expired or invalid — clear and redirect to login
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('wheatley_token');
-      window.location.href = '/login';
-    }
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('wheatley_token');
+        window.location.href = '/login';
+      }
+    } catch { /* localStorage unavailable */ }
     throw new Error('Authentication required');
   }
 
@@ -304,6 +316,6 @@ All changes are behavioral — no new types, no schema changes, no new files bey
 | Fix | Test File | Cases |
 |-----|-----------|-------|
 | 1 | `src/server/auth/__tests__/middleware.test.ts` | Local mode: adapter identity used. Env var override wins. Null identity fallback. Cache hit on second request. |
-| 2 | `src/client/__tests__/api.test.ts` | Token attached when present. No header when absent. 401 clears token and redirects. |
+| 2 | `src/client/__tests__/api-auth.test.ts` | Token attached when present. No header when absent. 401 clears token and redirects. Header merging with existing Content-Type. |
 | 3 | `src/server/auth/__tests__/oauth-routes.test.ts` | GitHub: 204 collaborator -> JWT with mapped role. 404 -> 403 HTML. GitLab: member found -> JWT. Not found -> 403. ADMIN_USERS override wins. |
 | 4 | `src/server/auth/__tests__/config.test.ts` | Cloud + no OAuth + GITHUB_OWNER -> warning logged. Cloud + OAuth configured -> no warning. Invalid JWT expiry -> throws. |
