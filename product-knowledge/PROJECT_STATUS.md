@@ -100,6 +100,17 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] Phase 10: Authentication, Teams & Multi-Project (4 features, 18 items)
 - [x] Phase 11: Views, Bulk Operations & Production Polish (6 features, 23 items)
 
+### 11. Resilient Markdown Parsing — Planning
+
+*Lead: Architect + QA + Product Manager*
+*See `specs/2026-03-31_feature_resilient-markdown-parsing/` for full trace*
+
+- [ ] **ParseWarning type**: Add warning type, plumb through BoardState and API
+- [ ] **Status parser fallbacks**: Unnumbered section headings, plain-text task lines
+- [ ] **Roadmap parser fallbacks**: Flexible phase/section/task formats, synthetic IDs
+- [ ] **Validator relaxation**: Downgrade non-critical errors to warnings
+- [ ] **Tests**: Fallback parsing tests, CongaLine-style fixtures, regression coverage
+
 ### 12. Backlog / Upcoming
 
 - [ ] Phase 12: API Documentation, Export & Integration (4 features, 18 items)
@@ -129,3 +140,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-29: **PHASE 9 COMPLETE** — 416 tests passing, 25/25 roadmap items done. GitHub/GitLab platform adapters, PR panels, GLaDOS workflow subprocess runner, parser config presets, ETag caching. MR review: fixed SSRF guard, specDir validation, memory leak, API mismatches.
 - 2026-03-29: **PHASE 10 COMPLETE** — 416 tests passing, 18/18 roadmap items done. JWT auth, OAuth2 GitHub/GitLab, role-based authorization, in-memory notifications, multi-repo support. MR review: fixed timing-safe API key comparison, OAuth CSRF state parameter, fetch error handling, userId injection, auth route exclusion.
 - 2026-03-29: **PHASE 11 COMPLETE** — 439 tests passing, 23/23 roadmap items done. List/Timeline/Calendar views, bulk operations, card relationships with cycle detection, dark mode, virtualized lists, undo/redo, structured logging, Prometheus metrics, startup self-test, graceful shutdown. MR review: fixed metrics memory leak, input validation, branch guards.
+- 2026-03-31: Resilient Markdown Parsing feature planned — 10 structural mismatches identified between CongaLine's GLaDOS markdown and Wheatley's parsers. Adding fallback parsing with diagnostic warnings.
