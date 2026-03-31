@@ -74,7 +74,7 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
       const params = new URLSearchParams({
         client_id: config.github.clientId,
         redirect_uri: config.github.callbackUrl,
-        scope: 'read:user user:email',
+        scope: 'read:user user:email repo',
         state,
       });
       return reply.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
@@ -164,13 +164,45 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
           avatar_url?: string;
         };
 
+        // Determine initial role from admin list
+        let role: UserRole = resolveRole(profile.login, profile.email ?? undefined);
+
+        // Verify user has access to the target repository (if configured)
+        const repoOwner = process.env['GITHUB_OWNER'];
+        const repoName = process.env['GITHUB_REPO'];
+        if (repoOwner && repoName && role !== 'admin') {
+          const collabRes = await fetch(
+            `https://api.github.com/repos/${repoOwner}/${repoName}/collaborators/${profile.login}`,
+            { headers: { Authorization: `Bearer ${tokenData.access_token}` } },
+          );
+
+          if (collabRes.status === 404 || collabRes.status === 403) {
+            return reply.type('text/html').send(
+              accessDeniedHtml(profile.login, `${repoOwner}/${repoName}`),
+            );
+          }
+
+          // 204 = collaborator confirmed. Map permission level to role.
+          if (collabRes.status === 204) {
+            const permRes = await fetch(
+              `https://api.github.com/repos/${repoOwner}/${repoName}/collaborators/${profile.login}/permission`,
+              { headers: { Authorization: `Bearer ${tokenData.access_token}` } },
+            );
+            const permData = (await permRes.json()) as { permission?: string };
+            const ghPerm = permData.permission ?? 'read';
+            role = ghPerm === 'admin' ? 'admin'
+              : ['write', 'maintain'].includes(ghPerm) ? 'editor'
+              : 'viewer';
+          }
+        }
+
         const user: AuthUser = {
           id: String(profile.id),
           name: profile.name ?? profile.login,
           email: profile.email ?? undefined,
           avatarUrl: profile.avatar_url,
           provider: 'github',
-          role: resolveRole(profile.login, profile.email ?? undefined),
+          role,
         };
 
         const jwt = signToken(userToPayload(user), config.jwtSecret, config.jwtExpirySeconds);
@@ -256,13 +288,36 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
           avatar_url?: string;
         };
 
+        // Determine initial role from admin list
+        let gitlabRole: UserRole = resolveRole(profile.username, profile.email ?? undefined);
+
+        // Verify user has access to the target project (if configured)
+        const projectId = process.env['GITLAB_PROJECT_ID'];
+        if (projectId && gitlabRole !== 'admin') {
+          const memberRes = await fetch(
+            `${config.gitlab.baseUrl}/api/v4/projects/${projectId}/members/all/${profile.id}`,
+            { headers: { Authorization: `Bearer ${tokenData.access_token}` } },
+          );
+
+          if (!memberRes.ok) {
+            return reply.type('text/html').send(
+              accessDeniedHtml(profile.username, `project ${projectId}`),
+            );
+          }
+
+          const memberData = (await memberRes.json()) as { access_level?: number };
+          // GitLab access levels: 10=Guest, 20=Reporter, 30=Developer, 40=Maintainer, 50=Owner
+          const level = memberData.access_level ?? 10;
+          gitlabRole = level >= 40 ? 'admin' : level >= 30 ? 'editor' : 'viewer';
+        }
+
         const user: AuthUser = {
           id: String(profile.id),
           name: profile.name ?? profile.username,
           email: profile.email ?? undefined,
           avatarUrl: profile.avatar_url,
           provider: 'gitlab',
-          role: resolveRole(profile.username, profile.email ?? undefined),
+          role: gitlabRole,
         };
 
         const jwt = signToken(userToPayload(user), config.jwtSecret, config.jwtExpirySeconds);
@@ -314,6 +369,31 @@ export function oauthRoutes(app: FastifyInstance, config: AuthConfig): void {
   app.post('/auth/logout', async () => {
     return { ok: true, message: 'Logged out. Clear the token on the client.' };
   });
+}
+
+/**
+ * HTML page shown when a user authenticates successfully but lacks repo access.
+ */
+function accessDeniedHtml(username: string, repoRef: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Access Denied &mdash; Wheatley</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         background: #0d1117; color: #c9d1d9;
+         display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+          padding: 40px; max-width: 460px; text-align: center; }
+  h1 { color: #f85149; font-size: 1.3rem; margin-bottom: 12px; }
+  p { color: #8b949e; margin-bottom: 20px; }
+  a { color: #58a6ff; }
+  strong { color: #c9d1d9; }
+</style></head>
+<body><div class="card">
+  <h1>Access Denied</h1>
+  <p><strong>${username}</strong> does not have access to <strong>${repoRef}</strong>.</p>
+  <p>Ask a repository admin to add you as a collaborator, then <a href="/login">try again</a>.</p>
+</div></body></html>`;
 }
 
 /**

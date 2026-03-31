@@ -86,7 +86,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const PUBLIC_PATHS = new Set(['/api/health', '/login']);
   const PUBLIC_PREFIXES = ['/auth/'];
 
-  const authHook = authMiddleware(authConfig);
+  const authHook = authMiddleware(authConfig, options.adapter);
 
   if (authConfig.mode === 'cloud') {
     // Cloud mode: require authentication, but skip for public/auth routes

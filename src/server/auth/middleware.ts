@@ -9,6 +9,7 @@
 import crypto from 'node:crypto';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { AuthConfig, AuthUser, UserRole } from './types.js';
+import type { GitAdapter } from '../git/types.js';
 import { verifyToken } from './jwt.js';
 
 // Role hierarchy for comparison
@@ -25,19 +26,41 @@ declare module 'fastify' {
   }
 }
 
+// Cached local identity — resolved once on first request, reused for process lifetime
+let cachedLocalIdentity: { name: string | null; email: string | null } | undefined;
+
 /**
  * Returns a Fastify onRequest hook that authenticates incoming requests.
- * In local mode, every request is allowed and a default editor user is created.
+ * In local mode, every request is allowed and a default editor user is created
+ * using the dev's git config identity (or WHEATLEY_COMMIT_AUTHOR env var override).
  * In cloud mode, a valid JWT or API key is required.
  */
-export function authMiddleware(config: AuthConfig) {
+export function authMiddleware(config: AuthConfig, adapter?: GitAdapter) {
   return async function authenticate(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     if (config.mode === 'local') {
-      // Local mode: always allow, create user from environment
+      // Resolve identity once: env var override > git config > fallback
+      if (!cachedLocalIdentity) {
+        const envAuthor = process.env['WHEATLEY_COMMIT_AUTHOR'];
+        if (envAuthor) {
+          const name = envAuthor.replace(/<.*>/, '').trim() || null;
+          const email = envAuthor.match(/<(.+?)>/)?.[1] ?? null;
+          cachedLocalIdentity = { name, email };
+        } else if (adapter) {
+          try {
+            const git = await adapter.getGitIdentity();
+            cachedLocalIdentity = { name: git.name, email: git.email };
+          } catch {
+            cachedLocalIdentity = { name: null, email: null };
+          }
+        } else {
+          cachedLocalIdentity = { name: null, email: null };
+        }
+      }
+
       request.user = {
         id: 'local',
-        name: process.env['WHEATLEY_COMMIT_AUTHOR']?.replace(/<.*>/, '').trim() || 'Local User',
-        email: process.env['WHEATLEY_COMMIT_AUTHOR']?.match(/<(.+?)>/)?.[1],
+        name: cachedLocalIdentity.name || 'Local User',
+        email: cachedLocalIdentity.email ?? undefined,
         provider: 'local',
         role: 'editor',
       };
@@ -112,4 +135,11 @@ export function requireRole(minRole: UserRole) {
       });
     }
   };
+}
+
+/**
+ * Reset the cached local identity. Only for use in tests.
+ */
+export function _resetCachedLocalIdentity(): void {
+  cachedLocalIdentity = undefined;
 }
