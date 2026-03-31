@@ -40,6 +40,15 @@ import { specRoutes } from './routes/specs.js';
 import { commentRoutes } from './routes/comments.js';
 import { searchRoutes } from './routes/search.js';
 import { metadataRoutes } from './routes/metadata.js';
+import { configRoutes } from './routes/config.js';
+import { workflowRunRoutes } from './routes/workflows.js';
+import { pullRequestRoutes } from './routes/pull-requests.js';
+import { BoardCache } from './board-cache.js';
+import { createPlatformAdapter } from '../platforms/factory.js';
+import { PRLinkService } from './pr-link-service.js';
+import { SubprocessRunner } from '../workflows/subprocess-runner.js';
+import { NullRunner } from '../workflows/null-runner.js';
+import type { WorkflowRunner } from '../workflows/types.js';
 
 export interface ServerOptions {
   adapter: GitAdapter;
@@ -74,8 +83,14 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const claimTTLConfig = getClaimTTLConfig();
   const conflictDetector = new ConflictDetector(options.adapter);
   const notificationService = new NotificationService();
+  const boardCache = new BoardCache();
   const cardService = new CardService(options.adapter);
   const searchService = new SearchService(boardService, options.adapter);
+  const workflowRunner: WorkflowRunner = process.env['WHEATLEY_GLADOS_CMD']
+    ? new SubprocessRunner()
+    : new NullRunner();
+  const platformAdapter = createPlatformAdapter();
+  const prLinkService = new PRLinkService(platformAdapter);
   const eventBus = new EventBus();
   const eventLogService = new EventLogService(options.adapter, eventBus);
   eventLogService.start();
@@ -87,7 +102,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
   // Routes (all registered as plain function calls for consistency)
   healthRoutes(app);
-  boardRoutes(app, boardService, claimService, options.adapter, branchScanner);
+  boardRoutes(app, boardService, claimService, options.adapter, branchScanner, boardCache);
   branchRoutes(app, options.adapter, boardService, branchHealthService, conflictDetector);
   conformanceRoutes(app, options.adapter);
   claimsRoutes(app, claimService, options.adapter, claimTTLConfig);
@@ -104,6 +119,9 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   metadataRoutes(app, options.adapter);
   syncRoutes(app, options.adapter, eventBus);
   eventLogRoutes(app, eventLogService);
+  configRoutes(app, options.adapter);
+  workflowRunRoutes(app, workflowRunner);
+  pullRequestRoutes(app, platformAdapter, prLinkService);
 
   return app;
 }

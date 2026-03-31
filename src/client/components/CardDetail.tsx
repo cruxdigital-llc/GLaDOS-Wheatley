@@ -12,6 +12,8 @@ import { saveSpecFile, renameCard, deleteCard, updateCardMetadata } from '../api
 import { MarkdownEditor } from './MarkdownEditor.js';
 import { CardTimeline } from './CardTimeline.js';
 import { CommentThread } from './CommentThread.js';
+import { PRPanel } from './PRPanel.js';
+import { WorkflowPanel } from './WorkflowPanel.js';
 
 interface CardDetailProps {
   detail: CardDetailResponse;
@@ -310,6 +312,17 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
             </div>
           </div>
         </div>
+
+        {/* PR Panel */}
+        <PRPanel cardId={card.id} />
+
+        {/* Workflow Panel */}
+        <WorkflowPanel
+          cardId={card.id}
+          specDir={specDir}
+          phase={card.phase}
+          branch={branch}
+        />
 
         {/* Spec contents */}
         <div className="flex-1 px-6 py-4 space-y-6">

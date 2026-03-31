@@ -390,3 +390,105 @@ export async function fetchActivityFeed(
   const qs = params.toString() ? `?${params.toString()}` : '';
   return fetchJson<ActivityFeedResponse>(`${API_BASE}/activity${qs}`);
 }
+
+// ---------------------------------------------------------------------------
+// Pull Requests / Merge Requests
+// ---------------------------------------------------------------------------
+
+export interface PullRequest {
+  id: number;
+  number: number;
+  title: string;
+  description: string;
+  state: 'open' | 'draft' | 'merged' | 'closed';
+  url: string;
+  sourceBranch: string;
+  targetBranch: string;
+  author: string;
+  reviewers: { name: string; state: string }[];
+  checkStatus: 'passing' | 'failing' | 'pending' | 'unknown';
+  createdAt: string;
+  updatedAt: string;
+  mergedAt?: string;
+}
+
+export async function fetchCardPRs(cardId: string): Promise<{ prs: PullRequest[] }> {
+  return fetchJson<{ prs: PullRequest[] }>(
+    `${API_BASE}/cards/${encodeURIComponent(cardId)}/prs`,
+  );
+}
+
+export async function createPR(input: {
+  title: string;
+  description: string;
+  sourceBranch: string;
+  targetBranch: string;
+  draft?: boolean;
+}): Promise<PullRequest> {
+  return fetchJson<PullRequest>(`${API_BASE}/prs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function mergePR(prNumber: number, strategy: string): Promise<void> {
+  await fetchJson(`${API_BASE}/prs/${prNumber}/merge`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ strategy }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Workflow Runs (GLaDOS orchestration)
+// ---------------------------------------------------------------------------
+
+export interface WorkflowRun {
+  id: string;
+  cardId: string;
+  type: 'plan' | 'spec' | 'implement' | 'verify';
+  state: 'queued' | 'running' | 'done' | 'error' | 'cancelled';
+  startedAt: string;
+  finishedAt?: string;
+  outputTail: string[];
+}
+
+export async function startWorkflow(
+  cardId: string,
+  type: string,
+  specDir?: string,
+  branch?: string,
+): Promise<{ runId: string }> {
+  return fetchJson<{ runId: string }>(`${API_BASE}/workflows`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardId, type, specDir, branch }),
+  });
+}
+
+export async function fetchWorkflowRun(runId: string): Promise<WorkflowRun> {
+  return fetchJson<WorkflowRun>(
+    `${API_BASE}/workflows/${encodeURIComponent(runId)}`,
+  );
+}
+
+export async function fetchWorkflowOutput(
+  runId: string,
+  from?: number,
+): Promise<{ lines: string[]; total: number }> {
+  const params = from !== undefined ? `?from=${from}` : '';
+  return fetchJson<{ lines: string[]; total: number }>(
+    `${API_BASE}/workflows/${encodeURIComponent(runId)}/output${params}`,
+  );
+}
+
+export async function cancelWorkflow(runId: string): Promise<void> {
+  await fetchJson(`${API_BASE}/workflows/${encodeURIComponent(runId)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function listActiveWorkflows(): Promise<{ runs: WorkflowRun[] }> {
+  return fetchJson<{ runs: WorkflowRun[] }>(`${API_BASE}/workflows?active=true`);
+}

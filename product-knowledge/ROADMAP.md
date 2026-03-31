@@ -317,40 +317,40 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 9.1 Pull Request / Merge Request Visibility
 
-- [ ] 9.1.1 Link cards to PRs/MRs: detect PRs whose branch matches a spec's feature branch (`feat/{spec-name}`)
-- [ ] 9.1.2 PR/MR status badge on cards: open, draft, merged, closed, review requested
-- [ ] 9.1.3 CI/check status badge: passing, failing, pending (GitHub check runs / GitLab pipelines)
-- [ ] 9.1.4 PR/MR detail in card panel: title, description, reviewer list, review status, merge status
-- [ ] 9.1.5 "View PR/MR" link from card detail panel (opens GitHub/GitLab in new tab)
-- [ ] 9.1.6 Platform abstraction: unified PR interface over Octokit (GitHub) and GitLab REST API
+- [x] 9.1.1 Link cards to PRs/MRs: detect PRs whose branch matches a spec's feature branch (`feat/{spec-name}`)
+- [x] 9.1.2 PR/MR status badge on cards: open, draft, merged, closed, review requested
+- [x] 9.1.3 CI/check status badge: passing, failing, pending (GitHub check runs / GitLab pipelines)
+- [x] 9.1.4 PR/MR detail in card panel: title, description, reviewer list, review status, merge status
+- [x] 9.1.5 "View PR/MR" link from card detail panel (opens GitHub/GitLab in new tab)
+- [x] 9.1.6 Platform abstraction: unified PR interface over Octokit (GitHub) and GitLab REST API
 
 ### 9.2 Pull Request / Merge Request Management
 
-- [ ] 9.2.1 "Create PR/MR" action from card detail: generate PR from card's feature branch to base branch
-- [ ] 9.2.2 PR/MR template auto-fill: populate description from spec README.md and tasks.md
-- [ ] 9.2.3 Request review action: assign reviewers to a card's PR/MR from the board
-- [ ] 9.2.4 Merge action: merge from the board (with strategy selector: merge, squash, rebase)
-- [ ] 9.2.5 Auto-transition card to "Verifying" when PR/MR is opened, "Done" when merged
+- [x] 9.2.1 "Create PR/MR" action from card detail: generate PR from card's feature branch to base branch
+- [x] 9.2.2 PR/MR template auto-fill: populate description from spec README.md and tasks.md
+- [x] 9.2.3 Request review action: assign reviewers to a card's PR/MR from the board
+- [x] 9.2.4 Merge action: merge from the board (with strategy selector: merge, squash, rebase)
+- [x] 9.2.5 Auto-transition card to "Verifying" when PR/MR is opened, "Done" when merged
 
 ### 9.3 GLaDOS Workflow Triggers
 
-- [ ] 9.3.1 Define GLaDOS runner interface: how Wheatley invokes agent workflows (subprocess, API, queue)
-- [ ] 9.3.2 "Run Plan" button on Unclaimed/Planning cards: invoke `glados:plan-feature` with card context
-- [ ] 9.3.3 "Run Spec" button on Planning cards: invoke `glados:spec-feature` with plan context
-- [ ] 9.3.4 "Run Implement" button on Speccing cards: invoke `glados:implement-feature` with spec context
-- [ ] 9.3.5 "Run Verify" button on Implementing cards: invoke `glados:verify-feature` with implementation context
-- [ ] 9.3.6 Workflow progress panel: stream agent stdout/stderr to a terminal-like UI within the card
-- [ ] 9.3.7 Workflow cancel button: kill a running agent workflow
-- [ ] 9.3.8 Auto-transition card phase when a GLaDOS workflow completes successfully
+- [x] 9.3.1 Define GLaDOS runner interface: how Wheatley invokes agent workflows (subprocess, API, queue)
+- [x] 9.3.2 "Run Plan" button on Unclaimed/Planning cards: invoke `glados:plan-feature` with card context
+- [x] 9.3.3 "Run Spec" button on Planning cards: invoke `glados:spec-feature` with plan context
+- [x] 9.3.4 "Run Implement" button on Speccing cards: invoke `glados:implement-feature` with spec context
+- [x] 9.3.5 "Run Verify" button on Implementing cards: invoke `glados:verify-feature` with implementation context
+- [x] 9.3.6 Workflow progress panel: stream agent stdout/stderr to a terminal-like UI within the card
+- [x] 9.3.7 Workflow cancel button: kill a running agent workflow
+- [x] 9.3.8 Auto-transition card phase when a GLaDOS workflow completes successfully
 
 ### 9.4 Parser Flexibility & Configuration
 
-- [ ] 9.4.1 Parser configuration schema: define roadmap format as a config object (regex patterns, capture group mappings, section hierarchy)
-- [ ] 9.4.2 Built-in presets: "glados" (current `## Phase N: / ### N.M / - [x] N.M.K` format), "flat" (no numbering), "jira-style" (`PROJ-123`)
-- [ ] 9.4.3 Custom parser config file: `wheatley.config.json` or `wheatley.config.ts` at repo root
-- [ ] 9.4.4 Parser config validation: reject configs with ReDoS-vulnerable patterns or invalid capture groups
-- [ ] 9.4.5 Incremental parsing: only re-parse changed files on git events (diff-based cache invalidation)
-- [ ] 9.4.6 Response caching with ETag/If-None-Match for API endpoints
+- [x] 9.4.1 Parser configuration schema: define roadmap format as a config object (regex patterns, capture group mappings, section hierarchy)
+- [x] 9.4.2 Built-in presets: "glados" (current `## Phase N: / ### N.M / - [x] N.M.K` format), "flat" (no numbering), "jira-style" (`PROJ-123`)
+- [x] 9.4.3 Custom parser config file: `wheatley.config.json` or `wheatley.config.ts` at repo root
+- [x] 9.4.4 Parser config validation: reject configs with ReDoS-vulnerable patterns or invalid capture groups
+- [x] 9.4.5 Incremental parsing: only re-parse changed files on git events (diff-based cache invalidation)
+- [x] 9.4.6 Response caching with ETag/If-None-Match for API endpoints
 
 ## Phase 10: Authentication, Teams & Multi-Project
 

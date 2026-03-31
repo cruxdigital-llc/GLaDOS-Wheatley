@@ -12,6 +12,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { BoardService } from '../board-service.js';
 import type { ClaimService } from '../claim-service.js';
+import type { BoardCache } from '../board-cache.js';
 import { BranchScanner, type BranchScanConfig } from '../branch-scanner.js';
 import { mergeBoards } from '../../../shared/consolidation/merge.js';
 import type { GitAdapter } from '../../git/types.js';
@@ -22,9 +23,33 @@ export function boardRoutes(
   claimService: ClaimService,
   adapter?: GitAdapter,
   scanner?: BranchScanner,
+  cache?: BoardCache,
 ): void {
-  app.get<{ Querystring: { branch?: string } }>('/api/board', async (request) => {
+  app.get<{ Querystring: { branch?: string } }>('/api/board', async (request, reply) => {
     const branch = request.query.branch || undefined;
+
+    // ETag / cache support
+    if (cache && adapter) {
+      const sha = await adapter.getLatestSha(branch) ?? 'unknown';
+      const cacheKey = `board:${branch ?? 'default'}`;
+      const cached = cache.get(cacheKey, sha);
+
+      if (cached) {
+        const ifNoneMatch = request.headers['if-none-match'];
+        if (ifNoneMatch === cached.etag) {
+          return reply.status(304).send();
+        }
+        void reply.header('ETag', cached.etag);
+        return cached.data;
+      }
+
+      const coordinationBranch = await claimService.getCoordinationBranch();
+      const data = await boardService.getBoardState(branch, coordinationBranch);
+      const etag = cache.set(cacheKey, data, sha);
+      void reply.header('ETag', etag);
+      return data;
+    }
+
     const coordinationBranch = await claimService.getCoordinationBranch();
     return boardService.getBoardState(branch, coordinationBranch);
   });
