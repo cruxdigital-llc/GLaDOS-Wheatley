@@ -295,6 +295,35 @@ export async function deleteCard(id: string, branch?: string): Promise<void> {
   });
 }
 
+export interface ArchiveCardResponse {
+  archived: boolean;
+  id: string;
+  specDir: string;
+  specLogEntry: string;
+}
+
+export async function archiveCard(id: string, branch?: string): Promise<ArchiveCardResponse> {
+  return fetchJson<ArchiveCardResponse>(
+    `${API_BASE}/cards/${encodeURIComponent(id)}/archive`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ branch }),
+    },
+  );
+}
+
+export async function bulkArchive(
+  cardIds: string[],
+  branch?: string,
+): Promise<{ results: Array<{ id: string; success: boolean; specDir?: string; error?: string }> }> {
+  return fetchJson(`${API_BASE}/bulk/archive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cardIds, branch }),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Comments
 // ---------------------------------------------------------------------------

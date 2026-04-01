@@ -212,6 +212,100 @@ export class LocalGitAdapter implements GitAdapter {
     }
   }
 
+  async deleteFiles(paths: string[], message: string, branch?: string): Promise<void> {
+    if (paths.length === 0) return;
+    const release = await this.acquireWriteLock();
+    try {
+      if (this.worktreeManager?.isReady()) {
+        await this._deleteViaWorktree(paths, message, branch);
+      } else {
+        await this._deleteViaMainRepo(paths, message, branch);
+      }
+    } finally {
+      release();
+    }
+  }
+
+  /**
+   * Delete files via the isolated worktree.
+   */
+  private async _deleteViaWorktree(paths: string[], message: string, branch?: string): Promise<void> {
+    const wt = this.worktreeManager!.getGit();
+    const targetBranch = this.safeRef(branch ?? (await this.getDefaultBranch()));
+
+    await wt.fetch('origin');
+    await wt.raw(['checkout', `origin/${targetBranch}`]);
+
+    // Remove files from the index and working tree
+    await wt.raw(['rm', '-r', '--ignore-unmatch', '--', ...paths]);
+    await wt.commit(message);
+
+    for (let attempt = 1; attempt <= MAX_PUSH_RETRIES; attempt++) {
+      try {
+        await wt.raw(['push', 'origin', `HEAD:${targetBranch}`]);
+        await this.git.fetch('origin').catch(() => { /* best-effort */ });
+        await this.git.raw(['update-ref', `refs/heads/${targetBranch}`, `origin/${targetBranch}`]).catch(() => { /* best-effort */ });
+        return;
+      } catch (pushErr) {
+        const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+        const isConflict = msg.includes('non-fast-forward') || msg.includes('rejected');
+
+        if (!isConflict || attempt === MAX_PUSH_RETRIES) {
+          if (isConflict) {
+            throw new ConflictError(`Push rejected after ${MAX_PUSH_RETRIES} attempts (deleteFiles)`);
+          }
+          throw pushErr;
+        }
+
+        await wt.fetch('origin');
+        await wt.raw(['checkout', `origin/${targetBranch}`]);
+        await wt.raw(['rm', '-r', '--ignore-unmatch', '--', ...paths]);
+        await wt.commit(message);
+      }
+    }
+  }
+
+  /**
+   * Delete files via the main repo (legacy path).
+   */
+  private async _deleteViaMainRepo(paths: string[], message: string, branch?: string): Promise<void> {
+    const targetBranch = this.safeRef(branch ?? (await this.getDefaultBranch()));
+    const originalBranch = await this.getCurrentBranch();
+
+    const status = await this.git.status();
+    if (!status.isClean()) {
+      throw new Error('Working tree is not clean; cannot delete files (no worktree available)');
+    }
+
+    await this.git.checkout(targetBranch);
+
+    try {
+      await this.git.raw(['rm', '-r', '--ignore-unmatch', '--', ...paths]);
+      await this.git.commit(message);
+
+      try {
+        await this.git.push('origin', targetBranch);
+      } catch (pushErr) {
+        const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+        if (msg.includes('non-fast-forward') || msg.includes('rejected')) {
+          try {
+            await this.git.reset(['--hard', `origin/${targetBranch}`]);
+          } catch {
+            // Best-effort reset
+          }
+          throw new ConflictError(`Push rejected: non-fast-forward conflict (deleteFiles)`);
+        }
+        throw pushErr;
+      }
+    } finally {
+      try {
+        await this.git.checkout(originalBranch);
+      } catch {
+        // Ignore checkout errors during cleanup
+      }
+    }
+  }
+
   /**
    * Legacy write path — directly on the main repo.
    * Requires a clean working tree. Used when worktree is unavailable.

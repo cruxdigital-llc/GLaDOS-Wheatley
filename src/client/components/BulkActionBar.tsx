@@ -7,13 +7,15 @@
 
 import React, { useState } from 'react';
 import type { BoardPhase } from '../../shared/grammar/types.js';
-import { bulkMove, bulkAssign, bulkUpdateMetadata, bulkDelete } from '../api.js';
+import { bulkMove, bulkAssign, bulkUpdateMetadata, bulkDelete, bulkArchive } from '../api.js';
 
 interface BulkActionBarProps {
   selectedIds: Set<string>;
   currentPhase?: BoardPhase;
   currentUser: string;
   branch?: string;
+  /** Map of card ID → phase for all selected cards. Used to show Archive when all are 'done'. */
+  selectedPhases?: Map<string, BoardPhase>;
   onDone: () => void;
   onClearSelection: () => void;
 }
@@ -25,6 +27,7 @@ export function BulkActionBar({
   currentPhase,
   currentUser,
   branch,
+  selectedPhases,
   onDone,
   onClearSelection,
 }: BulkActionBarProps) {
@@ -93,6 +96,24 @@ export function BulkActionBar({
       onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bulk delete failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const allDone = selectedPhases
+    ? ids.every((id) => selectedPhases.get(id) === 'done')
+    : false;
+
+  const handleBulkArchive = async () => {
+    if (!confirm(`Archive ${count} card(s)?\n\nSpec directories will be removed and entries added to the spec log.`)) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await bulkArchive(ids, branch);
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bulk archive failed');
     } finally {
       setLoading(false);
     }
@@ -167,6 +188,18 @@ export function BulkActionBar({
           </div>
         )}
       </div>
+
+      {/* Archive (only when all selected cards are done) */}
+      {allDone && (
+        <button
+          type="button"
+          disabled={loading}
+          onClick={handleBulkArchive}
+          className="text-sm px-3 py-1.5 rounded bg-slate-600 text-white hover:bg-slate-700 disabled:opacity-50"
+        >
+          Archive
+        </button>
+      )}
 
       {/* Delete */}
       <button

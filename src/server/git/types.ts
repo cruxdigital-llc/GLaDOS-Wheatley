@@ -80,6 +80,13 @@ export interface GitAdapter {
   getGitIdentity(): Promise<GitIdentity>;
 
   /**
+   * Delete one or more files from the repository and commit.
+   * Throws ConflictError on concurrent-write conflicts.
+   * Throws Error for all other failures.
+   */
+  deleteFiles(paths: string[], message: string, branch?: string): Promise<void>;
+
+  /**
    * Fetch latest refs from the remote. No-op for remote adapters.
    */
   fetchOrigin(): Promise<void>;

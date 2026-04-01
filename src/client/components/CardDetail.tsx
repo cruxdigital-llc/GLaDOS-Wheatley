@@ -8,7 +8,7 @@
 import React, { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { CardDetailResponse } from '../api.js';
-import { saveSpecFile, renameCard, deleteCard, updateCardMetadata } from '../api.js';
+import { saveSpecFile, renameCard, deleteCard, archiveCard, updateCardMetadata } from '../api.js';
 import { MarkdownEditor } from './MarkdownEditor.js';
 import { CardTimeline } from './CardTimeline.js';
 import { CommentThread } from './CommentThread.js';
@@ -34,6 +34,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameTitle, setRenameTitle] = useState(card.title);
   const [error, setError] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState(false);
 
   // Metadata editing state
   const cardMeta = card.metadata;
@@ -191,6 +192,31 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
               </p>
             </div>
             <div className="flex items-center gap-2 ml-4">
+              {card.phase === 'done' && (
+                <button
+                  type="button"
+                  disabled={archiving}
+                  onClick={async () => {
+                    if (confirm(`Archive card "${card.title}"?\n\nThe spec directory will be removed and an entry added to the spec log.`)) {
+                      setError(null);
+                      setArchiving(true);
+                      try {
+                        await archiveCard(card.id, branch);
+                        void queryClient.invalidateQueries({ queryKey: ['board'] });
+                        onClose();
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : 'Failed to archive card');
+                      } finally {
+                        setArchiving(false);
+                      }
+                    }
+                  }}
+                  className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Archive card — removes spec directory and logs to SPEC_LOG.md"
+                >
+                  {archiving ? 'Archiving…' : 'Archive'}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={async () => {
