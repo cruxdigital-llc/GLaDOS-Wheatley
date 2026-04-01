@@ -1,11 +1,26 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { createGitAdapter, configFromEnv } from '../factory.js';
 import { LocalGitAdapter } from '../local-adapter.js';
 import { RemoteGitAdapter } from '../remote-adapter.js';
 
+let tmpRepo: string;
+
+beforeAll(() => {
+  tmpRepo = mkdtempSync(join(tmpdir(), 'wheatley-test-'));
+  execFileSync('git', ['init'], { cwd: tmpRepo });
+});
+
+afterAll(() => {
+  rmSync(tmpRepo, { recursive: true, force: true });
+});
+
 describe('createGitAdapter', () => {
   it('creates LocalGitAdapter for local mode', () => {
-    const adapter = createGitAdapter({ mode: 'local', localPath: '/repo' });
+    const adapter = createGitAdapter({ mode: 'local', localPath: tmpRepo });
     expect(adapter).toBeInstanceOf(LocalGitAdapter);
   });
 

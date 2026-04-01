@@ -9,6 +9,10 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    env: {
+      WHEATLEY_MODE: 'local',
+      WHEATLEY_REPO_PATH: '/tmp/test-repo',
+    },
   },
   resolve: {
     alias: {
