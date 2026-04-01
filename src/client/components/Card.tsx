@@ -29,6 +29,16 @@ const PHASE_COLORS: Record<string, string> = {
   done: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
 };
 
+/** Map phase to wh-phase-* CSS class for left accent border */
+const PHASE_ACCENT: Record<string, string> = {
+  unclaimed: 'wh-phase-unclaimed',
+  planning: 'wh-phase-planning',
+  speccing: 'wh-phase-speccing',
+  implementing: 'wh-phase-implementing',
+  verifying: 'wh-phase-verifying',
+  done: 'wh-phase-done',
+};
+
 interface CardProps {
   card: BoardCard;
   onClick?: (card: BoardCard) => void;
@@ -74,6 +84,7 @@ export function Card({
   isFocused,
 }: CardProps) {
   const phaseColor = PHASE_COLORS[card.phase] ?? 'bg-gray-100 text-gray-700';
+  const phaseAccent = PHASE_ACCENT[card.phase] ?? '';
 
   const claimMutation = useClaimItem(branch);
   const releaseMutation = useReleaseItem(branch);
@@ -137,7 +148,7 @@ export function Card({
       tabIndex={0}
       onClick={() => onClick?.(card)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(card); } }}
-      className={`w-full text-left bg-white dark:bg-gray-800 rounded-xl shadow border dark:border-gray-700 p-3 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer dark:text-gray-100 ${isFocused ? 'border-blue-500 ring-2 ring-blue-400' : 'border-gray-200 dark:border-gray-700'}`}
+      className={`w-full text-left wh-card wh-animate-in ${phaseAccent} ${isFocused ? 'ring-2 ring-blue-400' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">

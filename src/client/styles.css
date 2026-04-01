@@ -1,3 +1,236 @@
 @import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* ═══════════════════════════════════════════════════
+   Design Tokens
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Surface colors — light */
+  --color-bg: #f8f8f6;
+  --color-bg-subtle: #f0eeeb;
+  --color-surface: #ffffff;
+  --color-surface-hover: #fafaf9;
+  --color-surface-raised: #ffffff;
+  --color-border: #e2e0db;
+  --color-border-subtle: #ebe9e4;
+
+  /* Text */
+  --color-text: #1a1a1a;
+  --color-text-secondary: #64615c;
+  --color-text-muted: #9c9893;
+
+  /* Accent */
+  --color-primary: #4f6ef7;
+  --color-primary-hover: #3b5de6;
+  --color-primary-subtle: #eef1fe;
+
+  /* Phase accents */
+  --phase-unclaimed: #78716c;
+  --phase-planning: #3b82f6;
+  --phase-speccing: #a855f7;
+  --phase-implementing: #f59e0b;
+  --phase-verifying: #f97316;
+  --phase-done: #10b981;
+
+  /* Card surfaces */
+  --card-bg: rgba(255, 255, 255, 0.82);
+  --card-border: rgba(0, 0, 0, 0.06);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+
+  /* Column */
+  --column-bg: rgba(0, 0, 0, 0.025);
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+.dark {
+  --color-bg: #0f1117;
+  --color-bg-subtle: #161923;
+  --color-surface: #1a1d27;
+  --color-surface-hover: #1e2130;
+  --color-surface-raised: #22253a;
+  --color-border: #2a2d3a;
+  --color-border-subtle: #1f2233;
+
+  --color-text: #e8e6e3;
+  --color-text-secondary: #9b97a0;
+  --color-text-muted: #5c5966;
+
+  --color-primary-subtle: #1e1b4b;
+
+  --card-bg: rgba(26, 29, 39, 0.75);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.15);
+  --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
+
+  --column-bg: rgba(255, 255, 255, 0.02);
+}
+
+/* ═══════════════════════════════════════════════════
+   Base
+   ═══════════════════════════════════════════════════ */
+
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════
+   Card — Glass-morphism surface
+   ═══════════════════════════════════════════════════ */
+
+.wh-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  padding: 0.75rem;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.wh-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+  border-color: var(--color-border);
+}
+
+.wh-card:active {
+  transform: translateY(0);
+}
+
+.wh-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-primary);
+}
+
+/* ═══════════════════════════════════════════════════
+   Phase accent left borders on cards
+   ═══════════════════════════════════════════════════ */
+
+.wh-phase-unclaimed     { border-left: 3px solid var(--phase-unclaimed); }
+.wh-phase-planning      { border-left: 3px solid var(--phase-planning); }
+.wh-phase-speccing      { border-left: 3px solid var(--phase-speccing); }
+.wh-phase-implementing  { border-left: 3px solid var(--phase-implementing); }
+.wh-phase-verifying     { border-left: 3px solid var(--phase-verifying); }
+.wh-phase-done          { border-left: 3px solid var(--phase-done); }
+
+/* ═══════════════════════════════════════════════════
+   Column
+   ═══════════════════════════════════════════════════ */
+
+.wh-column {
+  background: var(--column-bg);
+  border-radius: var(--radius-lg);
+  min-width: 280px;
+  max-width: 320px;
+}
+
+.wh-column-collapsed {
+  background: var(--column-bg);
+  border-radius: var(--radius-lg);
+  min-width: 48px;
+  max-width: 48px;
+}
+
+/* ═══════════════════════════════════════════════════
+   Animations
+   ═══════════════════════════════════════════════════ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wh-animate-in {
+  animation: fadeInUp 0.25s ease-out both;
+}
+
+/* Stagger children entrance */
+.wh-stagger > * {
+  animation: fadeInUp 0.3s ease-out both;
+}
+.wh-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.wh-stagger > *:nth-child(2) { animation-delay: 30ms; }
+.wh-stagger > *:nth-child(3) { animation-delay: 60ms; }
+.wh-stagger > *:nth-child(4) { animation-delay: 90ms; }
+.wh-stagger > *:nth-child(5) { animation-delay: 120ms; }
+.wh-stagger > *:nth-child(6) { animation-delay: 150ms; }
+.wh-stagger > *:nth-child(7) { animation-delay: 180ms; }
+.wh-stagger > *:nth-child(8) { animation-delay: 210ms; }
+.wh-stagger > *:nth-child(n+9) { animation-delay: 240ms; }
+
+/* Workflow running glow */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.wh-glow-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════
+   Drag states
+   ═══════════════════════════════════════════════════ */
+
+.wh-drag-target {
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.wh-drag-over {
+  box-shadow: inset 0 0 0 2px var(--color-primary), 0 0 20px rgba(79, 110, 247, 0.1);
+  background: var(--color-primary-subtle);
+}
+
+.wh-drag-invalid {
+  opacity: 0.3;
+}
