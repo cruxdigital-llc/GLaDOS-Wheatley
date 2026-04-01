@@ -44,8 +44,46 @@ export class ClaimConflictError extends Error {
   }
 }
 
+/**
+ * Read the stored JWT token (cloud mode).
+ * Returns null if no token is stored or localStorage is unavailable.
+ */
+function getStoredToken(): string | null {
+  try {
+    return typeof window !== 'undefined'
+      ? localStorage.getItem('wheatley_token')
+      : null;
+  } catch {
+    // localStorage may be disabled (private browsing, security policy)
+    return null;
+  }
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options);
+  // Attach JWT Bearer header if a token is available (cloud mode)
+  const token = getStoredToken();
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401) {
+    // Token expired or invalid — clear and redirect to login
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('wheatley_token');
+        window.location.href = '/login';
+      }
+    } catch {
+      // localStorage unavailable — nothing to clear
+    }
+    throw new Error('Authentication required');
+  }
+
   if (!response.ok) {
     throw new Error(`API error: ${response.status} ${response.statusText}`);
   }
