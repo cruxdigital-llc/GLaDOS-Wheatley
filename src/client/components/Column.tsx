@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import type { BoardColumn as BoardColumnType, BoardCard, BoardPhase } from '../../shared/grammar/types.js';
 import { Card } from './Card.js';
+import { phaseDisplayName } from '../../shared/display-names.js';
 
 const COLUMN_HEADER_COLORS: Record<string, string> = {
   unclaimed: 'border-t-gray-400',
@@ -104,30 +105,20 @@ export function Column({
   if (collapsed) {
     return (
       <div
-        className={`flex flex-col bg-gray-50 rounded-lg border-t-4 ${borderColor} min-w-[48px] max-w-[48px] transition-all ${dropZoneClass}`}
+        className={`flex flex-col bg-gray-50 dark:bg-gray-800/50 rounded-lg border-t-4 ${borderColor} min-w-[48px] max-w-[48px] transition-all ${dropZoneClass}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         <div className="flex flex-col items-center py-2 gap-1">
-          {onToggleCollapse && (
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              className="text-gray-400 hover:text-gray-600 text-xs leading-none"
-              title="Expand column"
-            >
-              &#9656;
-            </button>
-          )}
-          <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 px-1 py-0.5">
             {column.cards.length}
           </span>
           <span
-            className="text-xs font-semibold text-gray-700 whitespace-nowrap"
+            className="text-xs font-semibold tracking-wider uppercase text-gray-500 dark:text-gray-400 whitespace-nowrap"
             style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
           >
-            {column.title}
+            {phaseDisplayName(column.phase)}
           </span>
         </div>
       </div>
@@ -136,37 +127,25 @@ export function Column({
 
   return (
     <div
-      className={`flex flex-col bg-gray-50 rounded-lg border-t-4 ${borderColor} min-w-[280px] max-w-[320px] transition-all ${dropZoneClass}`}
+      className={`flex flex-col bg-gray-50 dark:bg-gray-800/50 rounded-lg border-t-4 ${borderColor} min-w-[280px] max-w-[320px] transition-all ${dropZoneClass}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       <div className="px-3 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          {onToggleCollapse && (
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              className="text-gray-400 hover:text-gray-600 text-xs leading-none"
-              title="Collapse column"
-            >
-              &#9662;
-            </button>
-          )}
-          <h2 className="text-sm font-semibold text-gray-700">{column.title}</h2>
-        </div>
+        <h2 className="text-xs font-semibold tracking-wider uppercase text-gray-500 dark:text-gray-400">{phaseDisplayName(column.phase)}</h2>
         <div className="flex items-center gap-1.5">
           {onAddCard && (
             <button
               type="button"
               onClick={() => onAddCard(column.phase)}
-              className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded w-5 h-5 flex items-center justify-center text-sm leading-none"
+              className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded w-5 h-5 flex items-center justify-center text-sm leading-none"
               title="Add card"
             >
               +
             </button>
           )}
-          <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
+          <span className="text-[10px] text-gray-400 dark:text-gray-500">
             {column.cards.length}
           </span>
         </div>
@@ -174,7 +153,7 @@ export function Column({
 
       <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
         {column.cards.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-4">
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-4">
             {isDragOver ? 'Drop here' : 'No items'}
           </p>
         ) : (

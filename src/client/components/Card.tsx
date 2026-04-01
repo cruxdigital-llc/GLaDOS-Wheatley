@@ -11,6 +11,7 @@ import type { BoardCard, BoardPhase } from '../../shared/grammar/types.js';
 import { useClaimItem, useReleaseItem } from '../hooks/use-claims.js';
 import { useWorkflowStatus } from '../hooks/use-workflow-status.js';
 import { ClaimConflictError } from '../api.js';
+import { phaseDisplayName } from '../../shared/display-names.js';
 
 const PRIORITY_COLORS: Record<string, string> = {
   P0: 'bg-red-500 text-white',
@@ -20,12 +21,12 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 const PHASE_COLORS: Record<string, string> = {
-  unclaimed: 'bg-gray-100 text-gray-700',
-  planning: 'bg-blue-100 text-blue-700',
-  speccing: 'bg-purple-100 text-purple-700',
-  implementing: 'bg-yellow-100 text-yellow-700',
-  verifying: 'bg-orange-100 text-orange-700',
-  done: 'bg-green-100 text-green-700',
+  unclaimed: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+  planning: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  speccing: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+  implementing: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
+  verifying: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
+  done: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
 };
 
 interface CardProps {
@@ -136,14 +137,14 @@ export function Card({
       tabIndex={0}
       onClick={() => onClick?.(card)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(card); } }}
-      className={`w-full text-left bg-white rounded-lg shadow-sm border p-3 hover:shadow-md transition-shadow cursor-pointer ${isFocused ? 'border-blue-500 ring-2 ring-blue-400' : 'border-gray-200'}`}
+      className={`w-full text-left bg-white dark:bg-gray-800 rounded-xl shadow border dark:border-gray-700 p-3 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer dark:text-gray-100 ${isFocused ? 'border-blue-500 ring-2 ring-blue-400' : 'border-gray-200 dark:border-gray-700'}`}
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium text-gray-900 leading-tight">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
           {card.title}
         </h3>
         {card.source === 'spec' && (
-          <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">
+          <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
             spec
           </span>
         )}
@@ -151,14 +152,14 @@ export function Card({
 
       <div className="mt-2 flex items-center gap-2 flex-wrap">
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${phaseColor}`}>
-          {card.phase}
+          {phaseDisplayName(card.phase)}
         </span>
         {card.metadata?.priority && (
           <span className={`text-xs px-1.5 py-0.5 rounded font-semibold leading-none ${PRIORITY_COLORS[card.metadata.priority]}`}>
             {card.metadata.priority}
           </span>
         )}
-        <span className="text-xs text-gray-400">{card.id}</span>
+        <span className="text-xs text-gray-400 dark:text-gray-500">{card.id}</span>
       </div>
 
       {/* Metadata: labels and due date */}
@@ -167,7 +168,7 @@ export function Card({
           {card.metadata.labels?.slice(0, 2).map((label) => (
             <span
               key={label}
-              className="text-xs px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200"
+              className="text-xs px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700"
             >
               {label}
             </span>
@@ -192,28 +193,13 @@ export function Card({
           <span
             className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border w-fit font-medium ${
               isOwnClaim
-                ? 'bg-green-50 text-green-700 border-green-200'
-                : 'bg-gray-100 text-gray-600 border-gray-200'
+                ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
+                : 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
             }`}
           >
             {isOwnClaim ? 'You' : card.claim.claimant}
           </span>
-          <span className="text-xs text-gray-400">{formatClaimTime(card.claim.claimedAt)}</span>
-          {/* Cross-branch indicator: shown when the claim comes from a different branch */}
-          {coordinationBranch && branch && coordinationBranch !== branch && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 w-fit">
-              coordination branch
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Stale claim warning: claim exists but no spec or status activity on viewed branch */}
-      {card.stale && (
-        <div className="mt-1">
-          <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
-            stale claim
-          </span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">{formatClaimTime(card.claim.claimedAt)}</span>
         </div>
       )}
 
@@ -224,9 +210,9 @@ export function Card({
             type="button"
             onClick={handleClaim}
             disabled={claimMutation.isPending}
-            className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 dark:border-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {claimMutation.isPending ? 'Claiming…' : 'Claim'}
+            {claimMutation.isPending ? 'Assigning…' : 'Assign to me'}
           </button>
         )}
         {isOwnClaim && (
@@ -234,9 +220,9 @@ export function Card({
             type="button"
             onClick={handleRelease}
             disabled={releaseMutation.isPending}
-            className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 dark:border-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {releaseMutation.isPending ? 'Releasing…' : 'Release'}
+            {releaseMutation.isPending ? 'Unassigning…' : 'Unassign'}
           </button>
         )}
       </div>

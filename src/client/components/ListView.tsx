@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { BoardCard, BoardColumn, BoardPhase } from '../../shared/grammar/types.js';
+import { phaseDisplayName } from '../../shared/display-names.js';
 
 const PHASE_COLORS: Record<string, string> = {
   unclaimed: 'bg-gray-100 text-gray-700',
@@ -139,12 +140,12 @@ export default function ListView({ columns, onCardClick, currentUser }: ListView
   }
 
   const headerClass =
-    'px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-700';
+    'px-3 py-2 text-left text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-100';
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+        <thead className="bg-gray-50 dark:bg-gray-800">
           <tr>
             <th className={headerClass} onClick={() => handleSort('title')}>
               Title{sortIndicator('title')}
@@ -166,7 +167,7 @@ export default function ListView({ columns, onCardClick, currentUser }: ListView
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-100">
+        <tbody className="bg-white dark:bg-gray-800/50 divide-y divide-gray-100 dark:divide-gray-700">
           {sortedCards.map((card) => {
             const assignee = getAssignee(card);
             const priority = getPriority(card);
@@ -179,10 +180,10 @@ export default function ListView({ columns, onCardClick, currentUser }: ListView
               <tr
                 key={card.id}
                 onClick={() => onCardClick(card)}
-                className="cursor-pointer hover:bg-gray-50 transition-colors"
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 {/* Title */}
-                <td className="px-3 py-2 font-medium text-gray-900 max-w-xs truncate">
+                <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100 max-w-xs truncate">
                   {card.title}
                 </td>
 
@@ -191,12 +192,12 @@ export default function ListView({ columns, onCardClick, currentUser }: ListView
                   <span
                     className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${PHASE_COLORS[card.phase] ?? 'bg-gray-100 text-gray-700'}`}
                   >
-                    {card.phase}
+                    {phaseDisplayName(card.phase)}
                   </span>
                 </td>
 
                 {/* Assignee */}
-                <td className="px-3 py-2 text-gray-600">
+                <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
                   {assignee ? (
                     <span className={isCurrentUser ? 'font-semibold text-blue-600' : ''}>
                       {assignee}
@@ -220,12 +221,12 @@ export default function ListView({ columns, onCardClick, currentUser }: ListView
                 </td>
 
                 {/* Due date with overdue highlighting */}
-                <td className={`px-3 py-2 ${overdue ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                <td className={`px-3 py-2 ${overdue ? 'text-red-600 font-semibold' : 'text-gray-600 dark:text-gray-300'}`}>
                   {formatDate(due)}
                 </td>
 
                 {/* Last activity */}
-                <td className="px-3 py-2 text-gray-500">
+                <td className="px-3 py-2 text-gray-500 dark:text-gray-400">
                   {formatDate(activity)}
                 </td>
               </tr>

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { BoardCard, BoardColumn } from '../../shared/grammar/types.js';
+import { phaseDisplayName } from '../../shared/display-names.js';
 
 const PHASE_BAR_COLORS: Record<string, string> = {
   unclaimed: 'bg-gray-400',
@@ -145,7 +146,7 @@ export default function TimelineView({ columns, onCardClick }: TimelineViewProps
 
   if (cards.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-64 text-gray-400 dark:text-gray-500 text-sm">
         No cards to display on the timeline.
       </div>
     );
@@ -154,19 +155,19 @@ export default function TimelineView({ columns, onCardClick }: TimelineViewProps
   const totalHeight = HEADER_HEIGHT + cards.length * ROW_HEIGHT + 32;
 
   return (
-    <div className="overflow-x-auto border border-gray-200 rounded-lg bg-white">
+    <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
       <div
         className="relative"
         style={{ minWidth: 800, height: totalHeight }}
       >
         {/* ---- X-Axis Header ---- */}
         <div
-          className="sticky top-0 z-10 flex bg-gray-50 border-b border-gray-200"
+          className="sticky top-0 z-10 flex bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
           style={{ height: HEADER_HEIGHT }}
         >
           {/* Label column header */}
           <div
-            className="shrink-0 flex items-center px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide border-r border-gray-200"
+            className="shrink-0 flex items-center px-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide border-r border-gray-200 dark:border-gray-700"
             style={{ width: LABEL_WIDTH }}
           >
             Card
@@ -181,7 +182,7 @@ export default function TimelineView({ columns, onCardClick }: TimelineViewProps
                 style={{ left: `${tick.pct}%`, height: HEADER_HEIGHT }}
               >
                 <div className="h-full w-px bg-gray-200" />
-                <span className="absolute bottom-1 text-[10px] text-gray-400 whitespace-nowrap -translate-x-1/2">
+                <span className="absolute bottom-1 text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap -translate-x-1/2">
                   {tick.label}
                 </span>
               </div>
@@ -212,8 +213,8 @@ export default function TimelineView({ columns, onCardClick }: TimelineViewProps
           return (
             <div
               key={card.id}
-              className={`flex border-b border-gray-100 ${
-                isHovered ? 'bg-gray-50' : ''
+              className={`flex border-b border-gray-100 dark:border-gray-700 ${
+                isHovered ? 'bg-gray-50 dark:bg-gray-800' : ''
               }`}
               style={{
                 height: ROW_HEIGHT,
@@ -225,16 +226,16 @@ export default function TimelineView({ columns, onCardClick }: TimelineViewProps
             >
               {/* Label */}
               <div
-                className="shrink-0 flex items-center gap-2 px-3 border-r border-gray-200 overflow-hidden"
+                className="shrink-0 flex items-center gap-2 px-3 border-r border-gray-200 dark:border-gray-700 overflow-hidden"
                 style={{ width: LABEL_WIDTH }}
               >
-                <span className="truncate text-sm text-gray-700">
+                <span className="truncate text-sm text-gray-700 dark:text-gray-300">
                   {card.title}
                 </span>
                 <span
                   className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${badgeColor}`}
                 >
-                  {card.phase}
+                  {phaseDisplayName(card.phase)}
                 </span>
               </div>
 

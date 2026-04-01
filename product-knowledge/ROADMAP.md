@@ -442,7 +442,48 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 - [x] 11.6.4 API contract tests: OpenAPI spec generation and request/response validation
 - [x] 11.6.5 Git edge-case test suite: dirty tree, merge conflicts, detached HEAD, shallow clones, missing remote
 
-## Phase 12: API Documentation, Export & Integration
+## Phase 12: UI/UX Design Overhaul
+
+**Goal**: Transform the board from a developer prototype into a clean, intuitive product anyone can use without knowing GLaDOS vocabulary.
+
+### 12.1 Header Reorganization
+
+- [x] 12.1.1 Restructure header into Left (logo, repo) / Center (view switcher) / Right (user, notifications, settings) groups
+- [x] 12.1.2 Move secondary controls (sync, branch selector, activity, health) into a toolbar or settings area
+- [x] 12.1.3 Replace inline user identity text input with a cleaner user display
+
+### 12.2 Collapsible Filter Drawer
+
+- [x] 12.2.1 Replace always-visible filter bar with a "Filter" toggle button with active-filter badge
+- [x] 12.2.2 Build slide-down filter drawer with pill-style status toggles
+- [x] 12.2.3 Rename quick presets: "All", "Assigned to me", "Unassigned"
+
+### 12.3 Terminology Cleanup
+
+- [x] 12.3.1 Rename "Claim"/"Release" to "Assign to me"/"Unassign" across all components
+- [x] 12.3.2 Rename "Claimant" to "Assigned to", "Mine" to "Assigned to me", "Unclaimed" to "Unassigned"
+- [x] 12.3.3 Clean up jargon: remove "stale claim", "coordination branch" badges; rename "speccing" to "Spec", "Health" to "Branches"
+- [x] 12.3.4 Update test assertions to match new terminology (no client tests exist; server tests unaffected)
+
+### 12.4 Dark Mode Card & Panel Styling
+
+- [x] 12.4.1 Update Card component: dark backgrounds, borders, text colors
+- [x] 12.4.2 Update CardDetail panel, modals, and overlays for dark mode
+- [x] 12.4.3 Fix Calendar view dark appearance and ensure all views adapt
+
+### 12.5 Button & Label Polish
+
+- [x] 12.5.1 Capitalize all view switcher labels and column headers
+- [x] 12.5.2 Add tooltips to icon-only buttons (notifications, dark mode)
+- [x] 12.5.3 Consistent button sizing, hover/focus states throughout
+
+### 12.6 Visual Hierarchy & Spacing
+
+- [x] 12.6.1 Differentiate primary vs secondary actions visually
+- [x] 12.6.2 Improve card spacing, softer shadows, modern card styling
+- [x] 12.6.3 Cleaner column headers, more whitespace, fewer borders
+
+## Phase 13: API Documentation, Export & Integration (was 12)
 
 **Goal**: Make Wheatley easy to integrate with external tools and provide data portability.
 
@@ -476,7 +517,7 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 - [ ] 12.4.3 Built-in plugin: auto-label cards based on spec directory content
 - [ ] 12.4.4 Built-in plugin: Slack channel sync (mirror board changes to a Slack channel)
 
-## Phase 13: Analytics, Reporting & Insights
+## Phase 14: Analytics, Reporting & Insights (was 13)
 
 **Goal**: Provide data-driven insights into project velocity, bottlenecks, and team productivity.
 
