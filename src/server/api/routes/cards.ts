@@ -1,14 +1,15 @@
 /**
  * Card Management Routes
  *
- * POST   /api/cards           — create a new card
- * PUT    /api/cards/:id/title — rename a card
- * DELETE /api/cards/:id       — archive/delete a card
+ * POST   /api/cards              — create a new card
+ * PUT    /api/cards/:id/title    — rename a card
+ * DELETE /api/cards/:id          — delete a card (remove from roadmap only)
+ * POST   /api/cards/:id/archive  — archive a done card (log + delete spec + remove from roadmap)
  */
 
 import type { FastifyInstance } from 'fastify';
 import type { CardService } from '../card-service.js';
-import { CardNotFoundError } from '../card-service.js';
+import { CardNotFoundError, CardNotArchivableError } from '../card-service.js';
 import type { BoardPhase } from '../../../shared/grammar/types.js';
 import { PHASE_ORDER } from '../../../shared/grammar/types.js';
 
@@ -120,5 +121,34 @@ export function cardRoutes(app: FastifyInstance, cardService: CardService): void
       throw err;
     }
     return reply.status(200).send({ deleted: true, id });
+  });
+
+  // POST /api/cards/:id/archive — archive a done card
+  app.post<{
+    Params: { id: string };
+    Body: { branch?: unknown };
+  }>('/api/cards/:id/archive', async (request, reply) => {
+    const { id } = request.params;
+    const { branch } = request.body ?? {};
+
+    if (!SAFE_ID_RE.test(id)) {
+      return reply.status(400).send({ error: 'Invalid card ID format' });
+    }
+
+    try {
+      const result = await cardService.archiveCard(
+        id,
+        typeof branch === 'string' ? branch : undefined,
+      );
+      return reply.status(200).send({ archived: true, ...result });
+    } catch (err) {
+      if (err instanceof CardNotFoundError) {
+        return reply.status(404).send({ error: err.message });
+      }
+      if (err instanceof CardNotArchivableError) {
+        return reply.status(400).send({ error: err.message });
+      }
+      throw err;
+    }
   });
 }

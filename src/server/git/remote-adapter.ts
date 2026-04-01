@@ -159,6 +159,49 @@ export class RemoteGitAdapter implements GitAdapter {
     }
   }
 
+  async deleteFiles(paths: string[], message: string, branch?: string): Promise<void> {
+    const targetBranch = branch ?? (await this.getDefaultBranch());
+
+    for (const path of paths) {
+      // Get the current file SHA (required for deletion)
+      let sha: string | undefined;
+      try {
+        const response = await this.octokit.repos.getContent({
+          owner: this.owner,
+          repo: this.repo,
+          path,
+          ref: targetBranch,
+        });
+        const data = response.data;
+        if (!Array.isArray(data) && data.type === 'file') {
+          sha = data.sha;
+        }
+      } catch {
+        // File doesn't exist — skip
+        continue;
+      }
+
+      if (!sha) continue;
+
+      try {
+        await this.octokit.repos.deleteFile({
+          owner: this.owner,
+          repo: this.repo,
+          path,
+          message,
+          sha,
+          branch: targetBranch,
+        });
+      } catch (err) {
+        const status = (err as { status?: number }).status;
+        if (status === 409 || status === 422) {
+          throw new ConflictError(`GitHub API conflict on delete ${path}`);
+        }
+        throw err;
+      }
+    }
+  }
+
   async getCommitsBehind(branch: string, baseBranch: string): Promise<number> {
     try {
       const response = await this.octokit.repos.compareCommits({

@@ -282,4 +282,44 @@ export function bulkRoutes(
 
     return reply.status(200).send({ results });
   });
+
+  // POST /api/bulk/archive — archive multiple done cards
+  app.post<{
+    Body: {
+      cardIds?: unknown;
+      branch?: unknown;
+    };
+  }>('/api/bulk/archive', async (request, reply) => {
+    const { cardIds, branch } = request.body ?? {};
+
+    const ids = validateIds(cardIds);
+    if (!ids) {
+      return reply.status(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: `cardIds must be an array of 1-${MAX_BULK_SIZE} valid card IDs`,
+      });
+    }
+
+    const branchStr = typeof branch === 'string' ? branch : undefined;
+    if (branchStr && (!SAFE_BRANCH_RE.test(branchStr) || branchStr.includes('..'))) {
+      return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'Invalid branch name' });
+    }
+    const results: Array<{ id: string; success: boolean; specDir?: string; error?: string }> = [];
+
+    for (const id of ids) {
+      try {
+        const result = await cardService.archiveCard(id, branchStr);
+        results.push({ id, success: true, specDir: result.specDir });
+      } catch (err) {
+        results.push({
+          id,
+          success: false,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    return reply.status(200).send({ results });
+  });
 }
