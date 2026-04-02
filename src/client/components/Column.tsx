@@ -19,6 +19,15 @@ const COLUMN_HEADER_COLORS: Record<string, string> = {
   done: 'border-t-green-400',
 };
 
+const COLUMN_HEADER_TEXT: Record<string, string> = {
+  unclaimed: 'text-stone-500',
+  planning: 'text-blue-500',
+  speccing: 'text-purple-500',
+  implementing: 'text-amber-500',
+  verifying: 'text-orange-500',
+  done: 'text-emerald-500',
+};
+
 interface ColumnProps {
   column: BoardColumnType;
   onCardClick?: (card: BoardCard) => void;
@@ -62,6 +71,7 @@ export function Column({
   onToggleCollapse,
 }: ColumnProps) {
   const borderColor = COLUMN_HEADER_COLORS[column.phase] ?? 'border-t-gray-400';
+  const headerTextColor = COLUMN_HEADER_TEXT[column.phase] ?? 'text-gray-500';
   const [isDragOver, setIsDragOver] = useState(false);
 
   const isDragging = !!draggingCardId;
@@ -95,27 +105,27 @@ export function Column({
 
   let dropZoneClass = '';
   if (isDragOver && isValidTarget) {
-    dropZoneClass = 'ring-2 ring-blue-400 bg-blue-50';
+    dropZoneClass = 'wh-drag-over';
   } else if (isValidTarget) {
-    dropZoneClass = 'ring-2 ring-blue-200';
+    dropZoneClass = 'wh-drag-target';
   } else if (isInvalidTarget) {
-    dropZoneClass = 'opacity-40';
+    dropZoneClass = 'wh-drag-invalid';
   }
 
   if (collapsed) {
     return (
       <div
-        className={`flex flex-col bg-gray-50 dark:bg-gray-800/50 rounded-lg border-t-4 ${borderColor} min-w-[48px] max-w-[48px] transition-all ${dropZoneClass}`}
+        className={`flex flex-col wh-column-collapsed border-t-4 ${borderColor} transition-all ${dropZoneClass}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         <div className="flex flex-col items-center py-2 gap-1">
-          <span className="text-[10px] text-gray-400 dark:text-gray-500 px-1 py-0.5">
+          <span className="text-[10px] px-1 py-0.5" style={{ color: 'var(--color-text-muted)' }}>
             {column.cards.length}
           </span>
           <span
-            className="text-xs font-semibold tracking-wider uppercase text-gray-500 dark:text-gray-400 whitespace-nowrap"
+            className={`text-xs font-semibold tracking-wider uppercase ${headerTextColor} whitespace-nowrap`}
             style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
           >
             {phaseDisplayName(column.phase)}
@@ -127,33 +137,34 @@ export function Column({
 
   return (
     <div
-      className={`flex flex-col bg-gray-50 dark:bg-gray-800/50 rounded-lg border-t-4 ${borderColor} min-w-[280px] max-w-[320px] transition-all ${dropZoneClass}`}
+      className={`flex flex-col wh-column border-t-4 ${borderColor} transition-all ${dropZoneClass}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       <div className="px-3 py-2 flex items-center justify-between">
-        <h2 className="text-xs font-semibold tracking-wider uppercase text-gray-500 dark:text-gray-400">{phaseDisplayName(column.phase)}</h2>
+        <h2 className={`text-xs font-semibold tracking-wider uppercase ${headerTextColor}`}>{phaseDisplayName(column.phase)}</h2>
         <div className="flex items-center gap-1.5">
           {onAddCard && (
             <button
               type="button"
               onClick={() => onAddCard(column.phase)}
-              className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded w-5 h-5 flex items-center justify-center text-sm leading-none"
+              className="rounded w-5 h-5 flex items-center justify-center text-sm leading-none transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
               title="Add card"
             >
               +
             </button>
           )}
-          <span className="text-[10px] text-gray-400 dark:text-gray-500">
+          <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
             {column.cards.length}
           </span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
+      <div className="flex-1 overflow-y-auto px-2 pb-2 wh-stagger space-y-2">
         {column.cards.length === 0 ? (
-          <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-4">
+          <p className="text-xs text-center py-4" style={{ color: 'var(--color-text-muted)' }}>
             {isDragOver ? 'Drop here' : 'No items'}
           </p>
         ) : (
