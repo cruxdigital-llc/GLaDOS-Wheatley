@@ -2,8 +2,8 @@
  * Subprocess Workflow Runner
  *
  * Spawns GLaDOS CLI commands as child processes and tracks their lifecycle.
- * Supports interactive mode with prompt fence detection (:::prompt / :::)
- * and autonomous mode with auto-answer from config.
+ * Supports interactive mode via stream-json I/O with prompt fence detection
+ * (:::prompt / :::) and autonomous mode with auto-answer from config.
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -29,25 +29,6 @@ const PROMPT_OPEN = ':::prompt';
 const PROMPT_CLOSE = ':::';
 const PHASE_AUTONOMOUS = ':::phase autonomous';
 
-interface RunEntry {
-  run: WorkflowRun;
-  process: ChildProcess | null;
-  stdin: Writable | null;
-  /** Full ring-buffer of output lines (max MAX_OUTPUT_LINES). */
-  lines: string[];
-  /** Prompt fence parser state. */
-  inPromptBlock: boolean;
-  promptBuffer: string[];
-  /** Auto-answers for autonomous mode. */
-  autoAnswers: Record<string, string>;
-}
-
-function generateRunId(): string {
-  const ts = Date.now();
-  const rand = crypto.randomBytes(4).toString('hex');
-  return `wf-${ts}-${rand}`;
-}
-
 const PROMPT_FENCE_INSTRUCTIONS = `
 IMPORTANT — Wheatley Interactive Protocol:
 You are running through Wheatley's web UI. When you need user input, wrap your question in prompt fences exactly like this:
@@ -65,20 +46,66 @@ When you have finished all interactive questions and are about to begin long-run
 This signals to the UI that the user can step away.
 `.trim();
 
+interface RunEntry {
+  run: WorkflowRun;
+  process: ChildProcess | null;
+  stdin: Writable | null;
+  /** Full ring-buffer of output lines (max MAX_OUTPUT_LINES). */
+  lines: string[];
+  /** Prompt fence parser state. */
+  inPromptBlock: boolean;
+  promptBuffer: string[];
+  /** Auto-answers for autonomous mode. */
+  autoAnswers: Record<string, string>;
+  /** Whether this run uses stream-json protocol. */
+  streamJson: boolean;
+}
+
+function generateRunId(): string {
+  const ts = Date.now();
+  const rand = crypto.randomBytes(4).toString('hex');
+  return `wf-${ts}-${rand}`;
+}
+
+/**
+ * Build CLI args. When mode is set, uses stream-json for bidirectional I/O.
+ * Without mode, uses simple -p for backward compatibility.
+ */
 function buildArgs(type: WorkflowType, context: WorkflowContext): string[] {
   const target = context.specDir ?? context.cardId;
   const fenceInstructions = context.mode ? `\n\n${PROMPT_FENCE_INSTRUCTIONS}` : '';
 
+  let prompt: string;
   switch (type) {
     case 'plan':
-      return ['-p', `Run /glados:plan-feature for card ${context.cardId}${fenceInstructions}`];
+      prompt = `Run /glados:plan-feature for card ${context.cardId}${fenceInstructions}`;
+      break;
     case 'spec':
-      return ['-p', `Run /glados:spec-feature for ${target}${fenceInstructions}`];
+      prompt = `Run /glados:spec-feature for ${target}${fenceInstructions}`;
+      break;
     case 'implement':
-      return ['-p', `Run /glados:implement-feature for ${target}${fenceInstructions}`];
+      prompt = `Run /glados:implement-feature for ${target}${fenceInstructions}`;
+      break;
     case 'verify':
-      return ['-p', `Run /glados:verify-feature for ${target}${fenceInstructions}`];
+      prompt = `Run /glados:verify-feature for ${target}${fenceInstructions}`;
+      break;
   }
+
+  if (context.mode) {
+    // Stream-json output for structured parsing of Claude's responses.
+    // Note: --input-format stream-json is not yet reliable in Claude CLI,
+    // so interactive workflows run as single-shot with prompt fences as
+    // informational markers. True multi-turn interactivity will require
+    // either Claude CLI stream-json input support or a re-spawn strategy.
+    return [
+      '-p', prompt,
+      '--output-format', 'stream-json',
+      '--verbose',
+    ];
+  }
+
+  // Legacy mode: simple single-shot execution
+  return ['-p', prompt];
 }
 
 export class SubprocessRunner implements WorkflowRunner {
@@ -110,6 +137,7 @@ export class SubprocessRunner implements WorkflowRunner {
     }
 
     const mode: WorkflowMode = context.mode ?? 'interactive';
+    const useStreamJson = !!context.mode;
     const id = generateRunId();
     const now = new Date().toISOString();
 
@@ -137,10 +165,11 @@ export class SubprocessRunner implements WorkflowRunner {
       inPromptBlock: false,
       promptBuffer: [],
       autoAnswers,
+      streamJson: useStreamJson,
     };
     this.runs.set(id, entry);
 
-    // Spawn the process — stdin is now piped for interactive support
+    // Spawn the process
     const args = buildArgs(type, context);
     const child = spawn(this.cmd, args, {
       cwd: this.cwd,
@@ -152,84 +181,11 @@ export class SubprocessRunner implements WorkflowRunner {
     entry.stdin = child.stdin ?? null;
     entry.run.state = 'running';
 
-    const pushLine = (line: string): void => {
-      if (entry.lines.length >= MAX_OUTPUT_LINES) {
-        entry.lines.shift();
-      }
-      entry.lines.push(line);
-      entry.run.outputTail = entry.lines.slice();
-    };
-
-    const handleLine = (line: string): void => {
-      // Check for autonomous phase marker
-      if (line.trim() === PHASE_AUTONOMOUS) {
-        entry.run.autonomousPhase = true;
-        pushLine('[Entering autonomous execution phase]');
-        return;
-      }
-
-      if (entry.inPromptBlock) {
-        // Check for closing fence (a line that is exactly ':::' and not ':::prompt' or ':::phase')
-        if (line.trim() === PROMPT_CLOSE) {
-          entry.inPromptBlock = false;
-          const promptText = entry.promptBuffer.join('\n').trim();
-          entry.promptBuffer = [];
-
-          if (promptText) {
-            this.handlePromptDetected(entry, promptText);
-          }
-          return;
-        }
-        entry.promptBuffer.push(line);
-        return;
-      }
-
-      // Check for opening fence
-      if (line.trim() === PROMPT_OPEN) {
-        entry.inPromptBlock = true;
-        entry.promptBuffer = [];
-        return;
-      }
-
-      // Normal output line
-      pushLine(line);
-    };
-
-    const handleData = (data: Buffer): void => {
-      const text = data.toString('utf-8');
-      for (const line of text.split('\n')) {
-        if (line.length > 0) {
-          handleLine(line);
-        }
-      }
-    };
-
-    child.stdout?.on('data', handleData);
-    child.stderr?.on('data', handleData);
-
-    child.on('close', (code) => {
-      entry.run.exitCode = code ?? undefined;
-      entry.run.state = code === 0 ? 'done' : 'error';
-      entry.run.finishedAt = new Date().toISOString();
-      entry.run.pendingPrompt = undefined;
-      entry.process = null;
-      entry.stdin = null;
-
-      this.eventBus?.emit({
-        type: 'workflow-done',
-        timestamp: new Date().toISOString(),
-        runId: id,
-        detail: `Workflow ${type} ${code === 0 ? 'completed' : 'failed'} for ${context.cardId}`,
-      });
-    });
-
-    child.on('error', (err) => {
-      pushLine(`[spawn error] ${err.message}`);
-      entry.run.state = 'error';
-      entry.run.finishedAt = new Date().toISOString();
-      entry.process = null;
-      entry.stdin = null;
-    });
+    if (useStreamJson) {
+      this.attachStreamJsonHandlers(entry, child, id, type, context);
+    } else {
+      this.attachLegacyHandlers(entry, child, id, type, context);
+    }
 
     return id;
   }
@@ -258,19 +214,19 @@ export class SubprocessRunner implements WorkflowRunner {
       throw new Error('stdin is not available');
     }
 
-    // Echo the user response in output
-    const pushLine = (line: string): void => {
-      if (entry.lines.length >= MAX_OUTPUT_LINES) {
-        entry.lines.shift();
-      }
-      entry.lines.push(line);
-      entry.run.outputTail = entry.lines.slice();
-    };
+    this.pushLine(entry, `> ${text}`);
 
-    pushLine(`> ${text}`);
-
-    // Write to stdin
-    entry.stdin.write(text + '\n');
+    if (entry.streamJson) {
+      // Send as stream-json user_message
+      const msg = JSON.stringify({
+        type: 'user_message',
+        content: text,
+      });
+      entry.stdin.write(msg + '\n');
+    } else {
+      // Legacy: raw text to stdin
+      entry.stdin.write(text + '\n');
+    }
 
     // Clear prompt state
     entry.run.pendingPrompt = undefined;
@@ -306,37 +262,214 @@ export class SubprocessRunner implements WorkflowRunner {
   }
 
   // ---------------------------------------------------------------------------
-  // Private
+  // Stream-JSON I/O handlers (interactive/autonomous mode)
   // ---------------------------------------------------------------------------
+
+  private attachStreamJsonHandlers(
+    entry: RunEntry,
+    child: ChildProcess,
+    runId: string,
+    type: WorkflowType,
+    context: WorkflowContext,
+  ): void {
+    let stdoutBuffer = '';
+
+    child.stdout?.on('data', (data: Buffer) => {
+      stdoutBuffer += data.toString('utf-8');
+      const lines = stdoutBuffer.split('\n');
+      stdoutBuffer = lines.pop() ?? ''; // keep incomplete line
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line) as { type: string; [key: string]: unknown };
+          this.handleStreamJsonMessage(entry, msg);
+        } catch {
+          // Not valid JSON — treat as raw output
+          this.handleTextLine(entry, line);
+        }
+      }
+    });
+
+    // stderr is always raw text
+    child.stderr?.on('data', (data: Buffer) => {
+      const text = data.toString('utf-8');
+      for (const line of text.split('\n')) {
+        if (line.trim()) this.pushLine(entry, `[stderr] ${line}`);
+      }
+    });
+
+    this.attachProcessLifecycle(entry, child, runId, type, context);
+  }
+
+  /**
+   * Parse a stream-json message from Claude CLI stdout.
+   * We extract text content from assistant messages and look for prompt fences.
+   */
+  private handleStreamJsonMessage(
+    entry: RunEntry,
+    msg: { type: string; [key: string]: unknown },
+  ): void {
+    if (msg.type === 'assistant') {
+      // Full assistant message — extract text content
+      const message = msg.message as { content?: Array<{ type: string; text?: string }> } | undefined;
+      if (message?.content) {
+        for (const block of message.content) {
+          if (block.type === 'text' && block.text) {
+            // Process text line by line through the fence parser
+            for (const line of block.text.split('\n')) {
+              this.handleTextLine(entry, line);
+            }
+          }
+        }
+      }
+    } else if (msg.type === 'result') {
+      // Final result — extract any remaining text
+      const result = msg.result as string | undefined;
+      if (result) {
+        for (const line of result.split('\n')) {
+          if (line.trim()) this.handleTextLine(entry, line);
+        }
+      }
+    }
+    // Ignore other message types (system, rate_limit_event, etc.)
+  }
+
+  // ---------------------------------------------------------------------------
+  // Legacy text I/O handlers (no mode specified)
+  // ---------------------------------------------------------------------------
+
+  private attachLegacyHandlers(
+    entry: RunEntry,
+    child: ChildProcess,
+    runId: string,
+    type: WorkflowType,
+    context: WorkflowContext,
+  ): void {
+    const handleData = (data: Buffer): void => {
+      const text = data.toString('utf-8');
+      for (const line of text.split('\n')) {
+        if (line.length > 0) {
+          this.handleTextLine(entry, line);
+        }
+      }
+    };
+
+    child.stdout?.on('data', handleData);
+    child.stderr?.on('data', handleData);
+
+    this.attachProcessLifecycle(entry, child, runId, type, context);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Shared helpers
+  // ---------------------------------------------------------------------------
+
+  private attachProcessLifecycle(
+    entry: RunEntry,
+    child: ChildProcess,
+    runId: string,
+    type: WorkflowType,
+    context: WorkflowContext,
+  ): void {
+    child.on('close', (code) => {
+      entry.run.exitCode = code ?? undefined;
+      entry.run.state = code === 0 ? 'done' : 'error';
+      entry.run.finishedAt = new Date().toISOString();
+      entry.run.pendingPrompt = undefined;
+      entry.process = null;
+      entry.stdin = null;
+
+      this.eventBus?.emit({
+        type: 'workflow-done',
+        timestamp: new Date().toISOString(),
+        runId,
+        detail: `Workflow ${type} ${code === 0 ? 'completed' : 'failed'} for ${context.cardId}`,
+      });
+    });
+
+    child.on('error', (err) => {
+      this.pushLine(entry, `[spawn error] ${err.message}`);
+      entry.run.state = 'error';
+      entry.run.finishedAt = new Date().toISOString();
+      entry.process = null;
+      entry.stdin = null;
+    });
+  }
+
+  private pushLine(entry: RunEntry, line: string): void {
+    if (entry.lines.length >= MAX_OUTPUT_LINES) {
+      entry.lines.shift();
+    }
+    entry.lines.push(line);
+    entry.run.outputTail = entry.lines.slice();
+  }
+
+  /**
+   * Process a line of text through the prompt fence parser.
+   */
+  private handleTextLine(entry: RunEntry, line: string): void {
+    // Check for autonomous phase marker
+    if (line.trim() === PHASE_AUTONOMOUS) {
+      entry.run.autonomousPhase = true;
+      this.pushLine(entry, '[Entering autonomous execution phase]');
+      return;
+    }
+
+    if (entry.inPromptBlock) {
+      // Check for closing fence
+      if (line.trim() === PROMPT_CLOSE) {
+        entry.inPromptBlock = false;
+        const promptText = entry.promptBuffer.join('\n').trim();
+        entry.promptBuffer = [];
+
+        if (promptText) {
+          this.handlePromptDetected(entry, promptText);
+        }
+        return;
+      }
+      entry.promptBuffer.push(line);
+      return;
+    }
+
+    // Check for opening fence
+    if (line.trim() === PROMPT_OPEN) {
+      entry.inPromptBlock = true;
+      entry.promptBuffer = [];
+      return;
+    }
+
+    // Normal output line
+    if (line.trim()) {
+      this.pushLine(entry, line);
+    }
+  }
 
   /**
    * Handle a detected prompt block. In autonomous mode, auto-answer.
    * In interactive mode, set state to waiting_for_input.
    */
   private handlePromptDetected(entry: RunEntry, promptText: string): void {
-    const pushLine = (line: string): void => {
-      if (entry.lines.length >= MAX_OUTPUT_LINES) {
-        entry.lines.shift();
-      }
-      entry.lines.push(line);
-      entry.run.outputTail = entry.lines.slice();
-    };
-
     // In autonomous phase, always auto-answer
     if (entry.run.mode === 'autonomous' || entry.run.autonomousPhase) {
       const answer = this.findAutoAnswer(entry.autoAnswers, promptText);
       if (answer && entry.stdin && !entry.stdin.destroyed) {
-        pushLine(`[auto] ${promptText}`);
-        pushLine(`> ${answer}`);
-        entry.stdin.write(answer + '\n');
+        this.pushLine(entry, `[auto] ${promptText}`);
+        this.pushLine(entry, `> ${answer}`);
+
+        if (entry.streamJson) {
+          const msg = JSON.stringify({ type: 'user_message', content: answer });
+          entry.stdin.write(msg + '\n');
+        } else {
+          entry.stdin.write(answer + '\n');
+        }
         return;
       }
       // No auto-answer available — fall through to waiting_for_input
-      // even in autonomous mode so the user can intervene
     }
 
     // Interactive mode: surface the prompt
-    pushLine(`[prompt] ${promptText}`);
+    this.pushLine(entry, `[prompt] ${promptText}`);
     entry.run.pendingPrompt = promptText;
     entry.run.state = 'waiting_for_input';
 
@@ -348,9 +481,6 @@ export class SubprocessRunner implements WorkflowRunner {
     });
   }
 
-  /**
-   * Find an auto-answer by matching prompt text against known substrings.
-   */
   private findAutoAnswer(autoAnswers: Record<string, string>, promptText: string): string | undefined {
     const lower = promptText.toLowerCase();
     for (const [substring, answer] of Object.entries(autoAnswers)) {
