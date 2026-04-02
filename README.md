@@ -12,10 +12,22 @@ Wheatley renders a Kanban board directly from your repo's markdown artifacts:
 - **specs/** directories → in-flight features and their current phase
 - **PROJECT_STATUS.md** → active tasks
 - **claims.md** → who's working on what
+- **SPEC_LOG.md** → historical record of archived specs
 
 Columns map to GLaDOS workflow phases: **Unclaimed → Planning → Speccing → Implementing → Verifying → Done**
 
 Task claiming is atomic — claims are git commits, and git itself resolves contention.
+
+### Key Capabilities
+- **Card management**: Create, rename, delete, and archive cards
+- **Phase transitions**: Drag-and-drop between columns with automatic spec file creation
+- **Archive**: Done cards can be archived — spec directory is removed, and a summary entry is logged to `SPEC_LOG.md` with an AI-generated summary and commit hash
+- **Bulk operations**: Move, assign, set priority, delete, or archive multiple cards at once
+- **GLaDOS workflows**: Trigger Plan/Spec/Implement/Verify workflows directly from the board
+- **Multi-branch**: View and manage work across branches with conflict detection
+- **Search**: Full-text search across card titles, spec contents, and comments
+- **Metadata**: Priority (P0-P3), due dates, labels, and relationships between cards
+- **Real-time sync**: SSE-based live updates when the repo changes
 
 ## Modes
 
@@ -58,6 +70,44 @@ docker run -e WHEATLEY_MODE=remote \
 ├── docker-compose.yml
 └── CLAUDE.md              # Development environment rules
 ```
+
+## API
+
+All endpoints are served under `/api/`. Key routes:
+
+### Board & Cards
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/board` | Full board state (columns, cards, claims) |
+| GET | `/api/board/cards/:id` | Card detail with spec file contents |
+| POST | `/api/cards` | Create a new card |
+| PUT | `/api/cards/:id/title` | Rename a card |
+| DELETE | `/api/cards/:id` | Delete a card (removes from ROADMAP.md only) |
+| POST | `/api/cards/:id/archive` | Archive a done card (log to SPEC_LOG.md, delete spec dir, remove from roadmap) |
+
+### Claims & Transitions
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/claims/:id/claim` | Claim a card |
+| POST | `/api/claims/:id/release` | Release a claim |
+| POST | `/api/transitions` | Execute a phase transition |
+
+### Bulk Operations
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/bulk/move` | Move multiple cards to a phase |
+| POST | `/api/bulk/assign` | Assign multiple cards |
+| POST | `/api/bulk/delete` | Delete multiple cards |
+| POST | `/api/bulk/archive` | Archive multiple done cards |
+| POST | `/api/bulk/metadata` | Update metadata on multiple cards |
+
+### Other
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/search` | Full-text search |
+| GET | `/api/branches` | List branches |
+| POST | `/api/workflows/start` | Trigger a GLaDOS workflow |
+| GET | `/api/sync/events` | SSE stream for real-time updates |
 
 ## Development
 
