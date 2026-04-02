@@ -12,7 +12,8 @@ import type { BoardCard, BoardColumn, BoardPhase } from '../../shared/grammar/ty
 import { VALID_TRANSITIONS } from '../../shared/transitions/types.js';
 import { useBoard, useCardDetail, useConsolidatedBoard, useBranchHealth, useGitIdentity } from '../hooks/use-board.js';
 import { useSSE } from '../hooks/use-sse.js';
-import { triggerSync, createCard } from '../api.js';
+import { triggerSync, createCard, startWorkflow } from '../api.js';
+import type { WorkflowMode } from '../api.js';
 import { CreateCardModal } from './CreateCardModal.js';
 import { useExecuteTransition } from '../hooks/use-transitions.js';
 import { Column } from './Column.js';
@@ -20,6 +21,7 @@ import { CardDetail } from './CardDetail.js';
 import { BranchSelector } from './BranchSelector.js';
 import { ConflictModal } from './ConflictModal.js';
 import { ConfirmTransitionModal } from './ConfirmTransitionModal.js';
+import { WorkflowLaunchPanel } from './WorkflowLaunchPanel.js';
 import { BranchHealthPanel } from './BranchHealthPanel.js';
 import { ActivityFeed } from './ActivityFeed.js';
 import { RepoStatusIndicator } from './RepoStatusIndicator.js';
@@ -157,6 +159,12 @@ export function Board() {
   const [optimisticColumns, setOptimisticColumns] = useState<BoardColumn[] | null>(null);
   // Transition error
   const [transitionError, setTransitionError] = useState<string | null>(null);
+  // Workflow launch intent (from transition suggestion)
+  const [workflowLaunchIntent, setWorkflowLaunchIntent] = useState<{
+    type: string;
+    cardId: string;
+    cardTitle: string;
+  } | null>(null);
   // Card creation
   const [createCardPhase, setCreateCardPhase] = useState<BoardPhase | null>(null);
 
@@ -311,16 +319,24 @@ export function Board() {
   );
 
   const executeTransitionNow = useCallback(
-    (cardId: string, from: BoardPhase, to: BoardPhase, originalColumns: BoardColumn[]) => {
+    (cardId: string, cardTitle: string, from: BoardPhase, to: BoardPhase, originalColumns: BoardColumn[]) => {
       // Apply optimistic update
       setOptimisticColumns(moveCardOptimistically(originalColumns, cardId, to));
 
       transitionMutation.mutate(
         { itemId: cardId, from, to },
         {
-          onSuccess: () => {
+          onSuccess: (data) => {
             // Server state wins; clear optimistic override
             setOptimisticColumns(null);
+            // If the transition suggests a workflow, show the launch panel
+            if (data?.workflowSuggestion) {
+              setWorkflowLaunchIntent({
+                type: data.workflowSuggestion.type,
+                cardId: data.workflowSuggestion.cardId,
+                cardTitle,
+              });
+            }
           },
           onError: (err) => {
             // Roll back
@@ -350,17 +366,17 @@ export function Board() {
         return;
       }
 
-      executeTransitionNow(cardId, fromPhase, toPhase, sourceColumns);
+      executeTransitionNow(cardId, card?.title ?? cardId, fromPhase, toPhase, sourceColumns);
     },
     [activeBoard, optimisticColumns, executeTransitionNow],
   );
 
   const handleConfirmTransition = useCallback(() => {
     if (!pendingTransition) return;
-    const { cardId, from, to } = pendingTransition;
+    const { cardId, cardTitle, from, to } = pendingTransition;
     const sourceColumns = optimisticColumns ?? activeBoard?.columns ?? [];
     setPendingTransition(null);
-    executeTransitionNow(cardId, from, to, sourceColumns);
+    executeTransitionNow(cardId, cardTitle, from, to, sourceColumns);
   }, [pendingTransition, activeBoard, optimisticColumns, executeTransitionNow]);
 
   const handleCancelTransition = useCallback(() => {
@@ -850,6 +866,22 @@ export function Board() {
           to={pendingTransition.to}
           onConfirm={handleConfirmTransition}
           onCancel={handleCancelTransition}
+        />
+      )}
+
+      {/* Workflow Launch Panel (from transition suggestion) */}
+      {workflowLaunchIntent && (
+        <WorkflowLaunchPanel
+          cardId={workflowLaunchIntent.cardId}
+          cardTitle={workflowLaunchIntent.cardTitle}
+          workflowType={workflowLaunchIntent.type}
+          onLaunch={(mode: WorkflowMode) => {
+            void startWorkflow(workflowLaunchIntent.cardId, workflowLaunchIntent.type, undefined, branch, mode);
+            // Open the card detail to see the workflow panel
+            setSelectedCardId(workflowLaunchIntent.cardId);
+            setWorkflowLaunchIntent(null);
+          }}
+          onCancel={() => setWorkflowLaunchIntent(null)}
         />
       )}
 

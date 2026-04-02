@@ -8,6 +8,7 @@
  */
 
 import type { BoardPhase } from '../../shared/grammar/types.js';
+import type { WorkflowType } from '../workflows/types.js';
 import type { GitAdapter } from '../git/types.js';
 import { ConflictError } from '../git/types.js';
 import { validateTransition, getTransitionActions } from '../../shared/transitions/engine.js';
@@ -32,6 +33,27 @@ export class InvalidTransitionError extends Error {
 
 // Re-export so routes can import from one place
 export { ConflictError };
+
+// ---------------------------------------------------------------------------
+// Workflow suggestions
+// ---------------------------------------------------------------------------
+
+export interface WorkflowSuggestion {
+  type: WorkflowType;
+  cardId: string;
+}
+
+/** Map target phase → suggested workflow type. */
+const PHASE_WORKFLOW: Partial<Record<BoardPhase, WorkflowType>> = {
+  planning: 'plan',
+  speccing: 'spec',
+  implementing: 'implement',
+  verifying: 'verify',
+};
+
+export interface TransitionResult {
+  workflowSuggestion?: WorkflowSuggestion;
+}
 
 // ---------------------------------------------------------------------------
 // TransitionService
@@ -67,10 +89,10 @@ export class TransitionService {
     from: BoardPhase,
     to: BoardPhase,
     branch?: string,
-  ): Promise<void> {
-    const result = validateTransition(from, to);
-    if (!result.valid) {
-      throw new InvalidTransitionError(from, to, result.reason!);
+  ): Promise<TransitionResult> {
+    const validationResult = validateTransition(from, to);
+    if (!validationResult.valid) {
+      throw new InvalidTransitionError(from, to, validationResult.reason!);
     }
 
     const actions = getTransitionActions(itemId, from, to);
@@ -83,8 +105,16 @@ export class TransitionService {
     // Update PROJECT_STATUS.md
     await this.writeStatusWriteback(itemId, from, to, message, branch);
 
-    // Trigger GLaDOS workflow if applicable (fire-and-forget)
+    // Legacy webhook trigger (kept for backward compat)
     this.workflowService?.triggerWorkflow(itemId, to);
+
+    // Return workflow suggestion for the frontend to use
+    const workflowType = PHASE_WORKFLOW[to];
+    const result: TransitionResult = {};
+    if (workflowType) {
+      result.workflowSuggestion = { type: workflowType, cardId: itemId };
+    }
+    return result;
   }
 
   private async writeStatusWriteback(

@@ -345,6 +345,7 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
         {/* Workflow Panel */}
         <WorkflowPanel
           cardId={card.id}
+          cardTitle={card.title}
           specDir={specDir}
           phase={card.phase}
           branch={branch}

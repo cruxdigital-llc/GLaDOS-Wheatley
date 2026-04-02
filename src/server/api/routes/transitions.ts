@@ -61,13 +61,13 @@ export function transitionRoutes(app: FastifyInstance, transitionService: Transi
     }
 
     try {
-      await transitionService.executeTransition(
+      const result = await transitionService.executeTransition(
         itemId,
         from,
         to,
         typeof branch === 'string' ? branch : undefined,
       );
-      return reply.status(200).send({});
+      return reply.status(200).send(result);
     } catch (err) {
       if (err instanceof InvalidTransitionError) {
         return reply.status(400).send({

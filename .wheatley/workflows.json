@@ -1,0 +1,26 @@
+{
+  "plan": {
+    "defaultMode": "interactive",
+    "showLaunchPanel": true,
+    "params": [],
+    "autoAnswers": {}
+  },
+  "spec": {
+    "defaultMode": "interactive",
+    "showLaunchPanel": true,
+    "params": [],
+    "autoAnswers": {}
+  },
+  "implement": {
+    "defaultMode": "interactive",
+    "showLaunchPanel": true,
+    "params": [],
+    "autoAnswers": {}
+  },
+  "verify": {
+    "defaultMode": "autonomous",
+    "showLaunchPanel": false,
+    "params": [],
+    "autoAnswers": {}
+  }
+}

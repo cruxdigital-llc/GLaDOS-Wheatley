@@ -152,12 +152,19 @@ export interface TransitionRequest {
   branch?: string;
 }
 
+export interface TransitionResult {
+  workflowSuggestion?: {
+    type: string;
+    cardId: string;
+  };
+}
+
 export async function executeTransition(
   itemId: string,
   from: string,
   to: string,
   branch?: string,
-): Promise<void> {
+): Promise<TransitionResult> {
   const body: TransitionRequest = { itemId, from, to };
   if (branch) body.branch = branch;
 
@@ -176,6 +183,12 @@ export async function executeTransition(
       // ignore parse errors
     }
     throw new Error(message);
+  }
+
+  try {
+    return (await response.json()) as TransitionResult;
+  } catch {
+    return {};
   }
 }
 
@@ -512,13 +525,18 @@ export async function mergePR(prNumber: number, strategy: string): Promise<void>
 // Workflow Runs (GLaDOS orchestration)
 // ---------------------------------------------------------------------------
 
+export type WorkflowMode = 'autonomous' | 'interactive';
+
 export interface WorkflowRun {
   id: string;
   cardId: string;
   type: 'plan' | 'spec' | 'implement' | 'verify';
-  state: 'queued' | 'running' | 'done' | 'error' | 'cancelled';
+  state: 'queued' | 'running' | 'waiting_for_input' | 'done' | 'error' | 'cancelled';
+  mode: WorkflowMode;
   startedAt: string;
   finishedAt?: string;
+  pendingPrompt?: string;
+  autonomousPhase?: boolean;
   outputTail: string[];
 }
 
@@ -527,11 +545,12 @@ export async function startWorkflow(
   type: string,
   specDir?: string,
   branch?: string,
+  mode?: WorkflowMode,
 ): Promise<{ runId: string }> {
   return fetchJson<{ runId: string }>(`${API_BASE}/workflows`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cardId, type, specDir, branch }),
+    body: JSON.stringify({ cardId, type, specDir, branch, mode }),
   });
 }
 
@@ -559,6 +578,39 @@ export async function cancelWorkflow(runId: string): Promise<void> {
 
 export async function listActiveWorkflows(): Promise<{ runs: WorkflowRun[] }> {
   return fetchJson<{ runs: WorkflowRun[] }>(`${API_BASE}/workflows?active=true`);
+}
+
+export async function sendWorkflowInput(runId: string, text: string): Promise<void> {
+  await fetchJson(`${API_BASE}/workflows/${encodeURIComponent(runId)}/input`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Workflow Configuration
+// ---------------------------------------------------------------------------
+
+export interface WorkflowParamConfig {
+  key: string;
+  label: string;
+  type: 'text' | 'select';
+  default?: string;
+  options?: string[];
+}
+
+export interface WorkflowConfig {
+  defaultMode: WorkflowMode;
+  showLaunchPanel: boolean;
+  params: WorkflowParamConfig[];
+  autoAnswers: Record<string, string>;
+}
+
+export type WorkflowConfigMap = Partial<Record<string, WorkflowConfig>>;
+
+export async function fetchWorkflowConfig(): Promise<WorkflowConfigMap> {
+  return fetchJson<WorkflowConfigMap>(`${API_BASE}/config/workflows`);
 }
 
 // ---------------------------------------------------------------------------
