@@ -187,7 +187,37 @@ Each `CLAIM_ENTRY` maps to a `ClaimEntry` record with:
 
 The `ParsedClaims` result also exposes `activeClaims: Map<itemId, ClaimEntry>` representing the resolved active board state.
 
-## 5. Common Definitions
+## 5. SPEC_LOG.md
+
+### Structure
+
+```
+SPEC_LOG     := HEADER BLANK_LINE DIVIDER BLANK_LINE SECTION TABLE
+HEADER       := "# Spec Log" BLANK_LINE DESCRIPTION+
+DESCRIPTION  := TEXT_TO_EOL NEWLINE
+DIVIDER      := "---"
+SECTION      := "## Implemented" BLANK_LINE
+TABLE        := TABLE_HEADER TABLE_SEPARATOR TABLE_ROW*
+TABLE_HEADER := "| Date | Spec | Merge Commit | Summary |"
+TABLE_SEPARATOR := "|------|------|:------------:|---------|"
+TABLE_ROW    := "| " DATE " | " SPEC_DIR " | " SHORT_SHA " | " SUMMARY " |"
+DATE         := /\d{4}-\d{2}-\d{2}/
+SPEC_DIR     := TEXT
+SHORT_SHA    := /[a-f0-9]{7}/
+SUMMARY      := TEXT
+```
+
+### Extraction
+
+Each `TABLE_ROW` maps to a `SpecLogEntry` record with:
+- `date` = DATE (ISO 8601 date string)
+- `specDir` = SPEC_DIR (original spec directory name)
+- `commitHash` = SHORT_SHA (7-char abbreviated commit hash)
+- `summary` = SUMMARY (human-readable description of what was built)
+
+Entries are in reverse chronological order (newest first).
+
+## 6. Common Definitions
 
 ```
 TEXT_TO_EOL  := /[^\n]+/

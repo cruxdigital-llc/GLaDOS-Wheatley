@@ -277,7 +277,7 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 ### 7.4 Roadmap Editing
 
 - [x] 7.4.1 Edit card title from the board (inline rename)
-- [x] 7.4.2 Delete/archive a card: move spec directory to `specs/_archived/` or remove roadmap line
+- [x] 7.4.2 Delete/archive a card: delete removes from roadmap; archive logs to SPEC_LOG.md, deletes spec directory, and removes from roadmap
 - [x] 7.4.3 Reorder items within a phase section in ROADMAP.md
 - [x] 7.4.4 Undo last edit: revert the most recent Wheatley commit with `git revert`
 

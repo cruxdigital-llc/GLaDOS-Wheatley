@@ -117,7 +117,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const conflictDetector = new ConflictDetector(options.adapter);
   const notificationService = new NotificationService();
   const boardCache = new BoardCache();
-  const cardService = new CardService(options.adapter);
+  const cardService = new CardService(options.adapter, boardService);
   const searchService = new SearchService(boardService, options.adapter);
   const workflowRunner: WorkflowRunner = process.env['WHEATLEY_GLADOS_CMD']
     ? new SubprocessRunner()
