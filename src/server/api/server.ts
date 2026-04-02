@@ -153,6 +153,11 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
       return;
     }
 
+    // Read-only config endpoints accessible to all authenticated users
+    if (method === 'GET' && (url === '/api/config/workflows' || url === '/api/config/parser')) {
+      return;
+    }
+
     // Admin routes: any method on admin prefixes
     if (ADMIN_PREFIXES.some((prefix) => url.startsWith(prefix))) {
       return adminGuard(request, reply);
