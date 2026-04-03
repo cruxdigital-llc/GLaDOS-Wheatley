@@ -5,7 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node --import tsx ./scripts/dev.ts",
+    "dev:frontend": "vite",
     "dev:server": "tsx watch src/server/index.ts",
     "build": "tsc -p tsconfig.json",
     "preview": "vite preview",

@@ -1,4 +1,9 @@
+# Docker Compose — for testing and cloud deployment only.
+# For local development, use: npm run dev
+# See CLAUDE.md for details.
+
 services:
+  # Reproducible test runner (CI-style)
   test:
     build:
       context: .
@@ -15,6 +20,7 @@ services:
       - /app/node_modules
       - ${REPO_PATH:-.}:/repo:ro
 
+  # Cloud / remote mode server (uses API tokens, not local credentials)
   server:
     build:
       context: .
@@ -31,9 +37,6 @@ services:
     environment:
       - WHEATLEY_MODE=${WHEATLEY_MODE:-local}
       - WHEATLEY_REPO_PATH=/repo
-      # Push behavior: local mode defaults to commit-only (no push).
-      # Set to 'true' to auto-push on every write (requires credentials below).
-      # - WHEATLEY_PUSH_ON_WRITE=false
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - GITHUB_OWNER=${GITHUB_OWNER:-}
       - GITHUB_REPO=${GITHUB_REPO:-}
@@ -45,10 +48,6 @@ services:
       - ./package.json:/app/package.json
       - /app/node_modules
       - ${REPO_PATH:-.}:/repo
-      # For SSH-based remotes (when push is enabled), mount your SSH keys:
-      # - ~/.ssh:/root/.ssh:ro
-      # For GPG signing, mount the GPG agent:
-      # - ${GNUPGHOME:-~/.gnupg}:/root/.gnupg:ro
     command: npx tsx watch src/server/index.ts
 
   frontend:
