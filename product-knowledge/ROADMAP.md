@@ -34,10 +34,16 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 - [ ] 13.3.2 Diagnostic warnings surfaced in the UI when parsing encounters issues
 - [ ] 13.3.3 Tolerance for minor formatting variations (trailing whitespace, missing blank lines, alternate checkbox styles)
 
-### 13.4 Column Naming & UX Clarity
+### 13.4 Card Detail Panel Performance
 
-- [ ] 13.4.1 Clarify column semantics: columns represent "next action needed" not "current state" — update headers or add tooltips
-- [ ] 13.4.2 Configurable column labels: allow repos to define display names for phases in `.wheatley/` config
+- [ ] 13.4.1 Open detail panel immediately on card click with skeleton/spinner placeholders
+- [ ] 13.4.2 Load panel sections asynchronously (metadata, spec files, workflows, PRs) with individual loading indicators
+- [ ] 13.4.3 Render each section as it resolves rather than waiting for all data before showing the panel
+
+### 13.5 Column Naming & UX Clarity
+
+- [ ] 13.5.1 Clarify column semantics: columns represent "next action needed" not "current state" — update headers or add tooltips
+- [ ] 13.5.2 Configurable column labels: allow repos to define display names for phases in `.wheatley/` config
 
 ## Phase 14: Docker & Deployment Hardening
 
