@@ -1,62 +1,67 @@
-# Requirements: Interactive Workflows
+# Requirements: Autonomous Workflow Execution
 
 ## Goal
 
-Make GLaDOS workflows truly interactive when triggered from the Wheatley board. Whether a user drags a card to a new column or clicks a workflow button in the card detail sidebar, they get the same unified launch experience — choose autonomous or interactive mode, configure parameters, and run.
+Enable GLaDOS workflows to run autonomously from the Wheatley board with all necessary context pre-supplied. Whether a user drags a card to a new column or clicks a workflow button in the card detail sidebar, they get the same unified launch experience — configure parameters, review preamble/postamble instructions, and run.
 
 ## Functional Requirements
 
 ### FR-1: Unified Workflow Launch Panel
 - Both drag-and-drop transitions and manual button clicks surface the same WorkflowLaunchPanel modal
-- The panel displays: workflow type, card context, mode toggle (Autonomous/Interactive), configurable parameters, and a Run button
-- The transition itself (file creation, phase change) still happens immediately; the launch panel is for the subsequent workflow run
+- The panel displays: workflow type, card context, configurable parameters per workflow type, and a Run button
+- The transition itself (file creation, phase change) happens immediately; the launch panel is for the subsequent workflow run
 
-### FR-2: Interactive Mode
-- GLaDOS workflow commands emit questions wrapped in `:::prompt` / `:::` fence delimiters
-- The subprocess runner detects these fences in the output stream and sets the run state to "waiting for input"
-- The frontend renders detected prompts as chat-style messages with a text input field for user responses
-- User responses are piped to the subprocess's stdin
-- Output between prompts renders as read-only terminal output
+### FR-2: Autonomous Execution with Pre-Supplied Context
+- All workflows run as single-shot `claude -p` executions (no multi-turn)
+- The prompt is assembled from: preamble + workflow command + autonomousContext template + postamble
+- `autonomousContext` templates use `{{placeholder}}` syntax resolved from card metadata and launch panel params
+- The prompt instructs Claude not to ask questions and to use supplied answers directly
 
-### FR-3: Autonomous Mode
-- Same prompt fence detection mechanism as interactive mode
-- Instead of surfacing prompts to the user, auto-answer from per-workflow config defaults
-- The workflow runs to completion without user interaction
-- Output is still viewable in the terminal area
+### FR-3: Per-Workflow Parameters
+- Each workflow type defines relevant parameters collected in the launch panel:
+  - plan: Feature Name (auto-filled from card title), Goal, Personas
+  - spec: Focus Areas
+  - implement: Approach Notes
+  - verify: Verification Focus
+- Parameter values are resolved into the autonomousContext template before execution
 
-### FR-4: Two-Phase Execution
-- Long workflows (especially implement-feature) have an interactive setup phase followed by autonomous execution
-- A `:::phase autonomous` marker in the output signals the transition
-- After transition: the UI shifts from chat mode to a background progress indicator
-- Users can close the tab/panel and return later; notifications on completion
+### FR-4: Configurable Preamble and Postamble
+- Each workflow type supports preamble (prepended) and postamble (appended) instruction blocks
+- Defaults come from `.wheatley/workflows.json` in the repository (e.g., Docker conventions, commit instructions)
+- The launch panel shows a collapsible "Instructions" section where users can review and edit preamble/postamble per-run
+- Per-run edits override config defaults for that execution only
 
 ### FR-5: Workflow Configuration
 - Per-workflow-type config stored in `.wheatley/workflows.json` in the repository
-- Configurable: default mode, whether to show launch panel, parameter defaults, auto-answer mappings
+- Configurable: whether to show launch panel, parameter definitions, autonomousContext template, preamble, postamble
 - Config is loadable via API (`GET /api/config/workflows`)
+- Missing or invalid config falls back to built-in defaults silently
 
-### FR-6: Backward Compatibility
-- If mode is not specified, workflows run with current behavior (no stdin, fire-and-forget)
-- Existing WorkflowPanel button behavior continues to work during incremental rollout
+### FR-6: Workflow Suggestion from Transitions
+- Phase transitions return a `workflowSuggestion` in the API response
+- The frontend reads this and automatically opens the WorkflowLaunchPanel for the suggested workflow type
+- Mapping: planning->plan, speccing->spec, implementing->implement, verifying->verify
+
+### FR-7: Backward Compatibility
+- Legacy webhook-based workflow triggers (`WorkflowService.triggerWorkflow`) still fire alongside the new system
+- `NullRunner` used when `WHEATLEY_GLADOS_CMD` is not configured
+- Existing output monitoring (terminal view, cancel, history) unchanged
 
 ## Non-Functional Requirements
 
-### NFR-1: Responsiveness
-- Prompt detection and UI state change should occur within 1 polling cycle (currently 2s)
-- SSE events for workflow-prompt should provide near-instant notification
+### NFR-1: Real-Time Updates
+- Workflow output polled every 2s during active runs
+- SSE `workflow-done` events trigger immediate query invalidation for responsive UI updates
 
-### NFR-2: Reliability
-- If Claude doesn't emit proper `:::prompt` fences, provide a fallback: stall detection (>30s without output while running) shows a manual input hint
-- stdin writes must handle backpressure (don't overflow the pipe)
-
-### NFR-3: Testability
-- Prompt fence parsing must be unit-testable independent of actual Claude CLI
-- Mock subprocess for route-level integration tests
+### NFR-2: Testability
+- Template resolution logic unit-testable independent of Claude CLI
+- Config loading tested with mock GitAdapter
+- Prompt assembly tested for correct section ordering
 
 ## Success Criteria
 1. Dragging a card to Planning column shows the WorkflowLaunchPanel after the transition completes
-2. Selecting Interactive mode and clicking Run shows chat-style prompts from plan-feature workflow
-3. Answering prompts causes the workflow to continue and produce spec artifacts
-4. Selecting Autonomous mode runs the workflow to completion without user interaction
-5. The implement-feature workflow transitions from interactive setup to autonomous execution mid-run
-6. Configuration in `.wheatley/workflows.json` is respected for default mode and auto-answers
+2. Launch panel shows workflow-specific params (e.g., Feature Name for plan) pre-filled from card context
+3. Preamble/postamble are visible in collapsible Instructions section, editable per-run
+4. Running a workflow produces a single-shot Claude CLI execution with assembled prompt
+5. Configuration in `.wheatley/workflows.json` is respected for defaults
+6. Output streams to terminal view; cancel works; history shows completed runs

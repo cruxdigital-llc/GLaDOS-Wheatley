@@ -1,106 +1,72 @@
-# Plan: Interactive Workflows
+# Plan: Autonomous Workflow Execution
 
 ## Overview
 
-Add interactive workflow support to the Wheatley board so GLaDOS workflows can receive user input through the web UI. Currently, workflows spawn Claude CLI with stdin closed — interactive commands (plan-feature, spec-feature, etc.) can't ask questions. This feature introduces a prompt fencing protocol, a unified launch panel, and a chat-style interactive UI.
+Enable GLaDOS workflows to run autonomously from the Wheatley board with all necessary context pre-supplied in a single-shot `claude -p` execution. A unified WorkflowLaunchPanel collects per-workflow parameters and assembles them into the prompt alongside configurable preamble/postamble instructions.
 
-## Approach
-
-### Prompt Fencing Protocol
-GLaDOS command files get instructions to wrap user-facing questions in `:::prompt` / `:::` delimiters. The subprocess runner parses stdout for these fences. In interactive mode, prompts surface as chat UI. In autonomous mode, prompts are auto-answered from config.
-
-### Architecture: Three Layers
+## Architecture
 
 ```
-┌─────────────────────────────────┐
-│  WorkflowLaunchPanel (modal)    │  ← Unified entry point
-│  Mode toggle + params + Run     │
-└──────────────┬──────────────────┘
-               │
-┌──────────────▼──────────────────┐
-│  WorkflowPanel (chat UI)        │  ← Interactive terminal
-│  Output + prompt bubbles        │
-│  Text input when waiting        │
-└──────────────┬──────────────────┘
-               │
-┌──────────────▼──────────────────┐
-│  SubprocessRunner (backend)     │  ← Prompt-aware process mgmt
-│  stdin pipe + fence parser      │
-│  POST /api/workflows/:id/input  │
-└─────────────────────────────────┘
+┌─────────────────────────────────────┐
+│  WorkflowLaunchPanel (modal)        │  ← Unified entry point
+│  Params + Instructions + Run        │     (drag-and-drop or button)
+└──────────────┬──────────────────────┘
+               │ contextHints
+┌──────────────▼──────────────────────┐
+│  SubprocessRunner                   │
+│  buildArgs():                       │
+│    preamble                         │  ← From config or per-run override
+│    + workflow command                │  ← /glados:plan-feature for card X
+│    + autonomousContext({{params}})   │  ← Template with resolved placeholders
+│    + postamble                      │  ← From config or per-run override
+│  → claude -p "<assembled prompt>"   │
+└──────────────┬──────────────────────┘
+               │ stdout/stderr
+┌──────────────▼──────────────────────┐
+│  WorkflowPanel (terminal output)    │  ← Monitor progress, cancel, history
+└─────────────────────────────────────┘
 ```
 
-## Work Breakdown
+## Design Decisions
 
-### WB-1: Backend Types & Config
-- Extend `WorkflowState` with `'waiting_for_input'`
-- Add `WorkflowMode`, `pendingPrompt`, `sendInput()` to types
-- New `src/server/workflows/config.ts` for loading `.wheatley/workflows.json`
-- New `GET /api/config/workflows` endpoint
+### Single-Shot Execution (not multi-turn)
+CLI testing confirmed that `claude -p` completes in one shot — there is no reliable way to send follow-up messages within the same invocation. The `--input-format stream-json` flag exists but does not work reliably. All context must be front-loaded in the prompt.
 
-### WB-2: Prompt-Aware Subprocess Runner
-- Change stdio from `['ignore', 'pipe', 'pipe']` to `['pipe', 'pipe', 'pipe']`
-- Parse output for `:::prompt` / `:::` fences
-- Set state to `waiting_for_input` when prompt detected
-- New `sendInput()` method writes to stdin
-- In autonomous mode, auto-answer from config
-- Emit workflow events via EventBus for SSE push
-- Handle `:::phase autonomous` marker for two-phase execution
+### Prompt Assembly Layers
+Three configurable layers, each supporting `{{placeholder}}` resolution:
+1. **Preamble** — Persistent instructions (e.g., "run in Docker"). Same every time.
+2. **autonomousContext** — Per-run context from launch panel params. Varies per execution.
+3. **Postamble** — Post-run instructions (e.g., "commit when done"). Same every time.
 
-### WB-3: API Routes
-- `POST /api/workflows/:runId/input` — send user response to waiting workflow
-- Accept `mode` parameter on existing `POST /api/workflows`
-- Wire EventBus into SubprocessRunner
+### Config in Repository
+`.wheatley/workflows.json` is checked into the repo so workflow conventions travel with the codebase. Missing or invalid file falls back to built-in defaults.
 
-### WB-4: Transition Flow Update
-- Remove fire-and-forget `workflowService.triggerWorkflow()` from transition-service
-- Return `workflowSuggestion` from transition API response
-- Frontend reads suggestion and opens WorkflowLaunchPanel
+## Implementation Summary
 
-### WB-5: Client API Updates
-- Add `mode`, `pendingPrompt` to `WorkflowRun` type
-- New `sendWorkflowInput()`, `fetchWorkflowConfig()` functions
-- Update `executeTransition()` return type
+### Backend
+| File | Change |
+|------|--------|
+| `src/server/workflows/types.ts` | WorkflowRun, WorkflowContext (with contextHints), WorkflowRunner interface |
+| `src/server/workflows/config.ts` | Config types, loader, defaults with per-workflow params and autonomousContext templates |
+| `src/server/workflows/subprocess-runner.ts` | resolveTemplate(), buildArgs() with preamble/context/postamble assembly, process lifecycle |
+| `src/server/workflows/null-runner.ts` | No-op fallback |
+| `src/server/api/routes/workflows.ts` | POST /api/workflows (with cardTitle, contextHints), GET output, DELETE cancel |
+| `src/server/api/routes/config.ts` | GET /api/config/workflows |
+| `src/server/api/transition-service.ts` | Returns workflowSuggestion from executeTransition |
+| `src/server/api/event-bus.ts` | workflow-done event type |
+| `src/server/api/server.ts` | Wires EventBus + config into SubprocessRunner |
 
-### WB-6: WorkflowLaunchPanel Component (New)
-- Portal-based modal, same pattern as ConfirmTransitionModal
-- Mode toggle: Autonomous / Interactive
-- Parameter inputs pre-filled from config
-- Cancel + Run buttons
+### Frontend
+| File | Change |
+|------|--------|
+| `src/client/components/WorkflowLaunchPanel.tsx` | New modal: params, collapsible preamble/postamble, Run button |
+| `src/client/components/WorkflowPanel.tsx` | Launch intent → launch panel, terminal output, cancel, history |
+| `src/client/components/CardDetail.tsx` | Passes cardTitle to WorkflowPanel |
+| `src/client/components/Board.tsx` | Opens launch panel from transition workflowSuggestion |
+| `src/client/api.ts` | startWorkflow with cardTitle/contextHints, fetchWorkflowConfig |
+| `src/client/hooks/use-sse.ts` | Handles workflow-done events |
 
-### WB-7: WorkflowPanel Chat UI Rewrite
-- Replace terminal-only output with mixed chat view
-- Prompt bubbles (left) + user response bubbles (right) + terminal output
-- Text input with send button when `state === 'waiting_for_input'`
-- Two-phase indicator: switch to background progress view after `:::phase autonomous`
-- Stall detection fallback: manual input hint if no output for 30s
-
-### WB-8: Board Integration
-- After transition success, check for `workflowSuggestion` → open launch panel
-- Update use-transitions hook to return response
-- Update use-sse hook to handle workflow events
-
-### WB-9: GLaDOS Command Modifications
-- Add Interactive Protocol section to all 4 workflow commands
-- Instructions to wrap questions in `:::prompt` / `:::` fences
-- Add `:::phase autonomous` markers after setup sections
-
-### WB-10: Default Config & Tests
-- Create `.wheatley/workflows.json` with sensible defaults
-- Unit tests for prompt fence parsing
-- Integration tests for input endpoint
-- Docker-based test execution
-
-## Key Risks
-
-| Risk | Mitigation |
-|------|------------|
-| Claude CLI `-p` flag may not read stdin | Test early; fallback: write initial prompt to stdin instead of using `-p` |
-| Claude doesn't always emit `:::prompt` fences | Stall detection fallback with manual input hint |
-| stdin backpressure on long responses | Check writable state before writing; buffer if needed |
-| Breaking existing workflow behavior | Mode parameter is optional; omitted = current behavior |
-
-## Dependencies
-- No new npm packages required
-- Existing SSE infrastructure supports new event types
-- Existing portal modal pattern reusable for launch panel
+### Config
+| File | Purpose |
+|------|---------|
+| `.wheatley/workflows.json` | Per-workflow params, preamble, postamble, autonomousContext templates |

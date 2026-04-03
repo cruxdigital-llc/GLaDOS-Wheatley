@@ -172,7 +172,7 @@ export class SubprocessRunner implements WorkflowRunner {
         entry.lines.shift();
       }
       entry.lines.push(line);
-      entry.run.outputTail = entry.lines.slice();
+      // Defer outputTail snapshot to getState/getOutput to avoid copying on every line
     };
 
     const handleData = (data: Buffer): void => {
@@ -213,7 +213,8 @@ export class SubprocessRunner implements WorkflowRunner {
 
   async getState(runId: string): Promise<WorkflowRun | null> {
     const entry = this.runs.get(runId);
-    return entry ? { ...entry.run } : null;
+    if (!entry) return null;
+    return { ...entry.run, outputTail: entry.lines.slice() };
   }
 
   async getOutput(runId: string, fromLine?: number): Promise<string[]> {

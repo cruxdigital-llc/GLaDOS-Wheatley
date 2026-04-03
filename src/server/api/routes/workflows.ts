@@ -131,9 +131,9 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
       return reply.status(400).send({ error: '"from" must be a non-negative integer' });
     }
 
-    const lines = await runner.getOutput(runId, fromLine);
     const allLines = await runner.getOutput(runId, 0);
     const total = allLines.length;
+    const lines = fromLine > 0 ? allLines.slice(fromLine) : allLines;
 
     return reply.status(200).send({ lines, total });
   });
