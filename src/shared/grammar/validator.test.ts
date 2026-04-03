@@ -109,7 +109,8 @@ Last Updated: 2026-03-28
 - [X] 1.1.1 Uppercase checkbox
 `;
     const result = validateRoadmap(content);
-    expect(result.errors.some((e) => e.rule === 'TASK_ITEM.format')).toBe(true);
+    // Uppercase X is now accepted as valid
+    expect(result.valid).toBe(true);
   });
 
   it('handles CRLF line endings', () => {

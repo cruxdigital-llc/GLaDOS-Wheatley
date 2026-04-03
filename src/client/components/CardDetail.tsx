@@ -136,9 +136,9 @@ export function CardDetail({ detail, loading, branch, currentUser, onClose }: Ca
     const line = lines[lineIndex];
     if (!line) return;
 
-    // Toggle [x] <-> [ ]
-    if (line.includes('- [x]')) {
-      lines[lineIndex] = line.replace('- [x]', '- [ ]');
+    // Toggle [x]/[X] <-> [ ]
+    if (/- \[[xX]\]/.test(line)) {
+      lines[lineIndex] = line.replace(/- \[[xX]\]/, '- [ ]');
     } else if (line.includes('- [ ]')) {
       lines[lineIndex] = line.replace('- [ ]', '- [x]');
     } else {
@@ -163,10 +163,10 @@ export function CardDetail({ detail, loading, branch, currentUser, onClose }: Ca
       return (
         <div className="bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 text-sm text-gray-800 dark:text-gray-200 space-y-0.5">
           {lines.map((line, idx) => {
-            const isChecked = line.includes('- [x]');
-            const isCheckbox = line.includes('- [x]') || line.includes('- [ ]');
+            const isChecked = /- \[[xX]\]/.test(line);
+            const isCheckbox = /- \[[ xX]\]/.test(line);
             if (isCheckbox) {
-              const label = line.replace(/^(\s*)-\s*\[[ x]\]\s*/, '');
+              const label = line.replace(/^(\s*)-\s*\[[ xX]\]\s*/, '');
               return (
                 <label key={idx} className="flex items-start gap-2 cursor-pointer hover:bg-gray-100 px-1 py-0.5 rounded">
                   <input

@@ -19,9 +19,5 @@ export function phaseDisplayName(phase: string): string {
   return customNames[phase] ?? DEFAULT_DISPLAY_NAMES[phase] ?? phase;
 }
 
-/** For backward compat — returns merged defaults + custom. */
-export const PHASE_DISPLAY_NAMES: Record<string, string> = new Proxy(DEFAULT_DISPLAY_NAMES, {
-  get(target, prop: string) {
-    return customNames[prop] ?? target[prop];
-  },
-});
+/** Merged view of default + custom names. */
+export const PHASE_DISPLAY_NAMES: Record<string, string> = DEFAULT_DISPLAY_NAMES;

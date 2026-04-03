@@ -34,10 +34,10 @@ function hasControlChar(s: string): boolean {
 
 // --- ROADMAP.md Validator ---
 
-const PHASE_HEADING_RE = /^## Phase (\d+): (.+)$/;
-const GOAL_RE = /^\*\*Goal\*\*: (.+)$/;
-const SECTION_HEADING_RE = /^### (\d+\.\d+) (.+)$/;
-const TASK_ITEM_RE = /^- \[([ x])\] (\d+\.\d+\.\d+) (.+)$/;
+const PHASE_HEADING_RE = /^## Phase (\d+):\s*(.+)$/;
+const GOAL_RE = /^\*\*Goal\*\*:\s*(.+)$/;
+const SECTION_HEADING_RE = /^### (\d+\.\d+)\s+(.+)$/;
+const TASK_ITEM_RE = /^-\s*\[([ xX])\]\s*(\d+\.\d+\.\d+)\s+(.+)$/;
 
 export function validateRoadmap(content: string): ValidationResult {
   const errors: ValidationError[] = [];
