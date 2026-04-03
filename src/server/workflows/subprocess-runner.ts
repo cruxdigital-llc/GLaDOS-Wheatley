@@ -219,11 +219,15 @@ export class SubprocessRunner implements WorkflowRunner {
     };
     this.runs.set(id, entry);
 
+    // Allow per-run overrides of preamble/postamble via contextHints
+    const preamble = context.contextHints?.['_preamble'] ?? typeConfig.preamble;
+    const postamble = context.contextHints?.['_postamble'] ?? typeConfig.postamble;
+
     // Spawn the process
     const args = buildArgs(type, context, {
       autonomousContext: typeConfig.autonomousContext,
-      preamble: typeConfig.preamble,
-      postamble: typeConfig.postamble,
+      preamble,
+      postamble,
     });
     const child = spawn(this.cmd, args, {
       cwd: this.cwd,

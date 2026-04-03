@@ -60,13 +60,16 @@ export function WorkflowLaunchPanel({
 
   // Track param values — initialize from defaults and card context
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  // Preamble/postamble — editable per-run, initialized from config
+  const [preamble, setPreamble] = useState('');
+  const [postamble, setPostamble] = useState('');
+  const [showInstructions, setShowInstructions] = useState(false);
 
   // Initialize param defaults when config loads
   useEffect(() => {
-    if (!typeConfig?.params) return;
+    if (!typeConfig) return;
     const defaults: Record<string, string> = {};
-    for (const param of typeConfig.params) {
-      // Auto-fill featureName from card title
+    for (const param of typeConfig.params ?? []) {
       if (param.key === 'featureName') {
         defaults[param.key] = cardTitle || param.default || '';
       } else {
@@ -74,6 +77,8 @@ export function WorkflowLaunchPanel({
       }
     }
     setParamValues(defaults);
+    setPreamble(typeConfig.preamble ?? '');
+    setPostamble(typeConfig.postamble ?? '');
   }, [typeConfig, cardTitle]);
 
   const handleParamChange = (key: string, value: string) => {
@@ -81,11 +86,20 @@ export function WorkflowLaunchPanel({
   };
 
   const handleLaunch = () => {
-    onLaunch({
-      mode,
-      contextHints: paramValues,
-    });
+    const hints: Record<string, string> = { ...paramValues };
+    // Pass preamble/postamble overrides if they differ from config defaults
+    if (preamble !== (typeConfig?.preamble ?? '')) {
+      hints['_preamble'] = preamble;
+    }
+    if (postamble !== (typeConfig?.postamble ?? '')) {
+      hints['_postamble'] = postamble;
+    }
+    onLaunch({ mode, contextHints: hints });
   };
+
+  const hasPreamble = preamble.length > 0;
+  const hasPostamble = postamble.length > 0;
+  const hasInstructions = hasPreamble || hasPostamble;
 
   const params = typeConfig?.params ?? [];
   const showParams = params.length > 0;
@@ -170,6 +184,57 @@ export function WorkflowLaunchPanel({
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Preamble / Postamble (collapsible) */}
+        {hasInstructions && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => setShowInstructions(!showInstructions)}
+              className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              <span>{showInstructions ? '\u25BC' : '\u25B6'}</span>
+              Instructions
+              {!showInstructions && hasPreamble && hasPostamble && (
+                <span className="text-[10px] font-normal normal-case text-gray-400">(preamble + postamble configured)</span>
+              )}
+              {!showInstructions && hasPreamble && !hasPostamble && (
+                <span className="text-[10px] font-normal normal-case text-gray-400">(preamble configured)</span>
+              )}
+              {!showInstructions && !hasPreamble && hasPostamble && (
+                <span className="text-[10px] font-normal normal-case text-gray-400">(postamble configured)</span>
+              )}
+            </button>
+            {showInstructions && (
+              <div className="mt-2 space-y-3">
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                    Preamble <span className="text-gray-400">(prepended to prompt)</span>
+                  </label>
+                  <textarea
+                    value={preamble}
+                    onChange={(e) => setPreamble(e.target.value)}
+                    rows={3}
+                    className="w-full text-xs font-mono border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 dark:bg-gray-700 dark:text-gray-200 resize-y"
+                    placeholder="e.g., Run all commands in Docker..."
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                    Postamble <span className="text-gray-400">(appended after workflow)</span>
+                  </label>
+                  <textarea
+                    value={postamble}
+                    onChange={(e) => setPostamble(e.target.value)}
+                    rows={3}
+                    className="w-full text-xs font-mono border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 dark:bg-gray-700 dark:text-gray-200 resize-y"
+                    placeholder="e.g., Commit changes when done..."
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 

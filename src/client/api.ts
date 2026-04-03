@@ -617,6 +617,9 @@ export interface WorkflowConfig {
   showLaunchPanel: boolean;
   params: WorkflowParamConfig[];
   autoAnswers: Record<string, string>;
+  autonomousContext?: string;
+  preamble?: string;
+  postamble?: string;
 }
 
 export type WorkflowConfigMap = Partial<Record<string, WorkflowConfig>>;
