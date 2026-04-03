@@ -427,10 +427,19 @@ export interface RepoStatusResponse {
   conflicted: boolean;
   conflictedFiles: string[];
   worktreeActive: boolean;
+  pushOnWrite: boolean;
+  unpushedCommits: number;
+  gpgWarning?: string;
 }
 
 export async function fetchRepoStatus(): Promise<RepoStatusResponse> {
   return fetchJson<RepoStatusResponse>(`${API_BASE}/repo/status`);
+}
+
+export async function pushToOrigin(): Promise<{ pushed: boolean; commits: number }> {
+  return fetchJson<{ pushed: boolean; commits: number }>(`${API_BASE}/repo/push`, {
+    method: 'POST',
+  });
 }
 
 // ---------------------------------------------------------------------------
