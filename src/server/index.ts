@@ -18,7 +18,9 @@ async function main(): Promise<void> {
 
   // In local mode, set up worktree isolation for writes
   if (config.mode === 'local' && config.localPath) {
-    worktreeManager = new WorktreeManager({ repoPath: config.localPath });
+    const pushEnv = process.env['WHEATLEY_PUSH_ON_WRITE'];
+    const pushOnWrite = pushEnv === 'true'; // Local mode defaults to false (no push)
+    worktreeManager = new WorktreeManager({ repoPath: config.localPath, pushOnWrite });
     try {
       await worktreeManager.init();
       if (worktreeManager.isReady()) {
