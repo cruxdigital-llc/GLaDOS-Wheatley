@@ -7,6 +7,7 @@
 
 import type {
   ParsedRoadmap,
+  ParseWarning,
   RoadmapSection,
   SpecEntry,
   ParsedProjectStatus,
@@ -174,5 +175,8 @@ export function assembleBoardState(
     completedCount: allCards.filter((c) => c.phase === 'done').length,
   };
 
-  return { columns, metadata };
+  // 7. Collect parse warnings
+  const warnings: ParseWarning[] = [...(roadmap.warnings ?? [])];
+
+  return { columns, metadata, ...(warnings.length > 0 ? { warnings } : {}) };
 }

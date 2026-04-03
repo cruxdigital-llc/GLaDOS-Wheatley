@@ -7,23 +7,28 @@
 
 import type {
   ParsedRoadmap,
+  ParseWarning,
   RoadmapPhase,
   RoadmapSection,
   RoadmapItem,
 } from '../grammar/types.js';
 import { normalize, stripHeader } from './utils.js';
 
-const PHASE_HEADING_RE = /^## Phase (\d+): (.+)$/;
-const GOAL_RE = /^\*\*Goal\*\*: (.+)$/;
-const SECTION_HEADING_RE = /^### (\d+)\.(\d+) (.+)$/;
-const TASK_ITEM_RE = /^- \[([ xX])\] (\d+)\.(\d+)\.(\d+) (.+)$/;
+const PHASE_HEADING_RE = /^## Phase (\d+):\s*(.+)$/;
+const GOAL_RE = /^\*\*Goal\*\*:\s*(.+)$/;
+const SECTION_HEADING_RE = /^### (\d+)\.(\d+)\s+(.+)$/;
+const TASK_ITEM_RE = /^-\s*\[([ xX])\]\s*(\d+)\.(\d+)\.(\d+)\s+(.+)$/;
+
+/** Detect lines that look like task items but don't match the strict pattern. */
+const LOOSE_TASK_RE = /^-\s*\[[ xX]\]\s+\S/;
 
 export function parseRoadmap(content: string): ParsedRoadmap {
   const phases: RoadmapPhase[] = [];
   const allItems: RoadmapItem[] = [];
+  const warnings: ParseWarning[] = [];
 
   if (!content.trim()) {
-    return { phases, allItems };
+    return { phases, allItems, warnings };
   }
 
   const body = stripHeader(normalize(content));
@@ -32,15 +37,19 @@ export function parseRoadmap(content: string): ParsedRoadmap {
   let currentPhase: RoadmapPhase | null = null;
   let currentSection: RoadmapSection | null = null;
 
-  for (const line of lines) {
-    const trimmed = line.trimEnd();
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimEnd();
+    const lineNum = i + 1;
+
+    // Skip blank lines, comments, and the title line
+    if (!trimmed || trimmed === '# Roadmap' || trimmed.startsWith('<!--')) continue;
 
     // Phase heading
     const phaseMatch = trimmed.match(PHASE_HEADING_RE);
     if (phaseMatch) {
       currentPhase = {
         number: parseInt(phaseMatch[1], 10),
-        title: phaseMatch[2],
+        title: phaseMatch[2].trim(),
         goal: '',
         sections: [],
       };
@@ -61,7 +70,7 @@ export function parseRoadmap(content: string): ParsedRoadmap {
     if (sectionMatch && currentPhase) {
       currentSection = {
         id: `${sectionMatch[1]}.${sectionMatch[2]}`,
-        title: sectionMatch[3],
+        title: sectionMatch[3].trim(),
         items: [],
       };
       currentPhase.sections.push(currentSection);
@@ -76,15 +85,25 @@ export function parseRoadmap(content: string): ParsedRoadmap {
         phase: parseInt(taskMatch[2], 10),
         section: parseInt(taskMatch[3], 10),
         item: parseInt(taskMatch[4], 10),
-        title: taskMatch[5],
+        title: taskMatch[5].trim(),
         completed: taskMatch[1].toLowerCase() === 'x',
         sectionTitle: currentSection.title,
         phaseTitle: `Phase ${currentPhase.number}: ${currentPhase.title}`,
       };
       currentSection.items.push(item);
       allItems.push(item);
+      continue;
+    }
+
+    // Detect near-miss task lines and emit a warning
+    if (LOOSE_TASK_RE.test(trimmed) && currentPhase) {
+      warnings.push({
+        file: 'ROADMAP.md',
+        message: `Line looks like a task item but doesn't match expected format (- [x] N.N.N Title): "${trimmed.slice(0, 80)}"`,
+        line: lineNum,
+      });
     }
   }
 
-  return { phases, allItems };
+  return { phases, allItems, warnings: warnings.length > 0 ? warnings : undefined };
 }
