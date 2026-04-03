@@ -540,6 +540,22 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 - [ ] 14.3.2 Show spec completion dates derived from trace logs (README.md session entries) or git commit dates
 - [ ] 14.3.3 Visual distinction between active specs and completed/archived specs on the timeline
 
+### 14.4 Docker Deployment & Git Auth
+
+- [ ] 14.4.1 Docker git credential forwarding: mount SSH keys or configure credential helper so worktree can push to origin
+- [ ] 14.4.2 "Local-only" write mode: commit to worktree without pushing to origin (useful for air-gapped or credential-less Docker setups)
+- [ ] 14.4.3 GPG signing support: forward GPG agent or configure signing in worktree for repos that require signed commits
+
+### 14.5 Column Naming & UX Clarity
+
+- [ ] 14.5.1 Clarify column semantics: columns represent "next action needed" not "current state" — update headers or add tooltips
+- [ ] 14.5.2 Configurable column labels: allow repos to define display names for phases in `.wheatley/` config
+
+### 14.6 Spec Directory Naming
+
+- [ ] 14.6.1 Fix double-prefixing bug: transition engine wraps existing spec dir names in another date prefix (e.g., `specs/2026-04-03_feature_2026-03-24_feature_foo/`)
+- [ ] 14.6.2 When card already has a spec directory, use it directly instead of generating a new one
+
 ## Phase 15: Analytics, Reporting & Insights
 
 **Goal**: Provide data-driven insights into project velocity, bottlenecks, and team productivity.
