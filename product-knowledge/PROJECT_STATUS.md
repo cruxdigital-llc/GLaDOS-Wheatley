@@ -125,7 +125,8 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 ### 13. Backlog / Upcoming
 
 - [ ] Phase 12: API Documentation, Export & Integration (4 features, 18 items)
-- [ ] Phase 13: Analytics, Reporting & Insights (3 features, 11 items)
+- [ ] Phase 14: Board Accuracy & Onboarding (3 features, 10 items) — phase detection, ROADMAP conformance warnings, completed specs on timeline
+- [ ] Phase 15: Analytics, Reporting & Insights (3 features, 11 items)
 
 ## Known Issues / Technical Debt
 

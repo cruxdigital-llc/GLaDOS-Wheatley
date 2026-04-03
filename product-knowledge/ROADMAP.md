@@ -517,26 +517,49 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 - [ ] 12.4.3 Built-in plugin: auto-label cards based on spec directory content
 - [ ] 12.4.4 Built-in plugin: Slack channel sync (mirror board changes to a Slack channel)
 
-## Phase 14: Analytics, Reporting & Insights (was 13)
+## Phase 14: Board Accuracy & Onboarding
+
+**Goal**: Ensure Wheatley correctly represents the state of any GLaDOS-managed repo and guides users when repo artifacts don't conform.
+
+### 14.1 Phase Detection Accuracy
+
+- [ ] 14.1.1 Audit spec phase detection logic: verify that completed specs (all tasks done, verify passed) show as "done" not stuck in earlier phases
+- [ ] 14.1.2 Handle edge cases: specs with no tasks.md, specs with partial completion, specs missing expected files
+- [ ] 14.1.3 Add phase detection tests against real-world GLaDOS repos (research-agents, CongaLine)
+
+### 14.2 ROADMAP.md Conformance Warnings
+
+- [ ] 14.2.1 Surface conformance warnings in the board UI when ROADMAP.md doesn't match Wheatley's expected format
+- [ ] 14.2.2 Show actionable suggestions (e.g., "ROADMAP.md uses flat checkboxes — expected phase/section/task hierarchy")
+- [ ] 14.2.3 Offer a one-click "Generate compatible ROADMAP.md" action that restructures the existing roadmap
+- [ ] 14.2.4 Link to parsing grammar spec from the warning banner
+
+### 14.3 Completed Specs on Timeline
+
+- [ ] 14.3.1 Include finished spec directories in the timeline view (not just active phase transitions)
+- [ ] 14.3.2 Show spec completion dates derived from trace logs (README.md session entries) or git commit dates
+- [ ] 14.3.3 Visual distinction between active specs and completed/archived specs on the timeline
+
+## Phase 15: Analytics, Reporting & Insights
 
 **Goal**: Provide data-driven insights into project velocity, bottlenecks, and team productivity.
 
-### 13.1 Board Analytics
+### 15.1 Board Analytics
 
-- [ ] 13.1.1 Cycle time calculation: average time cards spend in each phase
-- [ ] 13.1.2 Throughput chart: cards completed per day/week/sprint (line chart)
-- [ ] 13.1.3 Phase distribution chart: current cards per phase (bar/pie chart)
-- [ ] 13.1.4 Cumulative flow diagram: stacked area chart of cards across phases over time
+- [ ] 15.1.1 Cycle time calculation: average time cards spend in each phase
+- [ ] 15.1.2 Throughput chart: cards completed per day/week/sprint (line chart)
+- [ ] 15.1.3 Phase distribution chart: current cards per phase (bar/pie chart)
+- [ ] 15.1.4 Cumulative flow diagram: stacked area chart of cards across phases over time
 
-### 13.2 Team Metrics
+### 15.2 Team Metrics
 
-- [ ] 13.2.1 Per-agent/user workload: cards claimed, completed, average cycle time
-- [ ] 13.2.2 Activity heatmap: contribution calendar showing commits/claims per day
-- [ ] 13.2.3 Bottleneck detection: flag phases where cards accumulate with high average age
+- [ ] 15.2.1 Per-agent/user workload: cards claimed, completed, average cycle time
+- [ ] 15.2.2 Activity heatmap: contribution calendar showing commits/claims per day
+- [ ] 15.2.3 Bottleneck detection: flag phases where cards accumulate with high average age
 
-### 13.3 Reporting
+### 15.3 Reporting
 
-- [ ] 13.3.1 Scheduled reports: configurable weekly/monthly email digest of board metrics
-- [ ] 13.3.2 PDF report generation: downloadable summary with charts and key metrics
-- [ ] 13.3.3 Dashboard view: dedicated analytics page with configurable widget grid
-- [ ] 13.3.4 Custom date range selector for all analytics views
+- [ ] 15.3.1 Scheduled reports: configurable weekly/monthly email digest of board metrics
+- [ ] 15.3.2 PDF report generation: downloadable summary with charts and key metrics
+- [ ] 15.3.3 Dashboard view: dedicated analytics page with configurable widget grid
+- [ ] 15.3.4 Custom date range selector for all analytics views
