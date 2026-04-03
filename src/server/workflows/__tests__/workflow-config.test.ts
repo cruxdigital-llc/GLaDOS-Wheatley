@@ -70,4 +70,20 @@ describe('getWorkflowTypeConfig', () => {
     expect(config.defaultMode).toBe('interactive');
     expect(config.showLaunchPanel).toBe(true);
   });
+
+  it('plan config has autonomousContext with placeholders', () => {
+    const config = getWorkflowTypeConfig(DEFAULT_WORKFLOW_CONFIGS, 'plan');
+    expect(config.autonomousContext).toBeDefined();
+    expect(config.autonomousContext).toContain('{{featureName}}');
+    expect(config.autonomousContext).toContain('{{goal}}');
+    expect(config.autonomousContext).toContain('{{personas}}');
+  });
+
+  it('plan config has featureName, goal, and personas params', () => {
+    const config = getWorkflowTypeConfig(DEFAULT_WORKFLOW_CONFIGS, 'plan');
+    const keys = config.params.map((p) => p.key);
+    expect(keys).toContain('featureName');
+    expect(keys).toContain('goal');
+    expect(keys).toContain('personas');
+  });
 });

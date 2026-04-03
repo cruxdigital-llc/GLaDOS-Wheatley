@@ -540,17 +540,29 @@ export interface WorkflowRun {
   outputTail: string[];
 }
 
+export interface StartWorkflowOptions {
+  cardId: string;
+  type: string;
+  specDir?: string;
+  branch?: string;
+  mode?: WorkflowMode;
+  cardTitle?: string;
+  contextHints?: Record<string, string>;
+}
+
 export async function startWorkflow(
   cardId: string,
   type: string,
   specDir?: string,
   branch?: string,
   mode?: WorkflowMode,
+  cardTitle?: string,
+  contextHints?: Record<string, string>,
 ): Promise<{ runId: string }> {
   return fetchJson<{ runId: string }>(`${API_BASE}/workflows`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cardId, type, specDir, branch, mode }),
+    body: JSON.stringify({ cardId, type, specDir, branch, mode, cardTitle, contextHints }),
   });
 }
 

@@ -161,6 +161,40 @@ describe('Prompt Fence Parser', () => {
   });
 });
 
+describe('Autonomous Context Template Resolution', () => {
+  // Simulates the resolveTemplate function from subprocess-runner
+  function resolveTemplate(template: string, vars: Record<string, string>): string {
+    return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => vars[key] ?? `[${key}]`);
+  }
+
+  it('resolves known placeholders', () => {
+    const template = 'Feature: {{featureName}}, Goal: {{goal}}';
+    const result = resolveTemplate(template, { featureName: 'Auth', goal: 'Add login' });
+    expect(result).toBe('Feature: Auth, Goal: Add login');
+  });
+
+  it('replaces unknown placeholders with [key] marker', () => {
+    const template = 'Unknown: {{unknown}}';
+    const result = resolveTemplate(template, {});
+    expect(result).toBe('Unknown: [unknown]');
+  });
+
+  it('resolves card context variables', () => {
+    const template = 'Card {{cardId}}: {{cardTitle}} in {{specDir}}';
+    const result = resolveTemplate(template, {
+      cardId: '1.2.3',
+      cardTitle: 'My Feature',
+      specDir: 'specs/2026-04-02_feature_my-feature',
+    });
+    expect(result).toBe('Card 1.2.3: My Feature in specs/2026-04-02_feature_my-feature');
+  });
+
+  it('handles template with no placeholders', () => {
+    const result = resolveTemplate('No placeholders here', {});
+    expect(result).toBe('No placeholders here');
+  });
+});
+
 describe('Prompt Fence Parser — edge cases', () => {
   it('handles chunked delivery (split across buffers)', () => {
     const ps = createParseState();

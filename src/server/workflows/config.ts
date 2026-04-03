@@ -33,6 +33,13 @@ export interface WorkflowConfig {
    * When a :::prompt block contains the substring, respond with the value.
    */
   autoAnswers: Record<string, string>;
+  /**
+   * Template for autonomous execution context. Supports placeholders:
+   * {{cardId}}, {{cardTitle}}, {{specDir}}, and any key from contextHints.
+   * When present, this is appended to the prompt in autonomous mode to
+   * pre-supply answers that Claude would normally ask the user for.
+   */
+  autonomousContext?: string;
 }
 
 export type WorkflowConfigMap = Partial<Record<WorkflowType, WorkflowConfig>>;
@@ -54,26 +61,53 @@ export const DEFAULT_WORKFLOW_CONFIGS: WorkflowConfigMap = {
     showLaunchPanel: true,
     params: [
       { key: 'featureName', label: 'Feature Name', type: 'text' },
+      { key: 'goal', label: 'Goal', type: 'text' },
+      { key: 'personas', label: 'Personas', type: 'text', default: 'all' },
     ],
     autoAnswers: {},
+    autonomousContext: [
+      'Pre-supplied answers (do NOT ask the user for these — use them directly):',
+      '- Feature Name: {{featureName}}',
+      '- Goal: {{goal}}',
+      '- Personas: {{personas}}',
+      '- Success Criteria: Derive from the goal and card context.',
+      'Proceed through all steps without asking questions.',
+    ].join('\n'),
   },
   spec: {
     defaultMode: 'interactive',
     showLaunchPanel: true,
     params: [],
     autoAnswers: {},
+    autonomousContext: [
+      'Pre-supplied answers (do NOT ask the user — use them directly):',
+      '- Feature directory: {{specDir}}',
+      '- For any clarifying questions, make reasonable decisions based on the existing plan.md and requirements.md.',
+      'Proceed through all steps without asking questions.',
+    ].join('\n'),
   },
   implement: {
     defaultMode: 'interactive',
     showLaunchPanel: true,
     params: [],
     autoAnswers: {},
+    autonomousContext: [
+      'Pre-supplied answers (do NOT ask the user — use them directly):',
+      '- Feature directory: {{specDir}}',
+      '- Task breakdown: Create the breakdown and proceed without waiting for review.',
+      'Proceed through all steps without asking questions.',
+    ].join('\n'),
   },
   verify: {
     defaultMode: 'autonomous',
     showLaunchPanel: false,
     params: [],
     autoAnswers: {},
+    autonomousContext: [
+      'Pre-supplied answers (do NOT ask the user — use them directly):',
+      '- Feature directory: {{specDir}}',
+      'Proceed through all verification steps without asking questions.',
+    ].join('\n'),
   },
 };
 

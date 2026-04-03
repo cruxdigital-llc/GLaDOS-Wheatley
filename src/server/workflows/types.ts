@@ -28,9 +28,15 @@ export interface WorkflowRun {
 
 export interface WorkflowContext {
   cardId: string;
+  cardTitle?: string;
   specDir?: string;
   branch?: string;
   mode?: WorkflowMode;
+  /**
+   * Key-value pairs from the launch panel (params + any extra context).
+   * These are injected into the prompt for autonomous execution.
+   */
+  contextHints?: Record<string, string>;
 }
 
 export interface WorkflowRunner {

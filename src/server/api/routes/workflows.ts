@@ -24,6 +24,8 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
       specDir?: unknown;
       branch?: unknown;
       mode?: unknown;
+      cardTitle?: unknown;
+      contextHints?: unknown;
     };
   }>('/api/workflows', async (request, reply) => {
     const { cardId, type, specDir, branch } = request.body ?? {};
@@ -69,11 +71,24 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
     }
 
     try {
+      const { cardTitle, contextHints } = request.body ?? {};
+
+      // Sanitize contextHints: only accept Record<string, string>
+      let hints: Record<string, string> | undefined;
+      if (contextHints && typeof contextHints === 'object' && !Array.isArray(contextHints)) {
+        hints = {};
+        for (const [k, v] of Object.entries(contextHints as Record<string, unknown>)) {
+          if (typeof v === 'string') hints[k] = v;
+        }
+      }
+
       const runId = await runner.start(type as WorkflowType, {
         cardId,
+        cardTitle: typeof cardTitle === 'string' ? cardTitle : undefined,
         specDir: typeof specDir === 'string' ? specDir : undefined,
         branch: typeof branch === 'string' ? branch : undefined,
         mode: typeof mode === 'string' ? (mode as 'autonomous' | 'interactive') : undefined,
+        contextHints: hints,
       });
 
       const state = await runner.getState(runId);

@@ -2,25 +2,33 @@
   "plan": {
     "defaultMode": "interactive",
     "showLaunchPanel": true,
-    "params": [],
-    "autoAnswers": {}
+    "params": [
+      { "key": "featureName", "label": "Feature Name", "type": "text" },
+      { "key": "goal", "label": "Goal", "type": "text" },
+      { "key": "personas", "label": "Personas", "type": "text", "default": "all" }
+    ],
+    "autoAnswers": {},
+    "autonomousContext": "Pre-supplied answers (do NOT ask the user for these — use them directly):\n- Feature Name: {{featureName}}\n- Goal: {{goal}}\n- Personas: {{personas}}\n- Success Criteria: Derive from the goal and card context.\nProceed through all steps without asking questions."
   },
   "spec": {
     "defaultMode": "interactive",
     "showLaunchPanel": true,
     "params": [],
-    "autoAnswers": {}
+    "autoAnswers": {},
+    "autonomousContext": "Pre-supplied answers (do NOT ask the user — use them directly):\n- Feature directory: {{specDir}}\n- For any clarifying questions, make reasonable decisions based on the existing plan.md and requirements.md.\nProceed through all steps without asking questions."
   },
   "implement": {
     "defaultMode": "interactive",
     "showLaunchPanel": true,
     "params": [],
-    "autoAnswers": {}
+    "autoAnswers": {},
+    "autonomousContext": "Pre-supplied answers (do NOT ask the user — use them directly):\n- Feature directory: {{specDir}}\n- Task breakdown: Create the breakdown and proceed without waiting for review.\nProceed through all steps without asking questions."
   },
   "verify": {
     "defaultMode": "autonomous",
     "showLaunchPanel": false,
     "params": [],
-    "autoAnswers": {}
+    "autoAnswers": {},
+    "autonomousContext": "Pre-supplied answers (do NOT ask the user — use them directly):\n- Feature directory: {{specDir}}\nProceed through all verification steps without asking questions."
   }
 }

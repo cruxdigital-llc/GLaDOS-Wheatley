@@ -68,35 +68,62 @@ function generateRunId(): string {
 }
 
 /**
- * Build CLI args. When mode is set, uses stream-json for bidirectional I/O.
- * Without mode, uses simple -p for backward compatibility.
+ * Resolve placeholders like {{cardTitle}} in a template string using
+ * WorkflowContext fields and contextHints.
  */
-function buildArgs(type: WorkflowType, context: WorkflowContext): string[] {
+function resolveTemplate(template: string, context: WorkflowContext): string {
+  const vars: Record<string, string> = {
+    cardId: context.cardId,
+    cardTitle: context.cardTitle ?? context.cardId,
+    specDir: context.specDir ?? context.cardId,
+    ...context.contextHints,
+  };
+  return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => vars[key] ?? `[${key}]`);
+}
+
+/**
+ * Build CLI args. When mode is set, uses stream-json output for structured
+ * parsing. Autonomous mode injects pre-supplied context so Claude doesn't
+ * need to ask interactive questions.
+ */
+function buildArgs(
+  type: WorkflowType,
+  context: WorkflowContext,
+  autonomousContext?: string,
+): string[] {
   const target = context.specDir ?? context.cardId;
-  const fenceInstructions = context.mode ? `\n\n${PROMPT_FENCE_INSTRUCTIONS}` : '';
 
   let prompt: string;
   switch (type) {
     case 'plan':
-      prompt = `Run /glados:plan-feature for card ${context.cardId}${fenceInstructions}`;
+      prompt = `Run /glados:plan-feature for card ${context.cardId}`;
       break;
     case 'spec':
-      prompt = `Run /glados:spec-feature for ${target}${fenceInstructions}`;
+      prompt = `Run /glados:spec-feature for ${target}`;
       break;
     case 'implement':
-      prompt = `Run /glados:implement-feature for ${target}${fenceInstructions}`;
+      prompt = `Run /glados:implement-feature for ${target}`;
       break;
     case 'verify':
-      prompt = `Run /glados:verify-feature for ${target}${fenceInstructions}`;
+      prompt = `Run /glados:verify-feature for ${target}`;
       break;
+  }
+
+  // For autonomous mode: inject pre-supplied context so Claude doesn't
+  // need to ask questions (since -p is single-shot).
+  if (context.mode === 'autonomous' && autonomousContext) {
+    const resolved = resolveTemplate(autonomousContext, context);
+    prompt += `\n\n${resolved}`;
+  }
+
+  // For interactive mode: add fence instructions so output is parseable,
+  // even though true multi-turn isn't yet possible via CLI.
+  if (context.mode === 'interactive') {
+    prompt += `\n\n${PROMPT_FENCE_INSTRUCTIONS}`;
   }
 
   if (context.mode) {
     // Stream-json output for structured parsing of Claude's responses.
-    // Note: --input-format stream-json is not yet reliable in Claude CLI,
-    // so interactive workflows run as single-shot with prompt fences as
-    // informational markers. True multi-turn interactivity will require
-    // either Claude CLI stream-json input support or a re-spawn strategy.
     return [
       '-p', prompt,
       '--output-format', 'stream-json',
@@ -170,7 +197,7 @@ export class SubprocessRunner implements WorkflowRunner {
     this.runs.set(id, entry);
 
     // Spawn the process
-    const args = buildArgs(type, context);
+    const args = buildArgs(type, context, typeConfig.autonomousContext);
     const child = spawn(this.cmd, args, {
       cwd: this.cwd,
       stdio: ['pipe', 'pipe', 'pipe'],

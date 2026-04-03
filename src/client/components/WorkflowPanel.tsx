@@ -18,6 +18,7 @@ import {
 } from '../api.js';
 import type { WorkflowRun, WorkflowMode } from '../api.js';
 import { WorkflowLaunchPanel } from './WorkflowLaunchPanel.js';
+import type { LaunchResult } from './WorkflowLaunchPanel.js';
 
 interface WorkflowPanelProps {
   cardId: string;
@@ -370,8 +371,8 @@ export function WorkflowPanel({ cardId, cardTitle, specDir, phase, branch }: Wor
   ) ?? [];
 
   const startMutation = useMutation({
-    mutationFn: ({ type, mode }: { type: string; mode: WorkflowMode }) =>
-      startWorkflow(cardId, type, specDir, branch, mode),
+    mutationFn: ({ type, mode, contextHints }: { type: string; mode: WorkflowMode; contextHints?: Record<string, string> }) =>
+      startWorkflow(cardId, type, specDir, branch, mode, cardTitle, contextHints),
     onSuccess: (data) => {
       setActiveRunId(data.runId);
       setLaunchIntent(null);
@@ -379,9 +380,9 @@ export function WorkflowPanel({ cardId, cardTitle, specDir, phase, branch }: Wor
     },
   });
 
-  const handleLaunch = (mode: WorkflowMode) => {
+  const handleLaunch = (result: LaunchResult) => {
     if (launchIntent) {
-      startMutation.mutate({ type: launchIntent.type, mode });
+      startMutation.mutate({ type: launchIntent.type, mode: result.mode, contextHints: result.contextHints });
     }
   };
 

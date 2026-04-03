@@ -4,20 +4,27 @@
  * Unified modal for launching GLaDOS workflows. Shown after a phase
  * transition completes or when the user clicks a workflow button.
  * Lets the user choose autonomous vs interactive mode and configure parameters.
+ * In autonomous mode, collected params are injected into the prompt as context
+ * so Claude doesn't need to ask interactive questions.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWorkflowConfig } from '../api.js';
 import type { WorkflowMode, WorkflowConfig } from '../api.js';
+
+export interface LaunchResult {
+  mode: WorkflowMode;
+  contextHints: Record<string, string>;
+}
 
 interface WorkflowLaunchPanelProps {
   cardId: string;
   cardTitle: string;
   workflowType: string;
   specDir?: string;
-  onLaunch: (mode: WorkflowMode) => void;
+  onLaunch: (result: LaunchResult) => void;
   onCancel: () => void;
 }
 
@@ -29,14 +36,15 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const MODE_DESCRIPTIONS: Record<WorkflowMode, string> = {
-  interactive: 'Claude will ask questions and wait for your answers in a chat-style UI.',
-  autonomous: 'Claude will run to completion using configured defaults. No input needed.',
+  interactive: 'Claude will emit its questions in the output. Since CLI is single-shot, this is best for observing the workflow.',
+  autonomous: 'Claude will run to completion using the parameters below. No input needed.',
 };
 
 export function WorkflowLaunchPanel({
   cardId,
   cardTitle,
   workflowType,
+  specDir,
   onLaunch,
   onCancel,
 }: WorkflowLaunchPanelProps) {
@@ -49,6 +57,38 @@ export function WorkflowLaunchPanel({
   const typeConfig: WorkflowConfig | undefined = configs?.[workflowType];
   const defaultMode = typeConfig?.defaultMode ?? 'interactive';
   const [mode, setMode] = useState<WorkflowMode>(defaultMode);
+
+  // Track param values — initialize from defaults and card context
+  const [paramValues, setParamValues] = useState<Record<string, string>>({});
+
+  // Initialize param defaults when config loads
+  useEffect(() => {
+    if (!typeConfig?.params) return;
+    const defaults: Record<string, string> = {};
+    for (const param of typeConfig.params) {
+      // Auto-fill featureName from card title
+      if (param.key === 'featureName') {
+        defaults[param.key] = cardTitle || param.default || '';
+      } else {
+        defaults[param.key] = param.default || '';
+      }
+    }
+    setParamValues(defaults);
+  }, [typeConfig, cardTitle]);
+
+  const handleParamChange = (key: string, value: string) => {
+    setParamValues((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleLaunch = () => {
+    onLaunch({
+      mode,
+      contextHints: paramValues,
+    });
+  };
+
+  const params = typeConfig?.params ?? [];
+  const showParams = params.length > 0;
 
   return ReactDOM.createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -98,20 +138,21 @@ export function WorkflowLaunchPanel({
           </p>
         </div>
 
-        {/* Parameters (if config defines them) */}
-        {typeConfig?.params && typeConfig.params.length > 0 && (
+        {/* Parameters */}
+        {showParams && (
           <div className="mb-4 space-y-3">
             <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block">
-              Parameters
+              {mode === 'autonomous' ? 'Context (pre-supplied to Claude)' : 'Parameters'}
             </label>
-            {typeConfig.params.map((param) => (
+            {params.map((param) => (
               <div key={param.key}>
                 <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
                   {param.label}
                 </label>
                 {param.type === 'select' && param.options ? (
                   <select
-                    defaultValue={param.default}
+                    value={paramValues[param.key] ?? ''}
+                    onChange={(e) => handleParamChange(param.key, e.target.value)}
                     className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 dark:bg-gray-700 dark:text-gray-200"
                   >
                     {param.options.map((opt) => (
@@ -121,7 +162,8 @@ export function WorkflowLaunchPanel({
                 ) : (
                   <input
                     type="text"
-                    defaultValue={param.default}
+                    value={paramValues[param.key] ?? ''}
+                    onChange={(e) => handleParamChange(param.key, e.target.value)}
                     placeholder={param.label}
                     className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 dark:bg-gray-700 dark:text-gray-200"
                   />
@@ -142,7 +184,7 @@ export function WorkflowLaunchPanel({
           </button>
           <button
             type="button"
-            onClick={() => onLaunch(mode)}
+            onClick={handleLaunch}
             className="px-4 py-2 text-sm rounded bg-violet-600 text-white hover:bg-violet-700 transition-colors"
           >
             Run {TYPE_LABELS[workflowType] ?? workflowType}

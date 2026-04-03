@@ -13,7 +13,6 @@ import { VALID_TRANSITIONS } from '../../shared/transitions/types.js';
 import { useBoard, useCardDetail, useConsolidatedBoard, useBranchHealth, useGitIdentity } from '../hooks/use-board.js';
 import { useSSE } from '../hooks/use-sse.js';
 import { triggerSync, createCard, startWorkflow } from '../api.js';
-import type { WorkflowMode } from '../api.js';
 import { CreateCardModal } from './CreateCardModal.js';
 import { useExecuteTransition } from '../hooks/use-transitions.js';
 import { Column } from './Column.js';
@@ -22,6 +21,7 @@ import { BranchSelector } from './BranchSelector.js';
 import { ConflictModal } from './ConflictModal.js';
 import { ConfirmTransitionModal } from './ConfirmTransitionModal.js';
 import { WorkflowLaunchPanel } from './WorkflowLaunchPanel.js';
+import type { LaunchResult } from './WorkflowLaunchPanel.js';
 import { BranchHealthPanel } from './BranchHealthPanel.js';
 import { ActivityFeed } from './ActivityFeed.js';
 import { RepoStatusIndicator } from './RepoStatusIndicator.js';
@@ -875,8 +875,16 @@ export function Board() {
           cardId={workflowLaunchIntent.cardId}
           cardTitle={workflowLaunchIntent.cardTitle}
           workflowType={workflowLaunchIntent.type}
-          onLaunch={(mode: WorkflowMode) => {
-            void startWorkflow(workflowLaunchIntent.cardId, workflowLaunchIntent.type, undefined, branch, mode);
+          onLaunch={(result: LaunchResult) => {
+            void startWorkflow(
+              workflowLaunchIntent.cardId,
+              workflowLaunchIntent.type,
+              undefined,
+              branch,
+              result.mode,
+              workflowLaunchIntent.cardTitle,
+              result.contextHints,
+            );
             // Open the card detail to see the workflow panel
             setSelectedCardId(workflowLaunchIntent.cardId);
             setWorkflowLaunchIntent(null);
