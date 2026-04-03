@@ -938,7 +938,7 @@ export function Board() {
         branch={branch}
         selectedPhases={(() => {
           const map = new Map<string, BoardPhase>();
-          for (const col of activeBoard.columns) {
+          for (const col of activeBoard?.columns ?? []) {
             for (const card of col.cards) {
               if (selectedCards.has(card.id)) {
                 map.set(card.id, card.phase);
