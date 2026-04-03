@@ -51,21 +51,21 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 14.1 Git Credential Forwarding
 
-- [ ] 14.1.1 Docker git credential forwarding: mount SSH keys or configure credential helper so worktree can push to origin
-- [ ] 14.1.2 GPG signing support: forward GPG agent or configure signing in worktree for repos that require signed commits
-- [ ] 14.1.3 Credential validation at startup: fail fast with clear errors if push credentials are missing or invalid
+- [x] 14.1.1 Docker git credential forwarding: mount SSH keys or configure credential helper so worktree can push to origin
+- [x] 14.1.2 GPG signing support: forward GPG agent or configure signing in worktree for repos that require signed commits
+- [x] 14.1.3 Credential validation at startup: fail fast with clear errors if push credentials are missing or invalid
 
 ### 14.2 Local-Only Write Mode
 
-- [ ] 14.2.1 Commit-only mode: commit to worktree without pushing to origin (useful for air-gapped or credential-less Docker setups)
-- [ ] 14.2.2 UI indicator when running in local-only mode (no push capability)
-- [ ] 14.2.3 Configuration via environment variable (`WHEATLEY_PUSH_MODE=local|remote`)
+- [x] 14.2.1 Commit-only mode: commit to worktree without pushing to origin (useful for air-gapped or credential-less Docker setups)
+- [x] 14.2.2 UI indicator when running in local-only mode (no push capability)
+- [x] 14.2.3 Configuration via environment variable (`WHEATLEY_PUSH_MODE=local|remote`)
 
 ### 14.3 Remaining Docker Polish
 
-- [ ] 14.3.1 Complete Docker test verification for brownfield-standardization, docker-deployment, and frontend-board-view specs
-- [ ] 14.3.2 Docker Compose health checks and restart policies for production deployments
-- [ ] 14.3.3 Container image size optimization (multi-stage build review, dependency pruning)
+- [x] 14.3.1 Complete Docker test verification for brownfield-standardization, docker-deployment, and frontend-board-view specs
+- [x] 14.3.2 Docker Compose health checks and restart policies for production deployments
+- [x] 14.3.3 Container image size optimization (multi-stage build review, dependency pruning)
 
 ## Phase 15: UX & Usability
 

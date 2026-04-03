@@ -135,9 +135,15 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Card detail panel performance**: Instant panel open with skeleton loading, click-outside-to-close
 - [x] **Column naming**: Unified display names, phase tooltips, configurable label support
 
-### 14. Backlog / Upcoming
+### 14. Phase 14 — Docker & Deployment Hardening (Complete)
 
-- [ ] Phase 14: Docker & Deployment Hardening (3 sections, 9 items)
+- [x] **Git credential forwarding**: SSH key mounting, HTTPS credential helper, GPG signing detection
+- [x] **Credential validation at startup**: Fail-fast check for push credentials when push mode enabled
+- [x] **Commit-only mode**: Local writes without push, UI indicator, WHEATLEY_PUSH_ON_WRITE env var
+- [x] **Docker polish**: Health checks, restart policies, production image size optimization
+
+### 15. Backlog / Upcoming
+
 - [ ] Phase 15: UX & Usability (3 sections, 8 items) — board grouping/collapse, card chrome reduction, ad-hoc specs
 - [ ] Phase 16: Conformance & Onboarding (2 sections, 5 items)
 
@@ -170,3 +176,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-04-02: **Autonomous Workflow Execution** — 494 tests passing. Unified WorkflowLaunchPanel for all workflow types, per-workflow params (plan: Feature Name/Goal/Personas, spec: Focus Areas, implement: Approach Notes, verify: Verification Focus), configurable preamble/postamble in `.wheatley/workflows.json`, autonomousContext templates with {{placeholder}} resolution, workflowSuggestion from transitions. PR #21 on `feat/interactive-workflows`.
 - 2026-04-02: Roadmap trimmed from 6 phases (64 items) to 4 phases (32 items) — removed speculative PM-tool features, added UX & Usability phase.
 - 2026-04-03: **PHASE 13 COMPLETE** — 498 tests passing, 13/13 roadmap items done. Spec dir naming fix, phase detection accuracy, resilient parsing with warnings, instant card detail panel, unified column naming with tooltips. MR review: fixed path traversal in existingSpecDir, synced validator/parser regexes, uppercase checkbox handling.
+- 2026-04-03: **PHASE 14 COMPLETE** — 498 tests passing, 9/9 roadmap items done. Push credential validation at startup, Docker Compose health checks and restart policies, production image optimization with dev dependency pruning. Most items were already implemented in prior phases — this phase formalized and hardened them.

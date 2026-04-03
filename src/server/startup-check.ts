@@ -37,6 +37,9 @@ export async function runStartupChecks(
   // 4. Repo conformance — does the repo have ROADMAP.md or specs/?
   checks.push(await checkRepoConformance(adapter));
 
+  // 5. Push credential check (when push mode is enabled)
+  checks.push(checkPushCredentials(mode));
+
   const passed = checks.every((c) => c.passed);
   return { passed, checks };
 }
@@ -140,6 +143,46 @@ async function checkFileRead(
  * Verify that the repository conforms to expected structure
  * (has ROADMAP.md or a specs/ directory).
  */
+/**
+ * When push mode is enabled, verify that credentials are available.
+ * Only applies to local mode with WHEATLEY_PUSH_ON_WRITE=true.
+ */
+function checkPushCredentials(mode: string): StartupCheckResult['checks'][number] {
+  const pushOnWrite = process.env.WHEATLEY_PUSH_ON_WRITE === 'true';
+
+  if (!pushOnWrite) {
+    return {
+      name: 'push-credentials',
+      passed: true,
+      message: 'Push disabled (commit-only mode) — no credentials required',
+    };
+  }
+
+  // Check for at least one credential source
+  const hasGitHubToken = !!process.env.GITHUB_TOKEN;
+  const hasGitLabToken = !!process.env.GITLAB_TOKEN;
+  const hasCredUrl = !!process.env.GIT_CREDENTIALS_URL;
+  const hasSshKey = !!process.env.SSH_AUTH_SOCK || !!process.env.SSH_KEY_PATH;
+
+  if (hasGitHubToken || hasGitLabToken || hasCredUrl || hasSshKey) {
+    const source = hasGitHubToken ? 'GITHUB_TOKEN' :
+      hasGitLabToken ? 'GITLAB_TOKEN' :
+      hasCredUrl ? 'GIT_CREDENTIALS_URL' : 'SSH agent';
+    return {
+      name: 'push-credentials',
+      passed: true,
+      message: `Push enabled — credential source: ${source}`,
+    };
+  }
+
+  return {
+    name: 'push-credentials',
+    passed: false,
+    message: 'Push enabled (WHEATLEY_PUSH_ON_WRITE=true) but no credentials found. ' +
+      'Set GITHUB_TOKEN, GITLAB_TOKEN, GIT_CREDENTIALS_URL, or mount SSH keys.',
+  };
+}
+
 async function checkRepoConformance(
   adapter: GitAdapter,
 ): Promise<StartupCheckResult['checks'][number]> {
