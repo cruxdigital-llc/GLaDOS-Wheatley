@@ -56,6 +56,8 @@ interface CardProps {
   isDragging?: boolean;
   /** True when this card has keyboard-navigation focus. */
   isFocused?: boolean;
+  /** True when this card is mid-transition (optimistic move in progress). */
+  isTransitioning?: boolean;
 }
 
 function formatClaimTime(iso: string): string {
@@ -82,6 +84,7 @@ export function Card({
   onDragEnd,
   isDragging,
   isFocused,
+  isTransitioning,
 }: CardProps) {
   const phaseColor = PHASE_COLORS[card.phase] ?? 'bg-gray-100 text-gray-700';
   const phaseAccent = PHASE_ACCENT[card.phase] ?? '';
@@ -148,8 +151,14 @@ export function Card({
       tabIndex={0}
       onClick={() => onClick?.(card)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(card); } }}
-      className={`w-full text-left wh-card wh-animate-in ${phaseAccent} ${isFocused ? 'ring-2 ring-blue-400' : ''}`}
+      className={`w-full text-left wh-card wh-animate-in ${phaseAccent} ${isFocused ? 'ring-2 ring-blue-400' : ''} ${isTransitioning ? 'animate-pulse opacity-70' : ''}`}
     >
+      {isTransitioning && (
+        <div className="flex items-center gap-1.5 mb-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+          Moving...
+        </div>
+      )}
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
           {card.title}

@@ -143,19 +143,21 @@ export class WorktreeManager {
   private async copyUserConfig(): Promise<void> {
     if (!this.worktreeGit) return;
 
-    // Try repo config → env var → fallback
+    // Try repo config → env var → fallback. Filter out empty strings.
+    const env = (key: string): string | undefined => process.env[key]?.trim() || undefined;
+
     let name: string | undefined;
     try {
       name = (await this.mainGit.raw(['config', 'user.name'])).trim() || undefined;
     } catch { /* no user.name configured */ }
-    name = name || process.env['GIT_AUTHOR_NAME'] || process.env['GIT_COMMITTER_NAME'] || 'Wheatley';
+    name = name ?? env('GIT_AUTHOR_NAME') ?? env('GIT_COMMITTER_NAME') ?? 'Wheatley';
     await this.worktreeGit.addConfig('user.name', name);
 
     let email: string | undefined;
     try {
       email = (await this.mainGit.raw(['config', 'user.email'])).trim() || undefined;
     } catch { /* no user.email configured */ }
-    email = email || process.env['GIT_AUTHOR_EMAIL'] || process.env['GIT_COMMITTER_EMAIL'] || 'wheatley@localhost';
+    email = email ?? env('GIT_AUTHOR_EMAIL') ?? env('GIT_COMMITTER_EMAIL') ?? 'wheatley@localhost';
     await this.worktreeGit.addConfig('user.email', email);
   }
 

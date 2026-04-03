@@ -157,8 +157,9 @@ export function Board() {
   const [pendingTransition, setPendingTransition] = useState<PendingTransition | null>(null);
   // Optimistic column override: board columns with card moved locally
   const [optimisticColumns, setOptimisticColumns] = useState<BoardColumn[] | null>(null);
-  // Transition error
+  // Transition error and in-flight card ID
   const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [transitioningCardId, setTransitioningCardId] = useState<string | null>(null);
   // Workflow launch intent (from transition suggestion)
   const [workflowLaunchIntent, setWorkflowLaunchIntent] = useState<{
     type: string;
@@ -322,6 +323,7 @@ export function Board() {
     (cardId: string, cardTitle: string, from: BoardPhase, to: BoardPhase, originalColumns: BoardColumn[]) => {
       // Apply optimistic update
       setOptimisticColumns(moveCardOptimistically(originalColumns, cardId, to));
+      setTransitioningCardId(cardId);
 
       transitionMutation.mutate(
         { itemId: cardId, from, to },
@@ -329,6 +331,7 @@ export function Board() {
           onSuccess: (data) => {
             // Server state wins; clear optimistic override
             setOptimisticColumns(null);
+            setTransitioningCardId(null);
             // If the transition suggests a workflow, show the launch panel
             if (data?.workflowSuggestion) {
               setWorkflowLaunchIntent({
@@ -341,6 +344,7 @@ export function Board() {
           onError: (err) => {
             // Roll back
             setOptimisticColumns(null);
+            setTransitioningCardId(null);
             setTransitionError((err as Error).message ?? 'Transition failed');
           },
         },
@@ -803,6 +807,7 @@ export function Board() {
                   collapsed={collapsedColumns.has(column.phase)}
                   onToggleCollapse={() => handleToggleCollapse(column.phase)}
                   focusedCardId={focusedCardId}
+                  transitioningCardId={transitioningCardId ?? undefined}
                 />
               ))}
             </div>

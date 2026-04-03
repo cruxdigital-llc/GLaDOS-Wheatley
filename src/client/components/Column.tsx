@@ -48,6 +48,8 @@ interface ColumnProps {
   onAddCard?: (phase: BoardPhase) => void;
   /** Card ID that should show a keyboard-navigation focus ring. */
   focusedCardId?: string;
+  /** Card ID currently mid-transition (optimistic move, server pending). */
+  transitioningCardId?: string;
   /** Whether this column is collapsed. */
   collapsed?: boolean;
   /** Called when the collapse/expand toggle is clicked. */
@@ -67,6 +69,7 @@ export function Column({
   onCardDragEnd,
   onAddCard,
   focusedCardId,
+  transitioningCardId,
   collapsed,
   onToggleCollapse,
 }: ColumnProps) {
@@ -180,6 +183,7 @@ export function Column({
               onDragStart={onCardDragStart}
               onDragEnd={onCardDragEnd}
               isFocused={card.id === focusedCardId}
+              isTransitioning={card.id === transitioningCardId}
             />
           ))
         )}
