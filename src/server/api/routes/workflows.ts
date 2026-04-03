@@ -23,6 +23,8 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
       type?: unknown;
       specDir?: unknown;
       branch?: unknown;
+      cardTitle?: unknown;
+      contextHints?: unknown;
     };
   }>('/api/workflows', async (request, reply) => {
     const { cardId, type, specDir, branch } = request.body ?? {};
@@ -59,10 +61,23 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
     }
 
     try {
+      const { cardTitle, contextHints } = request.body ?? {};
+
+      // Sanitize contextHints: only accept Record<string, string>
+      let hints: Record<string, string> | undefined;
+      if (contextHints && typeof contextHints === 'object' && !Array.isArray(contextHints)) {
+        hints = {};
+        for (const [k, v] of Object.entries(contextHints as Record<string, unknown>)) {
+          if (typeof v === 'string') hints[k] = v;
+        }
+      }
+
       const runId = await runner.start(type as WorkflowType, {
         cardId,
+        cardTitle: typeof cardTitle === 'string' ? cardTitle : undefined,
         specDir: typeof specDir === 'string' ? specDir : undefined,
         branch: typeof branch === 'string' ? branch : undefined,
+        contextHints: hints,
       });
 
       const state = await runner.getState(runId);
@@ -116,9 +131,9 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
       return reply.status(400).send({ error: '"from" must be a non-negative integer' });
     }
 
-    const lines = await runner.getOutput(runId, fromLine);
     const allLines = await runner.getOutput(runId, 0);
     const total = allLines.length;
+    const lines = fromLine > 0 ? allLines.slice(fromLine) : allLines;
 
     return reply.status(200).send({ lines, total });
   });

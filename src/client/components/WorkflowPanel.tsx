@@ -2,7 +2,8 @@
  * Workflow Panel Component
  *
  * Triggers and monitors GLaDOS workflow runs (plan, spec, implement, verify).
- * Shows a terminal-like output area for active runs and history for completed ones.
+ * Shows a WorkflowLaunchPanel before starting a new workflow and a terminal-like
+ * output area for active/completed runs.
  */
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -15,9 +16,12 @@ import {
   listActiveWorkflows,
 } from '../api.js';
 import type { WorkflowRun } from '../api.js';
+import { WorkflowLaunchPanel } from './WorkflowLaunchPanel.js';
+import type { LaunchResult } from './WorkflowLaunchPanel.js';
 
 interface WorkflowPanelProps {
   cardId: string;
+  cardTitle?: string;
   specDir?: string;
   phase: string;
   branch?: string;
@@ -47,12 +51,16 @@ function getSecondaryAction(phase: string): { type: string; label: string } | nu
 }
 
 const STATE_BADGES: Record<WorkflowRun['state'], { bg: string; text: string }> = {
-  queued: { bg: 'bg-gray-100', text: 'text-gray-600' },
-  running: { bg: 'bg-blue-50', text: 'text-blue-700' },
-  done: { bg: 'bg-green-50', text: 'text-green-700' },
-  error: { bg: 'bg-red-50', text: 'text-red-700' },
-  cancelled: { bg: 'bg-yellow-50', text: 'text-yellow-700' },
+  queued: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-300' },
+  running: { bg: 'bg-blue-50 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300' },
+  done: { bg: 'bg-green-50 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
+  error: { bg: 'bg-red-50 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300' },
+  cancelled: { bg: 'bg-yellow-50 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300' },
 };
+
+// ---------------------------------------------------------------------------
+// Workflow output display
+// ---------------------------------------------------------------------------
 
 function WorkflowOutput({ runId }: { runId: string }) {
   const outputRef = useRef<HTMLDivElement>(null);
@@ -83,6 +91,10 @@ function WorkflowOutput({ runId }: { runId: string }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Active run display
+// ---------------------------------------------------------------------------
+
 function ActiveRun({
   run,
   onCancelled,
@@ -109,7 +121,7 @@ function ActiveRun({
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stateBadge.bg} ${stateBadge.text}`}>
             {run.state}
           </span>
-          <span className="text-xs text-gray-500 font-medium">{run.type}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{run.type}</span>
           {(run.state === 'running' || run.state === 'queued') && (
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
           )}
@@ -119,7 +131,7 @@ function ActiveRun({
             type="button"
             onClick={() => cancelMutation.mutate()}
             disabled={cancelMutation.isPending}
-            className="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50"
+            className="text-xs px-2 py-1 rounded border border-red-200 dark:border-red-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
           >
             {cancelMutation.isPending ? 'Cancelling...' : 'Cancel'}
           </button>
@@ -137,12 +149,16 @@ function ActiveRun({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Completed run history item
+// ---------------------------------------------------------------------------
+
 function CompletedRunItem({ run }: { run: WorkflowRun }) {
   const stateBadge = STATE_BADGES[run.state];
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="border border-gray-200 rounded p-2 space-y-1">
+    <div className="border border-gray-200 dark:border-gray-700 rounded p-2 space-y-1">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
@@ -152,7 +168,7 @@ function CompletedRunItem({ run }: { run: WorkflowRun }) {
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stateBadge.bg} ${stateBadge.text}`}>
             {run.state}
           </span>
-          <span className="text-xs text-gray-600 font-medium">{run.type}</span>
+          <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">{run.type}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">
@@ -175,9 +191,14 @@ function CompletedRunItem({ run }: { run: WorkflowRun }) {
   );
 }
 
-export function WorkflowPanel({ cardId, specDir, phase, branch }: WorkflowPanelProps) {
+// ---------------------------------------------------------------------------
+// Main WorkflowPanel
+// ---------------------------------------------------------------------------
+
+export function WorkflowPanel({ cardId, cardTitle, specDir, phase, branch }: WorkflowPanelProps) {
   const queryClient = useQueryClient();
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [launchIntent, setLaunchIntent] = useState<{ type: string } | null>(null);
 
   const primaryAction = getAvailableAction(phase);
   const secondaryAction = getSecondaryAction(phase);
@@ -206,33 +227,38 @@ export function WorkflowPanel({ cardId, specDir, phase, branch }: WorkflowPanelP
     (r) => r.cardId === cardId && (r.state === 'running' || r.state === 'queued'),
   );
 
-  // Use the polled active run if available, otherwise the one from the list
   const displayRun = activeRun ?? cardActiveRun ?? null;
   const isRunActive = displayRun && (displayRun.state === 'running' || displayRun.state === 'queued');
 
-  // Set activeRunId when we discover one from the list
   useEffect(() => {
     if (cardActiveRun && !activeRunId) {
       setActiveRunId(cardActiveRun.id);
     }
   }, [cardActiveRun, activeRunId]);
 
-  // Completed runs from the active run's output tail (history section)
   const completedRuns = allActive?.runs.filter(
     (r) => r.cardId === cardId && r.state !== 'running' && r.state !== 'queued',
   ) ?? [];
 
   const startMutation = useMutation({
-    mutationFn: (type: string) => startWorkflow(cardId, type, specDir, branch),
+    mutationFn: ({ type, contextHints }: { type: string; contextHints?: Record<string, string> }) =>
+      startWorkflow(cardId, type, specDir, branch, cardTitle, contextHints),
     onSuccess: (data) => {
       setActiveRunId(data.runId);
+      setLaunchIntent(null);
       void queryClient.invalidateQueries({ queryKey: ['active-workflows'] });
     },
   });
 
+  const handleLaunch = (result: LaunchResult) => {
+    if (launchIntent) {
+      startMutation.mutate({ type: launchIntent.type, contextHints: result.contextHints });
+    }
+  };
+
   return (
-    <div className="px-6 py-4 border-b space-y-3">
-      <h3 className="text-sm font-semibold text-gray-700">GLaDOS Workflows</h3>
+    <div className="px-6 py-4 border-b dark:border-gray-700 space-y-3">
+      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">GLaDOS Workflows</h3>
 
       {/* Action buttons */}
       {!isRunActive && (primaryAction || secondaryAction) && (
@@ -240,19 +266,19 @@ export function WorkflowPanel({ cardId, specDir, phase, branch }: WorkflowPanelP
           {primaryAction && (
             <button
               type="button"
-              onClick={() => startMutation.mutate(primaryAction.type)}
+              onClick={() => setLaunchIntent({ type: primaryAction.type })}
               disabled={startMutation.isPending}
               className="text-xs px-3 py-1.5 rounded bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50"
             >
-              {startMutation.isPending ? 'Starting...' : primaryAction.label}
+              {primaryAction.label}
             </button>
           )}
           {secondaryAction && (
             <button
               type="button"
-              onClick={() => startMutation.mutate(secondaryAction.type)}
+              onClick={() => setLaunchIntent({ type: secondaryAction.type })}
               disabled={startMutation.isPending}
-              className="text-xs px-3 py-1.5 rounded bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200 disabled:opacity-50"
+              className="text-xs px-3 py-1.5 rounded bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/50 border border-violet-200 dark:border-violet-700 disabled:opacity-50"
             >
               {secondaryAction.label}
             </button>
@@ -284,7 +310,7 @@ export function WorkflowPanel({ cardId, specDir, phase, branch }: WorkflowPanelP
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATE_BADGES[displayRun.state].bg} ${STATE_BADGES[displayRun.state].text}`}>
               {displayRun.state}
             </span>
-            <span className="text-xs text-gray-500">{displayRun.type} completed</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{displayRun.type} completed</span>
           </div>
           {displayRun.outputTail.length > 0 && (
             <div className="bg-gray-900 text-green-400 font-mono text-xs p-2 rounded max-h-32 overflow-y-auto">
@@ -298,17 +324,29 @@ export function WorkflowPanel({ cardId, specDir, phase, branch }: WorkflowPanelP
 
       {/* No actions available */}
       {!primaryAction && !secondaryAction && !isRunActive && (
-        <p className="text-sm text-gray-400 py-1">No workflow actions available for the current phase.</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 py-1">No workflow actions available for the current phase.</p>
       )}
 
       {/* Workflow history */}
       {completedRuns.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">History</h4>
+          <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">History</h4>
           {completedRuns.map((run) => (
             <CompletedRunItem key={run.id} run={run} />
           ))}
         </div>
+      )}
+
+      {/* Launch panel modal */}
+      {launchIntent && (
+        <WorkflowLaunchPanel
+          cardId={cardId}
+          cardTitle={cardTitle ?? cardId}
+          workflowType={launchIntent.type}
+          specDir={specDir}
+          onLaunch={handleLaunch}
+          onCancel={() => setLaunchIntent(null)}
+        />
       )}
     </div>
   );

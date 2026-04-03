@@ -1,0 +1,36 @@
+{
+  "plan": {
+    "showLaunchPanel": true,
+    "params": [
+      { "key": "featureName", "label": "Feature Name", "type": "text" },
+      { "key": "goal", "label": "Goal", "type": "text" },
+      { "key": "personas", "label": "Personas", "type": "text", "default": "all" }
+    ],
+    "preamble": "IMPORTANT project conventions:\n- All commands (build, test, lint, run) MUST be executed inside Docker. Use `docker compose run` or `docker compose exec`.\n- Do NOT run npm/node commands directly on the host.",
+    "postamble": "When finished, commit your changes to the current branch."
+  },
+  "spec": {
+    "showLaunchPanel": true,
+    "params": [
+      { "key": "focusAreas", "label": "Focus Areas", "type": "text", "default": "data models, API interface, edge cases" }
+    ],
+    "preamble": "IMPORTANT project conventions:\n- All commands (build, test, lint, run) MUST be executed inside Docker. Use `docker compose run` or `docker compose exec`.\n- Do NOT run npm/node commands directly on the host.",
+    "postamble": "When finished, commit your changes to the current branch."
+  },
+  "implement": {
+    "showLaunchPanel": true,
+    "params": [
+      { "key": "approachNotes", "label": "Approach Notes", "type": "text" }
+    ],
+    "preamble": "IMPORTANT project conventions:\n- All commands (build, test, lint, run) MUST be executed inside Docker. Use `docker compose run` or `docker compose exec`.\n- Do NOT run npm/node commands directly on the host.",
+    "postamble": "When finished:\n- Run the full test suite in Docker: `docker compose run --rm test npx vitest run`\n- If tests pass, commit your changes to the current branch."
+  },
+  "verify": {
+    "showLaunchPanel": true,
+    "params": [
+      { "key": "verifyFocus", "label": "Verification Focus", "type": "text", "default": "test coverage, edge cases, spec alignment" }
+    ],
+    "preamble": "IMPORTANT project conventions:\n- All commands (build, test, lint, run) MUST be executed inside Docker. Use `docker compose run` or `docker compose exec`.\n- Do NOT run npm/node commands directly on the host.",
+    "postamble": "When finished, commit verification results to the current branch."
+  }
+}

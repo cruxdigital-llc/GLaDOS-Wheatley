@@ -2,7 +2,8 @@
  * Workflow Runner Types
  *
  * Defines the interface for triggering and tracking GLaDOS agent workflows
- * from the Wheatley board.
+ * from the Wheatley board. All workflows run as single-shot autonomous
+ * executions via Claude CLI -p.
  */
 
 export type WorkflowType = 'plan' | 'spec' | 'implement' | 'verify';
@@ -22,8 +23,15 @@ export interface WorkflowRun {
 
 export interface WorkflowContext {
   cardId: string;
+  cardTitle?: string;
   specDir?: string;
   branch?: string;
+  /**
+   * Key-value pairs from the launch panel (params + preamble/postamble overrides).
+   * These are injected into the prompt via autonomousContext templates.
+   * Special keys: _preamble, _postamble override config defaults for this run.
+   */
+  contextHints?: Record<string, string>;
 }
 
 export interface WorkflowRunner {

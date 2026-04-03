@@ -152,12 +152,19 @@ export interface TransitionRequest {
   branch?: string;
 }
 
+export interface TransitionResult {
+  workflowSuggestion?: {
+    type: string;
+    cardId: string;
+  };
+}
+
 export async function executeTransition(
   itemId: string,
   from: string,
   to: string,
   branch?: string,
-): Promise<void> {
+): Promise<TransitionResult> {
   const body: TransitionRequest = { itemId, from, to };
   if (branch) body.branch = branch;
 
@@ -176,6 +183,12 @@ export async function executeTransition(
       // ignore parse errors
     }
     throw new Error(message);
+  }
+
+  try {
+    return (await response.json()) as TransitionResult;
+  } catch {
+    return {};
   }
 }
 
@@ -527,11 +540,13 @@ export async function startWorkflow(
   type: string,
   specDir?: string,
   branch?: string,
+  cardTitle?: string,
+  contextHints?: Record<string, string>,
 ): Promise<{ runId: string }> {
   return fetchJson<{ runId: string }>(`${API_BASE}/workflows`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cardId, type, specDir, branch }),
+    body: JSON.stringify({ cardId, type, specDir, branch, cardTitle, contextHints }),
   });
 }
 
@@ -559,6 +574,32 @@ export async function cancelWorkflow(runId: string): Promise<void> {
 
 export async function listActiveWorkflows(): Promise<{ runs: WorkflowRun[] }> {
   return fetchJson<{ runs: WorkflowRun[] }>(`${API_BASE}/workflows?active=true`);
+}
+
+// ---------------------------------------------------------------------------
+// Workflow Configuration
+// ---------------------------------------------------------------------------
+
+export interface WorkflowParamConfig {
+  key: string;
+  label: string;
+  type: 'text' | 'select';
+  default?: string;
+  options?: string[];
+}
+
+export interface WorkflowConfig {
+  showLaunchPanel: boolean;
+  params: WorkflowParamConfig[];
+  autonomousContext?: string;
+  preamble?: string;
+  postamble?: string;
+}
+
+export type WorkflowConfigMap = Partial<Record<string, WorkflowConfig>>;
+
+export async function fetchWorkflowConfig(): Promise<WorkflowConfigMap> {
+  return fetchJson<WorkflowConfigMap>(`${API_BASE}/config/workflows`);
 }
 
 // ---------------------------------------------------------------------------

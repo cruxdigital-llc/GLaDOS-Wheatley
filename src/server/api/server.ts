@@ -49,6 +49,7 @@ import { PRLinkService } from './pr-link-service.js';
 import { SubprocessRunner } from '../workflows/subprocess-runner.js';
 import { NullRunner } from '../workflows/null-runner.js';
 import type { WorkflowRunner } from '../workflows/types.js';
+import { loadWorkflowConfig } from '../workflows/config.js';
 import { loadAuthConfig, authMiddleware, requireRole, oauthRoutes, loginPageRoute } from '../auth/index.js';
 import { UserNotificationService } from '../notifications/notification-service.js';
 import { userNotificationRoutes } from './routes/user-notifications.js';
@@ -119,12 +120,13 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   const boardCache = new BoardCache();
   const cardService = new CardService(options.adapter, boardService);
   const searchService = new SearchService(boardService, options.adapter);
+  const eventBus = new EventBus();
+  const workflowConfigs = await loadWorkflowConfig(options.adapter);
   const workflowRunner: WorkflowRunner = process.env['WHEATLEY_GLADOS_CMD']
-    ? new SubprocessRunner()
+    ? new SubprocessRunner(eventBus, workflowConfigs)
     : new NullRunner();
   const platformAdapter = createPlatformAdapter();
   const prLinkService = new PRLinkService(platformAdapter);
-  const eventBus = new EventBus();
   const eventLogService = new EventLogService(options.adapter, eventBus);
   eventLogService.start();
   const userNotificationService = new UserNotificationService();
@@ -148,6 +150,11 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
     // Skip auth checks for auth-related and health routes
     if (url.startsWith('/auth/') || url === '/login' || url === '/api/health') {
+      return;
+    }
+
+    // Read-only config endpoints accessible to all authenticated users
+    if (method === 'GET' && (url === '/api/config/workflows' || url === '/api/config/parser')) {
       return;
     }
 

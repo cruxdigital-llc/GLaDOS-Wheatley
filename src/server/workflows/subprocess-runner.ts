@@ -2,6 +2,9 @@
  * Subprocess Workflow Runner
  *
  * Spawns GLaDOS CLI commands as child processes and tracks their lifecycle.
+ * All workflows run as single-shot autonomous executions via `claude -p`.
+ * The prompt is assembled from: preamble + command + autonomousContext + postamble,
+ * with {{placeholders}} resolved from card context and launch panel params.
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -11,8 +14,10 @@ import type {
   WorkflowType,
   WorkflowContext,
   WorkflowRun,
-  WorkflowState,
 } from './types.js';
+import type { EventBus } from '../api/event-bus.js';
+import type { WorkflowConfigMap } from './config.js';
+import { getWorkflowTypeConfig } from './config.js';
 
 const MAX_OUTPUT_LINES = 500;
 const COMPLETED_RUN_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -31,17 +36,72 @@ function generateRunId(): string {
   return `wf-${ts}-${rand}`;
 }
 
-function buildArgs(type: WorkflowType, context: WorkflowContext): string[] {
+/**
+ * Resolve placeholders like {{cardTitle}} in a template string using
+ * WorkflowContext fields and contextHints.
+ */
+function resolveTemplate(template: string, context: WorkflowContext): string {
+  const vars: Record<string, string> = {
+    cardId: context.cardId,
+    cardTitle: context.cardTitle ?? context.cardId,
+    specDir: context.specDir ?? context.cardId,
+    ...context.contextHints,
+  };
+  return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => vars[key] ?? `[${key}]`);
+}
+
+interface PromptConfig {
+  autonomousContext?: string;
+  preamble?: string;
+  postamble?: string;
+}
+
+/**
+ * Build CLI args for a single-shot workflow execution.
+ * Assembles: preamble → command → autonomousContext → postamble.
+ */
+function buildArgs(
+  type: WorkflowType,
+  context: WorkflowContext,
+  config: PromptConfig,
+): string[] {
+  const target = context.specDir ?? context.cardId;
+
+  // Core workflow command
+  let command: string;
   switch (type) {
     case 'plan':
-      return ['-p', `Run /glados:plan-feature for card ${context.cardId}`];
+      command = `Run /glados:plan-feature for card ${context.cardId}`;
+      break;
     case 'spec':
-      return ['-p', `Run /glados:spec-feature for ${context.specDir ?? context.cardId}`];
+      command = `Run /glados:spec-feature for ${target}`;
+      break;
     case 'implement':
-      return ['-p', `Run /glados:implement-feature for ${context.specDir ?? context.cardId}`];
+      command = `Run /glados:implement-feature for ${target}`;
+      break;
     case 'verify':
-      return ['-p', `Run /glados:verify-feature for ${context.specDir ?? context.cardId}`];
+      command = `Run /glados:verify-feature for ${target}`;
+      break;
   }
+
+  // Assemble prompt: preamble → command → autonomous context → postamble
+  const parts: string[] = [];
+
+  if (config.preamble) {
+    parts.push(resolveTemplate(config.preamble, context));
+  }
+
+  parts.push(command);
+
+  if (config.autonomousContext) {
+    parts.push(resolveTemplate(config.autonomousContext, context));
+  }
+
+  if (config.postamble) {
+    parts.push(resolveTemplate(config.postamble, context));
+  }
+
+  return ['-p', parts.join('\n\n')];
 }
 
 export class SubprocessRunner implements WorkflowRunner {
@@ -49,14 +109,18 @@ export class SubprocessRunner implements WorkflowRunner {
   private readonly cmd: string;
   private readonly cwd: string;
   private readonly maxConcurrent: number;
+  private readonly eventBus: EventBus | undefined;
+  private readonly configs: WorkflowConfigMap;
 
-  constructor() {
+  constructor(eventBus?: EventBus, configs?: WorkflowConfigMap) {
     this.cmd = process.env['WHEATLEY_GLADOS_CMD'] ?? 'claude';
     this.cwd = process.env['WHEATLEY_REPO_PATH'] ?? '.';
     this.maxConcurrent = Math.max(
       1,
       parseInt(process.env['WHEATLEY_MAX_WORKFLOWS'] ?? '3', 10) || 3,
     );
+    this.eventBus = eventBus;
+    this.configs = configs ?? {};
   }
 
   async start(type: WorkflowType, context: WorkflowContext): Promise<string> {
@@ -83,8 +147,17 @@ export class SubprocessRunner implements WorkflowRunner {
     const entry: RunEntry = { run, process: null, lines: [] };
     this.runs.set(id, entry);
 
-    // Spawn the process
-    const args = buildArgs(type, context);
+    // Resolve preamble/postamble: per-run overrides via contextHints, else config
+    const typeConfig = getWorkflowTypeConfig(this.configs, type);
+    const preamble = context.contextHints?.['_preamble'] ?? typeConfig.preamble;
+    const postamble = context.contextHints?.['_postamble'] ?? typeConfig.postamble;
+
+    const args = buildArgs(type, context, {
+      autonomousContext: typeConfig.autonomousContext,
+      preamble,
+      postamble,
+    });
+
     const child = spawn(this.cmd, args, {
       cwd: this.cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -99,7 +172,7 @@ export class SubprocessRunner implements WorkflowRunner {
         entry.lines.shift();
       }
       entry.lines.push(line);
-      entry.run.outputTail = entry.lines.slice();
+      // Defer outputTail snapshot to getState/getOutput to avoid copying on every line
     };
 
     const handleData = (data: Buffer): void => {
@@ -119,6 +192,13 @@ export class SubprocessRunner implements WorkflowRunner {
       entry.run.state = code === 0 ? 'done' : 'error';
       entry.run.finishedAt = new Date().toISOString();
       entry.process = null;
+
+      this.eventBus?.emit({
+        type: 'workflow-done',
+        timestamp: new Date().toISOString(),
+        runId: id,
+        detail: `Workflow ${type} ${code === 0 ? 'completed' : 'failed'} for ${context.cardId}`,
+      });
     });
 
     child.on('error', (err) => {
@@ -133,7 +213,8 @@ export class SubprocessRunner implements WorkflowRunner {
 
   async getState(runId: string): Promise<WorkflowRun | null> {
     const entry = this.runs.get(runId);
-    return entry ? { ...entry.run } : null;
+    if (!entry) return null;
+    return { ...entry.run, outputTail: entry.lines.slice() };
   }
 
   async getOutput(runId: string, fromLine?: number): Promise<string[]> {
@@ -191,7 +272,6 @@ export class SubprocessRunner implements WorkflowRunner {
         }
       }
     }
-    // If still over limit, evict oldest completed runs
     if (completed.length > MAX_COMPLETED_RUNS) {
       completed.sort((a, b) => {
         const aTime = a[1].run.finishedAt ?? a[1].run.startedAt;

@@ -111,10 +111,22 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [ ] **Validator relaxation**: Downgrade non-critical errors to warnings
 - [ ] **Tests**: Fallback parsing tests, CongaLine-style fixtures, regression coverage
 
-### 12. Backlog / Upcoming
+### 12. Autonomous Workflow Execution — Verified
+
+*Lead: Architect + QA + Product Manager*
+*See `specs/2026-04-02_feature_interactive-workflows/` for full trace*
+
+- [x] **Workflow Launch Panel**: Unified modal for all workflow types with per-workflow params
+- [x] **Autonomous Context Injection**: Prompt assembly with preamble + command + autonomousContext + postamble
+- [x] **Per-Workflow Configuration**: `.wheatley/workflows.json` with params, preamble, postamble per workflow type
+- [x] **Transition Integration**: workflowSuggestion in transition API response triggers launch panel
+- [x] **Config API**: GET /api/config/workflows endpoint
+
+### 13. Backlog / Upcoming
 
 - [ ] Phase 12: API Documentation, Export & Integration (4 features, 18 items)
-- [ ] Phase 13: Analytics, Reporting & Insights (3 features, 11 items)
+- [ ] Phase 14: Board Accuracy & Onboarding (3 features, 10 items) — phase detection, ROADMAP conformance warnings, completed specs on timeline
+- [ ] Phase 15: Analytics, Reporting & Insights (3 features, 11 items)
 
 ## Known Issues / Technical Debt
 
@@ -142,3 +154,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-29: **PHASE 11 COMPLETE** — 439 tests passing, 23/23 roadmap items done. List/Timeline/Calendar views, bulk operations, card relationships with cycle detection, dark mode, virtualized lists, undo/redo, structured logging, Prometheus metrics, startup self-test, graceful shutdown. MR review: fixed metrics memory leak, input validation, branch guards.
 - 2026-03-31: Resilient Markdown Parsing feature planned — 10 structural mismatches identified between CongaLine's GLaDOS markdown and Wheatley's parsers. Adding fallback parsing with diagnostic warnings.
 - 2026-03-31: **Auth Paradigm Completion** — 474 tests passing. Fixed 4 auth gaps: local mode git identity from `git config`, client JWT Bearer header loop, repo-level access verification (GitHub collaborator/GitLab member checks), provider auto-detection warnings. PR #16 on `fix/auth-gaps` targeting `chore/mode-cleanup`.
+- 2026-04-02: **Autonomous Workflow Execution** — 494 tests passing. Unified WorkflowLaunchPanel for all workflow types, per-workflow params (plan: Feature Name/Goal/Personas, spec: Focus Areas, implement: Approach Notes, verify: Verification Focus), configurable preamble/postamble in `.wheatley/workflows.json`, autonomousContext templates with {{placeholder}} resolution, workflowSuggestion from transitions. PR #21 on `feat/interactive-workflows`.
