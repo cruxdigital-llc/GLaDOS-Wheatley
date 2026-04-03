@@ -870,8 +870,8 @@ export function Board() {
       </main>
 
       {/* Card Detail Panel */}
-      {selectedCardId && cardDetail && (
-        <CardDetail detail={cardDetail} branch={branch} currentUser={currentUser} onClose={handleCloseDetail} />
+      {selectedCardId && (
+        <CardDetail detail={cardDetail ?? null} loading={!cardDetail} branch={branch} currentUser={currentUser} onClose={handleCloseDetail} />
       )}
 
       {/* Claim Conflict Modal */}
