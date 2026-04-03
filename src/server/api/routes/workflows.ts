@@ -23,7 +23,6 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
       type?: unknown;
       specDir?: unknown;
       branch?: unknown;
-      mode?: unknown;
       cardTitle?: unknown;
       contextHints?: unknown;
     };
@@ -43,15 +42,6 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
         statusCode: 400,
         error: 'Bad Request',
         message: `type must be one of: ${[...VALID_TYPES].join(', ')}`,
-      });
-    }
-
-    const mode = request.body?.mode;
-    if (mode !== undefined && mode !== 'autonomous' && mode !== 'interactive') {
-      return reply.status(400).send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: 'mode must be "autonomous" or "interactive"',
       });
     }
 
@@ -87,7 +77,6 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
         cardTitle: typeof cardTitle === 'string' ? cardTitle : undefined,
         specDir: typeof specDir === 'string' ? specDir : undefined,
         branch: typeof branch === 'string' ? branch : undefined,
-        mode: typeof mode === 'string' ? (mode as 'autonomous' | 'interactive') : undefined,
         contextHints: hints,
       });
 
@@ -147,39 +136,6 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
     const total = allLines.length;
 
     return reply.status(200).send({ lines, total });
-  });
-
-  // POST /api/workflows/:runId/input — send input to a waiting workflow
-  app.post<{
-    Params: { runId: string };
-    Body: { text?: unknown };
-  }>('/api/workflows/:runId/input', async (request, reply) => {
-    const { runId } = request.params;
-
-    if (!RUN_ID_RE.test(runId)) {
-      return reply.status(400).send({ error: 'Invalid run ID format' });
-    }
-
-    const { text } = request.body ?? {};
-    if (typeof text !== 'string' || text.length === 0) {
-      return reply.status(400).send({
-        statusCode: 400,
-        error: 'Bad Request',
-        message: 'text must be a non-empty string',
-      });
-    }
-
-    try {
-      await runner.sendInput(runId, text);
-      return reply.status(200).send({ sent: true });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to send input';
-      return reply.status(409).send({
-        statusCode: 409,
-        error: 'Conflict',
-        message,
-      });
-    }
   });
 
   // DELETE /api/workflows/:runId — cancel a workflow

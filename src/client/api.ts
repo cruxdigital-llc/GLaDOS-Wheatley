@@ -525,29 +525,14 @@ export async function mergePR(prNumber: number, strategy: string): Promise<void>
 // Workflow Runs (GLaDOS orchestration)
 // ---------------------------------------------------------------------------
 
-export type WorkflowMode = 'autonomous' | 'interactive';
-
 export interface WorkflowRun {
   id: string;
   cardId: string;
   type: 'plan' | 'spec' | 'implement' | 'verify';
-  state: 'queued' | 'running' | 'waiting_for_input' | 'done' | 'error' | 'cancelled';
-  mode: WorkflowMode;
+  state: 'queued' | 'running' | 'done' | 'error' | 'cancelled';
   startedAt: string;
   finishedAt?: string;
-  pendingPrompt?: string;
-  autonomousPhase?: boolean;
   outputTail: string[];
-}
-
-export interface StartWorkflowOptions {
-  cardId: string;
-  type: string;
-  specDir?: string;
-  branch?: string;
-  mode?: WorkflowMode;
-  cardTitle?: string;
-  contextHints?: Record<string, string>;
 }
 
 export async function startWorkflow(
@@ -555,14 +540,13 @@ export async function startWorkflow(
   type: string,
   specDir?: string,
   branch?: string,
-  mode?: WorkflowMode,
   cardTitle?: string,
   contextHints?: Record<string, string>,
 ): Promise<{ runId: string }> {
   return fetchJson<{ runId: string }>(`${API_BASE}/workflows`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cardId, type, specDir, branch, mode, cardTitle, contextHints }),
+    body: JSON.stringify({ cardId, type, specDir, branch, cardTitle, contextHints }),
   });
 }
 
@@ -592,14 +576,6 @@ export async function listActiveWorkflows(): Promise<{ runs: WorkflowRun[] }> {
   return fetchJson<{ runs: WorkflowRun[] }>(`${API_BASE}/workflows?active=true`);
 }
 
-export async function sendWorkflowInput(runId: string, text: string): Promise<void> {
-  await fetchJson(`${API_BASE}/workflows/${encodeURIComponent(runId)}/input`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
-  });
-}
-
 // ---------------------------------------------------------------------------
 // Workflow Configuration
 // ---------------------------------------------------------------------------
@@ -613,10 +589,8 @@ export interface WorkflowParamConfig {
 }
 
 export interface WorkflowConfig {
-  defaultMode: WorkflowMode;
   showLaunchPanel: boolean;
   params: WorkflowParamConfig[];
-  autoAnswers: Record<string, string>;
   autonomousContext?: string;
   preamble?: string;
   postamble?: string;

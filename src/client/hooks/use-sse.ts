@@ -31,7 +31,7 @@ export function useSSE() {
           if (data.type === 'claim' || data.type === 'transition') {
             void queryClient.invalidateQueries({ queryKey: ['board'] });
           }
-          if (data.type === 'workflow-prompt' || data.type === 'workflow-done') {
+          if (data.type === 'workflow-done') {
             void queryClient.invalidateQueries({ queryKey: ['workflow-run'] });
             void queryClient.invalidateQueries({ queryKey: ['workflow-output'] });
             void queryClient.invalidateQueries({ queryKey: ['active-workflows'] });

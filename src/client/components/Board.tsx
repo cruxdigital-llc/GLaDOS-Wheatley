@@ -881,7 +881,6 @@ export function Board() {
               workflowLaunchIntent.type,
               undefined,
               branch,
-              result.mode,
               workflowLaunchIntent.cardTitle,
               result.contextHints,
             );

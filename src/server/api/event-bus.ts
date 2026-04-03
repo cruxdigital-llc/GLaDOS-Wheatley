@@ -6,7 +6,7 @@
  */
 
 export type BoardEvent = {
-  type: 'sync' | 'board-updated' | 'claim' | 'transition' | 'webhook' | 'workflow-prompt' | 'workflow-done';
+  type: 'sync' | 'board-updated' | 'claim' | 'transition' | 'webhook' | 'workflow-done';
   timestamp: string;
   detail?: string;
   runId?: string;

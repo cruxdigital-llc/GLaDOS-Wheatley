@@ -3,19 +3,17 @@
  *
  * Unified modal for launching GLaDOS workflows. Shown after a phase
  * transition completes or when the user clicks a workflow button.
- * Lets the user choose autonomous vs interactive mode and configure parameters.
- * In autonomous mode, collected params are injected into the prompt as context
- * so Claude doesn't need to ask interactive questions.
+ * Collects per-run parameters and shows editable preamble/postamble
+ * boilerplate from the workflow config.
  */
 
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWorkflowConfig } from '../api.js';
-import type { WorkflowMode, WorkflowConfig } from '../api.js';
+import type { WorkflowConfig } from '../api.js';
 
 export interface LaunchResult {
-  mode: WorkflowMode;
   contextHints: Record<string, string>;
 }
 
@@ -35,11 +33,6 @@ const TYPE_LABELS: Record<string, string> = {
   verify: 'Verify Feature',
 };
 
-const MODE_DESCRIPTIONS: Record<WorkflowMode, string> = {
-  interactive: 'Claude will emit its questions in the output. Since CLI is single-shot, this is best for observing the workflow.',
-  autonomous: 'Claude will run to completion using the parameters below. No input needed.',
-};
-
 export function WorkflowLaunchPanel({
   cardId,
   cardTitle,
@@ -55,8 +48,6 @@ export function WorkflowLaunchPanel({
   });
 
   const typeConfig: WorkflowConfig | undefined = configs?.[workflowType];
-  const defaultMode = typeConfig?.defaultMode ?? 'interactive';
-  const [mode, setMode] = useState<WorkflowMode>(defaultMode);
 
   // Track param values — initialize from defaults and card context
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
@@ -65,7 +56,7 @@ export function WorkflowLaunchPanel({
   const [postamble, setPostamble] = useState('');
   const [showInstructions, setShowInstructions] = useState(false);
 
-  // Initialize param defaults when config loads
+  // Initialize when config loads
   useEffect(() => {
     if (!typeConfig) return;
     const defaults: Record<string, string> = {};
@@ -94,73 +85,31 @@ export function WorkflowLaunchPanel({
     if (postamble !== (typeConfig?.postamble ?? '')) {
       hints['_postamble'] = postamble;
     }
-    onLaunch({ mode, contextHints: hints });
+    onLaunch({ contextHints: hints });
   };
 
+  const params = typeConfig?.params ?? [];
   const hasPreamble = preamble.length > 0;
   const hasPostamble = postamble.length > 0;
   const hasInstructions = hasPreamble || hasPostamble;
 
-  const params = typeConfig?.params ?? [];
-  const showParams = params.length > 0;
-
   return ReactDOM.createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
         {/* Header */}
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-          Launch Workflow
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
           {TYPE_LABELS[workflowType] ?? workflowType}
-        </p>
+        </h2>
         <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 truncate" title={cardId}>
           {cardTitle || cardId}
         </p>
 
-        {/* Mode Toggle */}
-        <div className="mb-4">
-          <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-2 block">
-            Execution Mode
-          </label>
-          <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setMode('interactive')}
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                mode === 'interactive'
-                  ? 'bg-violet-600 text-white'
-                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-              }`}
-            >
-              Interactive
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('autonomous')}
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                mode === 'autonomous'
-                  ? 'bg-violet-600 text-white'
-                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-              }`}
-            >
-              Autonomous
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            {MODE_DESCRIPTIONS[mode]}
-          </p>
-        </div>
-
         {/* Parameters */}
-        {showParams && (
+        {params.length > 0 && (
           <div className="mb-4 space-y-3">
-            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block">
-              {mode === 'autonomous' ? 'Context (pre-supplied to Claude)' : 'Parameters'}
-            </label>
             {params.map((param) => (
               <div key={param.key}>
-                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-300 block mb-1">
                   {param.label}
                 </label>
                 {param.type === 'select' && param.options ? (
@@ -188,55 +137,50 @@ export function WorkflowLaunchPanel({
         )}
 
         {/* Preamble / Postamble (collapsible) */}
-        {hasInstructions && (
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={() => setShowInstructions(!showInstructions)}
-              className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              <span>{showInstructions ? '\u25BC' : '\u25B6'}</span>
-              Instructions
-              {!showInstructions && hasPreamble && hasPostamble && (
-                <span className="text-[10px] font-normal normal-case text-gray-400">(preamble + postamble configured)</span>
-              )}
-              {!showInstructions && hasPreamble && !hasPostamble && (
-                <span className="text-[10px] font-normal normal-case text-gray-400">(preamble configured)</span>
-              )}
-              {!showInstructions && !hasPreamble && hasPostamble && (
-                <span className="text-[10px] font-normal normal-case text-gray-400">(postamble configured)</span>
-              )}
-            </button>
-            {showInstructions && (
-              <div className="mt-2 space-y-3">
-                <div>
-                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                    Preamble <span className="text-gray-400">(prepended to prompt)</span>
-                  </label>
-                  <textarea
-                    value={preamble}
-                    onChange={(e) => setPreamble(e.target.value)}
-                    rows={3}
-                    className="w-full text-xs font-mono border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 dark:bg-gray-700 dark:text-gray-200 resize-y"
-                    placeholder="e.g., Run all commands in Docker..."
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
-                    Postamble <span className="text-gray-400">(appended after workflow)</span>
-                  </label>
-                  <textarea
-                    value={postamble}
-                    onChange={(e) => setPostamble(e.target.value)}
-                    rows={3}
-                    className="w-full text-xs font-mono border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 dark:bg-gray-700 dark:text-gray-200 resize-y"
-                    placeholder="e.g., Commit changes when done..."
-                  />
-                </div>
-              </div>
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => setShowInstructions(!showInstructions)}
+            className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
+          >
+            <span>{showInstructions ? '\u25BC' : '\u25B6'}</span>
+            Instructions
+            {!showInstructions && hasInstructions && (
+              <span className="text-[10px] font-normal normal-case text-gray-400">(configured)</span>
             )}
-          </div>
-        )}
+            {!showInstructions && !hasInstructions && (
+              <span className="text-[10px] font-normal normal-case text-gray-400">(none)</span>
+            )}
+          </button>
+          {showInstructions && (
+            <div className="mt-2 space-y-3">
+              <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                  Preamble <span className="text-gray-400">(prepended to prompt)</span>
+                </label>
+                <textarea
+                  value={preamble}
+                  onChange={(e) => setPreamble(e.target.value)}
+                  rows={3}
+                  className="w-full text-xs font-mono border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 dark:bg-gray-700 dark:text-gray-200 resize-y"
+                  placeholder="e.g., Run all commands in Docker..."
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">
+                  Postamble <span className="text-gray-400">(appended after workflow)</span>
+                </label>
+                <textarea
+                  value={postamble}
+                  onChange={(e) => setPostamble(e.target.value)}
+                  rows={3}
+                  className="w-full text-xs font-mono border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 dark:bg-gray-700 dark:text-gray-200 resize-y"
+                  placeholder="e.g., Commit changes when done..."
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Actions */}
         <div className="flex gap-3 justify-end">
@@ -252,7 +196,7 @@ export function WorkflowLaunchPanel({
             onClick={handleLaunch}
             className="px-4 py-2 text-sm rounded bg-violet-600 text-white hover:bg-violet-700 transition-colors"
           >
-            Run {TYPE_LABELS[workflowType] ?? workflowType}
+            Run
           </button>
         </div>
       </div>

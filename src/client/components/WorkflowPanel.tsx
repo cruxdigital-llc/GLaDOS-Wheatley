@@ -2,8 +2,8 @@
  * Workflow Panel Component
  *
  * Triggers and monitors GLaDOS workflow runs (plan, spec, implement, verify).
- * Supports interactive mode with chat-style prompts and autonomous mode.
- * Shows a WorkflowLaunchPanel before starting a new workflow.
+ * Shows a WorkflowLaunchPanel before starting a new workflow and a terminal-like
+ * output area for active/completed runs.
  */
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -14,9 +14,8 @@ import {
   fetchWorkflowOutput,
   cancelWorkflow,
   listActiveWorkflows,
-  sendWorkflowInput,
 } from '../api.js';
-import type { WorkflowRun, WorkflowMode } from '../api.js';
+import type { WorkflowRun } from '../api.js';
 import { WorkflowLaunchPanel } from './WorkflowLaunchPanel.js';
 import type { LaunchResult } from './WorkflowLaunchPanel.js';
 
@@ -54,20 +53,17 @@ function getSecondaryAction(phase: string): { type: string; label: string } | nu
 const STATE_BADGES: Record<WorkflowRun['state'], { bg: string; text: string }> = {
   queued: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-600 dark:text-gray-300' },
   running: { bg: 'bg-blue-50 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300' },
-  waiting_for_input: { bg: 'bg-amber-50 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300' },
   done: { bg: 'bg-green-50 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
   error: { bg: 'bg-red-50 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300' },
   cancelled: { bg: 'bg-yellow-50 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-300' },
 };
 
 // ---------------------------------------------------------------------------
-// Chat-style workflow output
+// Workflow output display
 // ---------------------------------------------------------------------------
 
-function WorkflowChat({ runId, run }: { runId: string; run: WorkflowRun | null }) {
+function WorkflowOutput({ runId }: { runId: string }) {
   const outputRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [inputText, setInputText] = useState('');
 
   const { data } = useQuery({
     queryKey: ['workflow-output', runId],
@@ -75,134 +71,21 @@ function WorkflowChat({ runId, run }: { runId: string; run: WorkflowRun | null }
     refetchInterval: 2000,
   });
 
-  const inputMutation = useMutation({
-    mutationFn: (text: string) => sendWorkflowInput(runId, text),
-    onSuccess: () => setInputText(''),
-  });
-
   useEffect(() => {
     if (outputRef.current) {
       outputRef.current.scrollTop = outputRef.current.scrollHeight;
     }
-  }, [data?.lines, run?.pendingPrompt]);
-
-  // Focus the input when a prompt appears
-  useEffect(() => {
-    if (run?.state === 'waiting_for_input') {
-      inputRef.current?.focus();
-    }
-  }, [run?.state]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputText.trim() && !inputMutation.isPending) {
-      inputMutation.mutate(inputText.trim());
-    }
-  };
-
-  const lines = data?.lines ?? [];
-  const isWaiting = run?.state === 'waiting_for_input';
-  const isAutonomousPhase = run?.autonomousPhase;
+  }, [data?.lines]);
 
   return (
-    <div className="space-y-2">
-      {/* Output area */}
-      <div
-        ref={outputRef}
-        className="bg-gray-900 text-gray-300 font-mono text-xs p-3 rounded-lg max-h-72 overflow-y-auto space-y-0.5"
-      >
-        {lines.length === 0 && (
-          <div className="text-gray-500">Waiting for output...</div>
-        )}
-        {lines.map((line, i) => {
-          // User response lines (echoed with "> " prefix)
-          if (line.startsWith('> ')) {
-            return (
-              <div key={i} className="flex justify-end">
-                <span className="bg-violet-600 text-white px-2 py-0.5 rounded-md max-w-[80%]">
-                  {line.slice(2)}
-                </span>
-              </div>
-            );
-          }
-          // Prompt lines
-          if (line.startsWith('[prompt] ')) {
-            return (
-              <div key={i} className="flex justify-start">
-                <span className="bg-gray-700 text-amber-300 px-2 py-0.5 rounded-md max-w-[80%]">
-                  {line.slice(9)}
-                </span>
-              </div>
-            );
-          }
-          // Auto-answer lines
-          if (line.startsWith('[auto] ')) {
-            return (
-              <div key={i} className="flex justify-start">
-                <span className="bg-gray-700 text-gray-400 px-2 py-0.5 rounded-md max-w-[80%] italic">
-                  {line.slice(7)}
-                </span>
-              </div>
-            );
-          }
-          // Phase transition marker
-          if (line.startsWith('[Entering autonomous')) {
-            return (
-              <div key={i} className="text-center text-gray-500 text-[10px] py-1 border-t border-gray-700 mt-1">
-                {line.replace(/[[\]]/g, '')}
-              </div>
-            );
-          }
-          // Normal output
-          return (
-            <div key={i} className="text-green-400 whitespace-pre-wrap">{line}</div>
-          );
-        })}
-
-        {/* Pending prompt bubble */}
-        {isWaiting && run.pendingPrompt && (
-          <div className="flex justify-start mt-2">
-            <span className="bg-amber-600/20 text-amber-300 px-3 py-1.5 rounded-lg border border-amber-600/30">
-              {run.pendingPrompt}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Autonomous phase indicator */}
-      {isAutonomousPhase && !isWaiting && run?.state === 'running' && (
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-          Running autonomously...
-        </div>
-      )}
-
-      {/* Input field (shown when waiting for input) */}
-      {isWaiting && (
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type your response..."
-            disabled={inputMutation.isPending}
-            className="flex-1 text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 dark:bg-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500"
-          />
-          <button
-            type="submit"
-            disabled={!inputText.trim() || inputMutation.isPending}
-            className="text-sm px-3 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 transition-colors"
-          >
-            {inputMutation.isPending ? '...' : 'Send'}
-          </button>
-        </form>
-      )}
-
-      {inputMutation.isError && (
-        <p className="text-xs text-red-500">
-          {inputMutation.error instanceof Error ? inputMutation.error.message : 'Failed to send input'}
-        </p>
+    <div
+      ref={outputRef}
+      className="bg-gray-900 text-green-400 font-mono text-xs p-3 rounded-lg max-h-64 overflow-y-auto"
+    >
+      {data?.lines.map((line, i) => (
+        <div key={i} className="whitespace-pre-wrap">{line}</div>
+      )) ?? (
+        <div className="text-gray-500">Waiting for output...</div>
       )}
     </div>
   );
@@ -231,25 +114,19 @@ function ActiveRun({
     },
   });
 
-  const isActive = run.state === 'running' || run.state === 'queued' || run.state === 'waiting_for_input';
-
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stateBadge.bg} ${stateBadge.text}`}>
-            {run.state === 'waiting_for_input' ? 'waiting' : run.state}
+            {run.state}
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{run.type}</span>
-          <span className="text-xs text-gray-400 dark:text-gray-500">({run.mode})</span>
           {(run.state === 'running' || run.state === 'queued') && (
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
           )}
-          {run.state === 'waiting_for_input' && (
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-          )}
         </div>
-        {isActive && (
+        {(run.state === 'running' || run.state === 'queued') && (
           <button
             type="button"
             onClick={() => cancelMutation.mutate()}
@@ -261,7 +138,7 @@ function ActiveRun({
         )}
       </div>
 
-      <WorkflowChat runId={run.id} run={run} />
+      <WorkflowOutput runId={run.id} />
 
       {cancelMutation.isError && (
         <p className="text-xs text-red-500">
@@ -333,7 +210,7 @@ export function WorkflowPanel({ cardId, cardTitle, specDir, phase, branch }: Wor
     enabled: !!activeRunId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      if (data && (data.state === 'running' || data.state === 'queued' || data.state === 'waiting_for_input')) return 2000;
+      if (data && (data.state === 'running' || data.state === 'queued')) return 2000;
       return false;
     },
   });
@@ -347,32 +224,25 @@ export function WorkflowPanel({ cardId, cardTitle, specDir, phase, branch }: Wor
 
   // Find if there is already a running workflow for this card
   const cardActiveRun = allActive?.runs.find(
-    (r) => r.cardId === cardId && (r.state === 'running' || r.state === 'queued' || r.state === 'waiting_for_input'),
+    (r) => r.cardId === cardId && (r.state === 'running' || r.state === 'queued'),
   );
 
-  // Use the polled active run if available, otherwise the one from the list
   const displayRun = activeRun ?? cardActiveRun ?? null;
-  const isRunActive = displayRun && (
-    displayRun.state === 'running' ||
-    displayRun.state === 'queued' ||
-    displayRun.state === 'waiting_for_input'
-  );
+  const isRunActive = displayRun && (displayRun.state === 'running' || displayRun.state === 'queued');
 
-  // Set activeRunId when we discover one from the list
   useEffect(() => {
     if (cardActiveRun && !activeRunId) {
       setActiveRunId(cardActiveRun.id);
     }
   }, [cardActiveRun, activeRunId]);
 
-  // Completed runs
   const completedRuns = allActive?.runs.filter(
-    (r) => r.cardId === cardId && r.state !== 'running' && r.state !== 'queued' && r.state !== 'waiting_for_input',
+    (r) => r.cardId === cardId && r.state !== 'running' && r.state !== 'queued',
   ) ?? [];
 
   const startMutation = useMutation({
-    mutationFn: ({ type, mode, contextHints }: { type: string; mode: WorkflowMode; contextHints?: Record<string, string> }) =>
-      startWorkflow(cardId, type, specDir, branch, mode, cardTitle, contextHints),
+    mutationFn: ({ type, contextHints }: { type: string; contextHints?: Record<string, string> }) =>
+      startWorkflow(cardId, type, specDir, branch, cardTitle, contextHints),
     onSuccess: (data) => {
       setActiveRunId(data.runId);
       setLaunchIntent(null);
@@ -382,7 +252,7 @@ export function WorkflowPanel({ cardId, cardTitle, specDir, phase, branch }: Wor
 
   const handleLaunch = (result: LaunchResult) => {
     if (launchIntent) {
-      startMutation.mutate({ type: launchIntent.type, mode: result.mode, contextHints: result.contextHints });
+      startMutation.mutate({ type: launchIntent.type, contextHints: result.contextHints });
     }
   };
 

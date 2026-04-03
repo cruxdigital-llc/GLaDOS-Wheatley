@@ -29,29 +29,30 @@ describe('loadWorkflowConfig', () => {
 
   it('merges overrides from config file', async () => {
     const adapter = createMockAdapter(JSON.stringify({
-      plan: { defaultMode: 'autonomous' },
-      verify: { showLaunchPanel: true },
+      plan: { showLaunchPanel: false },
+      verify: { showLaunchPanel: false },
     }));
     const config = await loadWorkflowConfig(adapter);
-    expect(config.plan?.defaultMode).toBe('autonomous');
-    expect(config.plan?.showLaunchPanel).toBe(true); // kept from default
-    expect(config.verify?.showLaunchPanel).toBe(true); // overridden
-    expect(config.spec?.defaultMode).toBe('interactive'); // untouched default
+    expect(config.plan?.showLaunchPanel).toBe(false);
+    expect(config.verify?.showLaunchPanel).toBe(false);
+    expect(config.spec?.showLaunchPanel).toBe(true); // untouched default
   });
 
-  it('merges autoAnswers from config file', async () => {
+  it('merges preamble and postamble from config file', async () => {
     const adapter = createMockAdapter(JSON.stringify({
-      plan: {
-        autoAnswers: { 'feature name': 'My Feature' },
+      implement: {
+        preamble: 'Use Docker for everything.',
+        postamble: 'Run tests when done.',
       },
     }));
     const config = await loadWorkflowConfig(adapter);
-    expect(config.plan?.autoAnswers).toEqual({ 'feature name': 'My Feature' });
+    expect(config.implement?.preamble).toBe('Use Docker for everything.');
+    expect(config.implement?.postamble).toBe('Run tests when done.');
   });
 
   it('ignores unknown workflow types', async () => {
     const adapter = createMockAdapter(JSON.stringify({
-      unknown_type: { defaultMode: 'autonomous' },
+      unknown_type: { showLaunchPanel: false },
     }));
     const config = await loadWorkflowConfig(adapter);
     expect(config).toEqual(DEFAULT_WORKFLOW_CONFIGS);
@@ -61,13 +62,11 @@ describe('loadWorkflowConfig', () => {
 describe('getWorkflowTypeConfig', () => {
   it('returns config for a known type', () => {
     const config = getWorkflowTypeConfig(DEFAULT_WORKFLOW_CONFIGS, 'plan');
-    expect(config.defaultMode).toBe('interactive');
     expect(config.showLaunchPanel).toBe(true);
   });
 
   it('returns default config for unknown type', () => {
     const config = getWorkflowTypeConfig({}, 'plan');
-    expect(config.defaultMode).toBe('interactive');
     expect(config.showLaunchPanel).toBe(true);
   });
 
@@ -85,5 +84,20 @@ describe('getWorkflowTypeConfig', () => {
     expect(keys).toContain('featureName');
     expect(keys).toContain('goal');
     expect(keys).toContain('personas');
+  });
+
+  it('all workflow types have params defined', () => {
+    for (const type of ['plan', 'spec', 'implement', 'verify'] as const) {
+      const config = getWorkflowTypeConfig(DEFAULT_WORKFLOW_CONFIGS, type);
+      expect(config.params.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('all workflow types have autonomousContext defined', () => {
+    for (const type of ['plan', 'spec', 'implement', 'verify'] as const) {
+      const config = getWorkflowTypeConfig(DEFAULT_WORKFLOW_CONFIGS, type);
+      expect(config.autonomousContext).toBeDefined();
+      expect(config.autonomousContext!.length).toBeGreaterThan(0);
+    }
   });
 });

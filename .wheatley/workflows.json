@@ -1,38 +1,36 @@
 {
-  "$schema": "Workflow configuration for Wheatley board. See src/server/workflows/config.ts for types.",
   "plan": {
-    "defaultMode": "interactive",
     "showLaunchPanel": true,
     "params": [
       { "key": "featureName", "label": "Feature Name", "type": "text" },
       { "key": "goal", "label": "Goal", "type": "text" },
       { "key": "personas", "label": "Personas", "type": "text", "default": "all" }
     ],
-    "autoAnswers": {},
-    "autonomousContext": "Pre-supplied answers (do NOT ask the user for these — use them directly):\n- Feature Name: {{featureName}}\n- Goal: {{goal}}\n- Personas: {{personas}}\n- Success Criteria: Derive from the goal and card context.\nProceed through all steps without asking questions."
+    "preamble": "IMPORTANT project conventions:\n- All commands (build, test, lint, run) MUST be executed inside Docker. Use `docker compose run` or `docker compose exec`.\n- Do NOT run npm/node commands directly on the host.",
+    "postamble": "When finished, commit your changes to the current branch."
   },
   "spec": {
-    "defaultMode": "interactive",
     "showLaunchPanel": true,
-    "params": [],
-    "autoAnswers": {},
-    "autonomousContext": "Pre-supplied answers (do NOT ask the user — use them directly):\n- Feature directory: {{specDir}}\n- For any clarifying questions, make reasonable decisions based on the existing plan.md and requirements.md.\nProceed through all steps without asking questions."
+    "params": [
+      { "key": "focusAreas", "label": "Focus Areas", "type": "text", "default": "data models, API interface, edge cases" }
+    ],
+    "preamble": "IMPORTANT project conventions:\n- All commands (build, test, lint, run) MUST be executed inside Docker. Use `docker compose run` or `docker compose exec`.\n- Do NOT run npm/node commands directly on the host.",
+    "postamble": "When finished, commit your changes to the current branch."
   },
   "implement": {
-    "defaultMode": "autonomous",
     "showLaunchPanel": true,
-    "params": [],
-    "autoAnswers": {},
+    "params": [
+      { "key": "approachNotes", "label": "Approach Notes", "type": "text" }
+    ],
     "preamble": "IMPORTANT project conventions:\n- All commands (build, test, lint, run) MUST be executed inside Docker. Use `docker compose run` or `docker compose exec`.\n- Do NOT run npm/node commands directly on the host.",
-    "postamble": "When finished:\n- Run the full test suite in Docker: `docker compose run --rm test npx vitest run`\n- If tests pass, commit your changes to the current branch.",
-    "autonomousContext": "Pre-supplied answers (do NOT ask the user — use them directly):\n- Feature directory: {{specDir}}\n- Task breakdown: Create the breakdown and proceed without waiting for review.\nProceed through all steps without asking questions."
+    "postamble": "When finished:\n- Run the full test suite in Docker: `docker compose run --rm test npx vitest run`\n- If tests pass, commit your changes to the current branch."
   },
   "verify": {
-    "defaultMode": "autonomous",
-    "showLaunchPanel": false,
-    "params": [],
-    "autoAnswers": {},
+    "showLaunchPanel": true,
+    "params": [
+      { "key": "verifyFocus", "label": "Verification Focus", "type": "text", "default": "test coverage, edge cases, spec alignment" }
+    ],
     "preamble": "IMPORTANT project conventions:\n- All commands (build, test, lint, run) MUST be executed inside Docker. Use `docker compose run` or `docker compose exec`.\n- Do NOT run npm/node commands directly on the host.",
-    "autonomousContext": "Pre-supplied answers (do NOT ask the user — use them directly):\n- Feature directory: {{specDir}}\nProceed through all verification steps without asking questions."
+    "postamble": "When finished, commit verification results to the current branch."
   }
 }

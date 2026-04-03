@@ -20,10 +20,6 @@ export class NullRunner implements WorkflowRunner {
     return [];
   }
 
-  async sendInput(_runId: string, _text: string): Promise<void> {
-    throw new Error('Workflows not configured');
-  }
-
   async cancel(_runId: string): Promise<void> {
     // nothing to cancel
   }
