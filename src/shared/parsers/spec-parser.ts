@@ -10,7 +10,7 @@ import { detectPhaseWithContents } from '../grammar/validator.js';
 import { parseFrontmatter } from './frontmatter-parser.js';
 
 const SPEC_DIR_RE =
-  /^(\d{4}-\d{2}-\d{2})_(feature|fix|mission-statement|plan-product)_(.+)$/;
+  /^(\d{4}-\d{2}-\d{2})_(feature|fix|mission-statement|plan-product)(?:_(.+))?$/;
 
 export interface SpecDirectoryInput {
   /** Directory name, e.g., "2026-03-28_feature_parsing-grammar" */
@@ -57,7 +57,7 @@ export function parseSpecDirectories(
       dirName: dir.dirName,
       date: match[1],
       prefix: match[2],
-      name: match[3],
+      name: match[3] ?? match[2],
       phase,
       files: dir.files,
       ...(hasMetadata ? { metadata } : {}),

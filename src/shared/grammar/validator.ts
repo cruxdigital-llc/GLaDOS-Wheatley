@@ -89,11 +89,13 @@ export function validateRoadmap(content: string): ValidationResult {
       }
 
       const phaseNum = parseInt(phaseMatch[1], 10);
-      if (phaseNum !== expectedPhase) {
+      // Allow non-sequential phases when earlier phases have been archived.
+      // Only flag if phases go backward or are duplicated, not if they skip ahead.
+      if (currentPhase > 0 && phaseNum <= currentPhase) {
         errors.push({
           file,
           line: lineNum,
-          message: `Expected Phase ${expectedPhase}, got Phase ${phaseNum}`,
+          message: `Phase ${phaseNum} appears after Phase ${currentPhase} — phases must be in ascending order`,
           rule: 'PHASE.sequential',
         });
       }
@@ -212,7 +214,8 @@ export function validateRoadmap(content: string): ValidationResult {
 
 // --- specs/ Directory Validator ---
 
-const SPEC_DIR_RE = /^(\d{4}-\d{2}-\d{2})_(feature|fix|mission-statement|plan-product)_([a-z0-9]+(-[a-z0-9]+)*)$/;
+// Third segment (kebab-name) is optional — some GLaDOS spec types like mission-statement and plan-product are self-describing
+const SPEC_DIR_RE = /^(\d{4}-\d{2}-\d{2})_(feature|fix|mission-statement|plan-product)(_[a-z0-9]+(-[a-z0-9]+)*)?$/;
 
 /**
  * Detect the phase of a spec directory from its file listing.
@@ -415,14 +418,15 @@ export function validateProjectStatus(content: string): ValidationResult {
         });
       }
 
-      // Validate task lines
+      // Validate task lines — strict format uses **bold** labels, but
+      // backlog/summary items may use plain text. Downgrade to warning.
       if (line.startsWith('- [')) {
         if (!TASK_LINE_RE.test(line)) {
-          errors.push({
+          warnings.push({
             file,
             line: lineNum,
-            message: `Malformed task line: "${line}"`,
-            rule: 'STATUS.task_line_format',
+            message: `Task line doesn't use "- [x] **Label**: Description" format: "${line.slice(0, 80)}"`,
+            suggestion: 'Use format: - [x] **Feature Name**: Description',
           });
         }
       }

@@ -66,16 +66,39 @@ Last Updated: 2026-03-28
     expect(result.errors[0].rule).toBe('PHASE.required');
   });
 
-  it('flags out-of-order phases', () => {
+  it('allows non-sequential phase start (archived phases)', () => {
     const content = `# Roadmap
 
-## Phase 2: Wrong Start
+## Phase 13: Late Start
 
-**Goal**: Should be phase 1.
+**Goal**: Earlier phases archived.
 
-### 2.1 Something
+### 13.1 Something
 
-- [ ] 2.1.1 A task
+- [ ] 13.1.1 A task
+`;
+    const result = validateRoadmap(content);
+    expect(result.valid).toBe(true);
+  });
+
+  it('flags backward phase ordering', () => {
+    const content = `# Roadmap
+
+## Phase 5: Later Phase
+
+**Goal**: Starts fine.
+
+### 5.1 Something
+
+- [ ] 5.1.1 A task
+
+## Phase 3: Goes Backward
+
+**Goal**: This is wrong.
+
+### 3.1 Something
+
+- [ ] 3.1.1 A task
 `;
     const result = validateRoadmap(content);
     expect(result.valid).toBe(false);
@@ -442,7 +465,8 @@ None.
 - 2026-03-28: Init.
 `;
     const result = validateProjectStatus(content);
-    expect(result.errors.some((e) => e.rule === 'STATUS.task_line_format')).toBe(true);
+    // Non-bold task lines are now warnings, not errors (supports backlog format)
+    expect(result.warnings.some((w) => w.message.includes('Task line'))).toBe(true);
   });
 
   it('warns on malformed change entries', () => {

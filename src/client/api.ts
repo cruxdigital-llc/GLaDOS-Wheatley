@@ -114,6 +114,20 @@ export async function fetchConformance(branch?: string): Promise<ConformanceRepo
   return fetchJson<ConformanceReport>(`${API_BASE}/conformance${params}`);
 }
 
+export interface AutoFixResult {
+  fixed: number;
+  actions: string[];
+  remaining: ConformanceReport;
+}
+
+export async function fixConformance(branch?: string): Promise<AutoFixResult> {
+  return fetchJson<AutoFixResult>(`${API_BASE}/conformance/fix`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ branch }),
+  });
+}
+
 export async function fetchCardDetail(
   id: string,
   branch?: string,
