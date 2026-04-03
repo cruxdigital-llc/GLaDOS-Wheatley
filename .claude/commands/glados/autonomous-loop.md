@@ -53,9 +53,9 @@
         -   Pick that item.
 
 2.  **Refine**:
-    -   Run `/glados/plan-feature` (Autonomously).
+    -   Run `/glados:plan-feature` (Autonomously).
         -   *Proxy Decision*: When asked for goals, use roadmap item description.
-    -   Run `/glados/spec-feature` (Autonomously).
+    -   Run `/glados:spec-feature` (Autonomously).
         -   *Proxy Decision*: Approve specs if they align with `product-knowledge/MISSION.md`.
     -   **Validation (CRITICAL)**:
         -   Check: Did you create a `plans/` directory or numbered files (e.g., `001_plan.md`)?
@@ -63,10 +63,10 @@
         -   **If NO**: Proceed to Implementation.
 
 3.  **Implement**:
-    -   Run `/glados/implement-feature` (Autonomously).
+    -   Run `/glados:implement-feature` (Autonomously).
 
 4.  **Verify**:
-    -   Run `/glados/verify-feature` (Autonomously).
+    -   Run `/glados:verify-feature` (Autonomously).
 
 5.  **Loop**:
     -   Update `product-knowledge/PROJECT_STATUS.md` (Mark task complete).

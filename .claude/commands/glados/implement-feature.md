@@ -34,4 +34,4 @@ For each task in `tasks.md`:
 > Invoke module: `product-knowledge/modules/pattern-observer.md` — Log any implicit standards or philosophies observed during implementation.
 
 ### 5. Handoff
--   Suggest running `/glados/verify-feature` next.
+-   Suggest running `/glados:verify-feature` next.

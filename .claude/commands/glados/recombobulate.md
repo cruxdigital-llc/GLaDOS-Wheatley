@@ -2,7 +2,7 @@
 
 **Goal**: Systematically clean up "vibe debt" — tighten the codebase, formalize implicit patterns, resolve standards drift, and retire dead code.
 
-> **Alias**: `/glados/consolidate`
+> **Alias**: `/glados:consolidate`
 
 ## Prerequisites
 - [ ] `product-knowledge/PROJECT_STATUS.md` exists.

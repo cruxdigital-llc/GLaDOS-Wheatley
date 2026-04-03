@@ -1,4 +1,9 @@
 <!--
+SDA: v1.0
+Last Updated: 2026-04-02
+-->
+
+<!--
 GLaDOS-MANAGED DOCUMENT
 Last Updated: 2026-03-29
 To modify: Edit this file directly. GLaDOS will read the current state before making future updates.

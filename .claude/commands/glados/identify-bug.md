@@ -30,4 +30,4 @@
 > **Status**: Add to "Known Issues" in `product-knowledge/PROJECT_STATUS.md`.
 
 ### 5. Handoff
--   Suggest running `/glados/plan-fix` next.
+-   Suggest running `/glados:plan-fix` next.
