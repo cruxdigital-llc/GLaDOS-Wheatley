@@ -73,20 +73,20 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 15.1 Board Grouping & Collapse
 
-- [ ] 15.1.1 Group cards in Unassigned column by Phase > Section (collapsible tree)
-- [ ] 15.1.2 Show item counts per group; expand on click to reveal individual cards
-- [ ] 15.1.3 Persist expand/collapse state in localStorage
+- [x] 15.1.1 Group cards in Unassigned column by Phase > Section (collapsible tree)
+- [x] 15.1.2 Show item counts per group; expand on click to reveal individual cards
+- [x] 15.1.3 Persist expand/collapse state in localStorage
 
 ### 15.2 Card Chrome Reduction
 
-- [ ] 15.2.1 Board cards show only: title, phase badge, assignee — move item IDs, spec paths, and "Assign to me" to detail panel
-- [ ] 15.2.2 Truncate long titles on board cards with ellipsis; full title in detail panel and tooltip
+- [x] 15.2.1 Board cards show only: title, phase badge, assignee — move item IDs, spec paths, and "Assign to me" to detail panel
+- [x] 15.2.2 Truncate long titles on board cards with ellipsis; full title in detail panel and tooltip
 
 ### 15.3 Ad-Hoc Spec Support
 
-- [ ] 15.3.1 Detect spec directories that don't match any roadmap item; show them in an "Unplanned" section on the board
-- [ ] 15.3.2 "Add to Roadmap" action on unplanned cards: creates a roadmap entry retroactively
-- [ ] 15.3.3 Allow creating a new spec directory from the board without requiring a roadmap entry first
+- [x] 15.3.1 Detect spec directories that don't match any roadmap item; show them in an "Unplanned" section on the board
+- [x] 15.3.2 "Add to Roadmap" action on unplanned cards: creates a roadmap entry retroactively
+- [x] 15.3.3 Allow creating a new spec directory from the board without requiring a roadmap entry first
 
 ## Phase 16: Conformance & Onboarding
 
