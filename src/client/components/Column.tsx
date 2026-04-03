@@ -28,6 +28,15 @@ const COLUMN_HEADER_TEXT: Record<string, string> = {
   done: 'text-emerald-500',
 };
 
+const COLUMN_TOOLTIPS: Record<string, string> = {
+  unclaimed: 'Items not yet started — available to claim and begin planning',
+  planning: 'Plan and requirements being written — next: write the spec',
+  speccing: 'Technical spec in progress — next: implement',
+  implementing: 'Code being written — next: verify all tasks are complete',
+  verifying: 'All tasks done, awaiting verification — next: mark as done',
+  done: 'Completed and verified',
+};
+
 interface ColumnProps {
   column: BoardColumnType;
   onCardClick?: (card: BoardCard) => void;
@@ -146,7 +155,12 @@ export function Column({
       onDrop={handleDrop}
     >
       <div className="px-3 py-2 flex items-center justify-between">
-        <h2 className={`text-xs font-semibold tracking-wider uppercase ${headerTextColor}`}>{phaseDisplayName(column.phase)}</h2>
+        <h2
+          className={`text-xs font-semibold tracking-wider uppercase ${headerTextColor} cursor-help`}
+          title={COLUMN_TOOLTIPS[column.phase] ?? ''}
+        >
+          {phaseDisplayName(column.phase)}
+        </h2>
         <div className="flex items-center gap-1.5">
           {onAddCard && (
             <button

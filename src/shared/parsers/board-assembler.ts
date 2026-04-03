@@ -19,14 +19,7 @@ import type {
 } from '../grammar/types.js';
 import { PHASE_ORDER } from '../grammar/types.js';
 
-const COLUMN_TITLES: Record<BoardPhase, string> = {
-  unclaimed: 'Unclaimed',
-  planning: 'Planning',
-  speccing: 'Speccing',
-  implementing: 'Implementing',
-  verifying: 'Verifying',
-  done: 'Done',
-};
+import { phaseDisplayName } from '../display-names.js';
 
 /**
  * Attempt to match a spec entry to a roadmap section by name.
@@ -158,7 +151,7 @@ export function assembleBoardState(
   // 5. Organize into columns (using Map for O(1) lookup)
   const columnMap = new Map<BoardPhase, BoardColumn>();
   const columns: BoardColumn[] = PHASE_ORDER.map((phase) => {
-    const col: BoardColumn = { phase, title: COLUMN_TITLES[phase], cards: [] };
+    const col: BoardColumn = { phase, title: phaseDisplayName(phase), cards: [] };
     columnMap.set(phase, col);
     return col;
   });
