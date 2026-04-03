@@ -94,11 +94,11 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 16.1 ROADMAP.md Conformance Warnings
 
-- [ ] 16.1.1 Surface conformance warnings in the board UI when ROADMAP.md doesn't match the SDA grammar
-- [ ] 16.1.2 Show actionable suggestions (e.g., "ROADMAP.md uses flat checkboxes — expected phase/section/task hierarchy")
-- [ ] 16.1.3 Link to SDA standard and GLaDOS profile docs from the warning banner
+- [x] 16.1.1 Surface conformance warnings in the board UI when ROADMAP.md doesn't match the SDA grammar
+- [x] 16.1.2 Show actionable suggestions (e.g., "ROADMAP.md uses flat checkboxes — expected phase/section/task hierarchy")
+- [x] 16.1.3 Link to SDA standard and GLaDOS profile docs from the warning banner
 
 ### 16.2 Spec Log Integration
 
-- [ ] 16.2.1 Auto-populate SPEC_LOG.md entries when a spec reaches "done" phase
-- [ ] 16.2.2 Archive completed spec directories after logging (move to `specs/.archive/` or delete, configurable)
+- [x] 16.2.1 Auto-populate SPEC_LOG.md entries when a spec reaches "done" phase
+- [x] 16.2.2 Archive completed spec directories after logging (move to `specs/.archive/` or delete, configurable)
