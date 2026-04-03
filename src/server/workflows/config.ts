@@ -36,10 +36,23 @@ export interface WorkflowConfig {
   /**
    * Template for autonomous execution context. Supports placeholders:
    * {{cardId}}, {{cardTitle}}, {{specDir}}, and any key from contextHints.
-   * When present, this is appended to the prompt in autonomous mode to
-   * pre-supply answers that Claude would normally ask the user for.
+   * Appended to the prompt in autonomous mode to pre-supply answers
+   * that Claude would normally ask the user for.
    */
   autonomousContext?: string;
+  /**
+   * Instructions prepended to every run of this workflow type, regardless
+   * of mode. Use for persistent boilerplate: "run commands in Docker",
+   * "commit to the branch when done", repo-specific conventions, etc.
+   * Supports {{placeholders}} same as autonomousContext.
+   */
+  preamble?: string;
+  /**
+   * Instructions appended after the workflow completes its main work.
+   * Use for post-run steps: "commit changes", "push to branch", etc.
+   * Supports {{placeholders}}.
+   */
+  postamble?: string;
 }
 
 export type WorkflowConfigMap = Partial<Record<WorkflowType, WorkflowConfig>>;

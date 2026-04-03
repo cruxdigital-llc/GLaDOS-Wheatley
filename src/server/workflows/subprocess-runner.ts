@@ -86,41 +86,64 @@ function resolveTemplate(template: string, context: WorkflowContext): string {
  * parsing. Autonomous mode injects pre-supplied context so Claude doesn't
  * need to ask interactive questions.
  */
+interface PromptConfig {
+  autonomousContext?: string;
+  preamble?: string;
+  postamble?: string;
+}
+
 function buildArgs(
   type: WorkflowType,
   context: WorkflowContext,
-  autonomousContext?: string,
+  config: PromptConfig,
 ): string[] {
   const target = context.specDir ?? context.cardId;
 
-  let prompt: string;
+  // Core workflow command
+  let command: string;
   switch (type) {
     case 'plan':
-      prompt = `Run /glados:plan-feature for card ${context.cardId}`;
+      command = `Run /glados:plan-feature for card ${context.cardId}`;
       break;
     case 'spec':
-      prompt = `Run /glados:spec-feature for ${target}`;
+      command = `Run /glados:spec-feature for ${target}`;
       break;
     case 'implement':
-      prompt = `Run /glados:implement-feature for ${target}`;
+      command = `Run /glados:implement-feature for ${target}`;
       break;
     case 'verify':
-      prompt = `Run /glados:verify-feature for ${target}`;
+      command = `Run /glados:verify-feature for ${target}`;
       break;
   }
 
+  // Assemble prompt: preamble → command → autonomous context → fence instructions → postamble
+  const parts: string[] = [];
+
+  // Preamble: persistent boilerplate (e.g., "run in Docker", "use vitest")
+  if (config.preamble) {
+    parts.push(resolveTemplate(config.preamble, context));
+  }
+
+  parts.push(command);
+
   // For autonomous mode: inject pre-supplied context so Claude doesn't
   // need to ask questions (since -p is single-shot).
-  if (context.mode === 'autonomous' && autonomousContext) {
-    const resolved = resolveTemplate(autonomousContext, context);
-    prompt += `\n\n${resolved}`;
+  if (context.mode === 'autonomous' && config.autonomousContext) {
+    parts.push(resolveTemplate(config.autonomousContext, context));
   }
 
   // For interactive mode: add fence instructions so output is parseable,
   // even though true multi-turn isn't yet possible via CLI.
   if (context.mode === 'interactive') {
-    prompt += `\n\n${PROMPT_FENCE_INSTRUCTIONS}`;
+    parts.push(PROMPT_FENCE_INSTRUCTIONS);
   }
+
+  // Postamble: post-run steps (e.g., "commit changes", "push to branch")
+  if (config.postamble) {
+    parts.push(resolveTemplate(config.postamble, context));
+  }
+
+  const prompt = parts.join('\n\n');
 
   if (context.mode) {
     // Stream-json output for structured parsing of Claude's responses.
@@ -197,7 +220,11 @@ export class SubprocessRunner implements WorkflowRunner {
     this.runs.set(id, entry);
 
     // Spawn the process
-    const args = buildArgs(type, context, typeConfig.autonomousContext);
+    const args = buildArgs(type, context, {
+      autonomousContext: typeConfig.autonomousContext,
+      preamble: typeConfig.preamble,
+      postamble: typeConfig.postamble,
+    });
     const child = spawn(this.cmd, args, {
       cwd: this.cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
