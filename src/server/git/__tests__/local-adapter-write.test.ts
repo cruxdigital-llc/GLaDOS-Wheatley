@@ -17,7 +17,11 @@ describe('LocalGitAdapter.writeFile', () => {
   let repoDir: string;   // working clone
   let adapter: LocalGitAdapter;
 
+  // These tests exercise push behavior — enable push-on-write
+  const origPushEnv = process.env['WHEATLEY_PUSH_ON_WRITE'];
+
   beforeAll(async () => {
+    process.env['WHEATLEY_PUSH_ON_WRITE'] = 'true';
     // Create a bare repo that acts as the remote
     bareDir = await mkdtemp(join(tmpdir(), 'wheatley-bare-'));
     const bareGit = simpleGit(bareDir);
@@ -50,6 +54,10 @@ describe('LocalGitAdapter.writeFile', () => {
   });
 
   afterAll(async () => {
+    // Restore env
+    if (origPushEnv === undefined) delete process.env['WHEATLEY_PUSH_ON_WRITE'];
+    else process.env['WHEATLEY_PUSH_ON_WRITE'] = origPushEnv;
+
     await rm(bareDir, { recursive: true, force: true });
     await rm(repoDir, { recursive: true, force: true });
   });

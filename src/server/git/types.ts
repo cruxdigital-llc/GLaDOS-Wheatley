@@ -90,6 +90,13 @@ export interface GitAdapter {
    * Fetch latest refs from the remote. No-op for remote adapters.
    */
   fetchOrigin(): Promise<void>;
+
+  /**
+   * Push unpushed worktree commits to origin.
+   * Only available for local adapter when pushOnWrite is false.
+   * Returns the number of commits pushed.
+   */
+  push?(): Promise<{ pushed: boolean; commits: number }>;
 }
 
 export interface GitIdentity {
@@ -118,6 +125,12 @@ export interface RepoStatus {
   conflictedFiles: string[];
   /** True if the worktree isolation is active (writes are safe). */
   worktreeActive: boolean;
+  /** Whether writes automatically push to origin. */
+  pushOnWrite: boolean;
+  /** Number of commits in worktree ahead of origin (only when pushOnWrite=false). */
+  unpushedCommits: number;
+  /** Warning if GPG signing is required but not available. */
+  gpgWarning?: string;
 }
 
 export interface GitAdapterConfig {

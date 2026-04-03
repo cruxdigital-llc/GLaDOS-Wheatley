@@ -25,6 +25,7 @@ export class LocalGitAdapter implements GitAdapter {
   private readonly git: SimpleGit;
   private readonly repoPath: string;
   private readonly worktreeManager: WorktreeManager | null;
+  private readonly pushOnWrite: boolean;
   private writeLock: Promise<void> = Promise.resolve();
   private legacyWarned = false;
 
@@ -32,6 +33,11 @@ export class LocalGitAdapter implements GitAdapter {
     this.repoPath = resolve(repoPath);
     this.git = simpleGit(this.repoPath);
     this.worktreeManager = worktreeManager ?? null;
+
+    // Local mode defaults to commit-only (no push). Cloud mode pushes on every write.
+    const mode = process.env['WHEATLEY_MODE'] ?? 'local';
+    const pushEnv = process.env['WHEATLEY_PUSH_ON_WRITE'];
+    this.pushOnWrite = pushEnv !== undefined ? pushEnv === 'true' : mode === 'cloud';
   }
 
   private acquireWriteLock(): Promise<() => void> {
@@ -167,26 +173,39 @@ export class LocalGitAdapter implements GitAdapter {
     // Validate path before any git operations
     const fullPath = this.safeWorktreePath(path);
 
-    // Fetch latest from origin and detach HEAD to the target branch tip.
-    // We always use detached HEAD to avoid "branch already checked out" errors
-    // (the main repo may have the same branch checked out).
-    await wt.fetch('origin');
-    await wt.raw(['checkout', `origin/${targetBranch}`]);
+    if (this.pushOnWrite) {
+      // Push mode: fetch from origin to get latest, checkout remote tip
+      await wt.fetch('origin');
+      await wt.raw(['checkout', `origin/${targetBranch}`]);
+    } else {
+      // Local-only mode: no network calls, work from local branch state
+      await wt.raw(['checkout', targetBranch]).catch(async () => {
+        // If branch doesn't exist in worktree, create from main repo's ref
+        const sha = await this.git.revparse([targetBranch]).catch(() => 'HEAD');
+        await wt.raw(['checkout', sha]);
+      });
+    }
 
     // Write file to the worktree filesystem
     await mkdir(dirname(fullPath), { recursive: true });
     await writeFile(fullPath, content, 'utf-8');
 
-    // Stage and commit (on detached HEAD)
+    // Stage and commit
     await wt.add(path);
     await wt.commit(message);
 
-    // Push detached HEAD to the remote branch, with retry on conflict
+    if (!this.pushOnWrite) {
+      // Local-only: update the main repo's branch ref so reads reflect the commit
+      const commitSha = await wt.revparse(['HEAD']);
+      await this.git.raw(['update-ref', `refs/heads/${targetBranch}`, commitSha.trim()]).catch(() => { /* best-effort */ });
+      return;
+    }
+
+    // Push mode: push to origin with retry on conflict
     for (let attempt = 1; attempt <= MAX_PUSH_RETRIES; attempt++) {
       try {
         await wt.raw(['push', 'origin', `HEAD:${targetBranch}`]);
         // Update main repo's remote refs and fast-forward local branch
-        // so reads via `git show {branch}:path` reflect the push
         await this.git.fetch('origin').catch(() => { /* best-effort */ });
         await this.git.raw(['update-ref', `refs/heads/${targetBranch}`, `origin/${targetBranch}`]).catch(() => { /* best-effort */ });
         return; // Success
@@ -233,12 +252,25 @@ export class LocalGitAdapter implements GitAdapter {
     const wt = this.worktreeManager!.getGit();
     const targetBranch = this.safeRef(branch ?? (await this.getDefaultBranch()));
 
-    await wt.fetch('origin');
-    await wt.raw(['checkout', `origin/${targetBranch}`]);
+    if (this.pushOnWrite) {
+      await wt.fetch('origin');
+      await wt.raw(['checkout', `origin/${targetBranch}`]);
+    } else {
+      await wt.raw(['checkout', targetBranch]).catch(async () => {
+        const sha = await this.git.revparse([targetBranch]).catch(() => 'HEAD');
+        await wt.raw(['checkout', sha]);
+      });
+    }
 
     // Remove files from the index and working tree
     await wt.raw(['rm', '-r', '--ignore-unmatch', '--', ...paths]);
     await wt.commit(message);
+
+    if (!this.pushOnWrite) {
+      const commitSha = await wt.revparse(['HEAD']);
+      await this.git.raw(['update-ref', `refs/heads/${targetBranch}`, commitSha.trim()]).catch(() => { /* best-effort */ });
+      return;
+    }
 
     for (let attempt = 1; attempt <= MAX_PUSH_RETRIES; attempt++) {
       try {
@@ -283,19 +315,21 @@ export class LocalGitAdapter implements GitAdapter {
       await this.git.raw(['rm', '-r', '--ignore-unmatch', '--', ...paths]);
       await this.git.commit(message);
 
-      try {
-        await this.git.push('origin', targetBranch);
-      } catch (pushErr) {
-        const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
-        if (msg.includes('non-fast-forward') || msg.includes('rejected')) {
-          try {
-            await this.git.reset(['--hard', `origin/${targetBranch}`]);
-          } catch {
-            // Best-effort reset
+      if (this.pushOnWrite) {
+        try {
+          await this.git.push('origin', targetBranch);
+        } catch (pushErr) {
+          const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+          if (msg.includes('non-fast-forward') || msg.includes('rejected')) {
+            try {
+              await this.git.reset(['--hard', `origin/${targetBranch}`]);
+            } catch {
+              // Best-effort reset
+            }
+            throw new ConflictError(`Push rejected: non-fast-forward conflict (deleteFiles)`);
           }
-          throw new ConflictError(`Push rejected: non-fast-forward conflict (deleteFiles)`);
+          throw pushErr;
         }
-        throw pushErr;
       }
     } finally {
       try {
@@ -335,19 +369,21 @@ export class LocalGitAdapter implements GitAdapter {
       await this.git.add(path);
       await this.git.commit(message);
 
-      try {
-        await this.git.push('origin', targetBranch);
-      } catch (pushErr) {
-        const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
-        if (msg.includes('non-fast-forward') || msg.includes('rejected')) {
-          try {
-            await this.git.reset(['--hard', `origin/${targetBranch}`]);
-          } catch {
-            // Best-effort reset
+      if (this.pushOnWrite) {
+        try {
+          await this.git.push('origin', targetBranch);
+        } catch (pushErr) {
+          const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+          if (msg.includes('non-fast-forward') || msg.includes('rejected')) {
+            try {
+              await this.git.reset(['--hard', `origin/${targetBranch}`]);
+            } catch {
+              // Best-effort reset
+            }
+            throw new ConflictError(`Push rejected: non-fast-forward conflict on ${path}`);
           }
-          throw new ConflictError(`Push rejected: non-fast-forward conflict on ${path}`);
+          throw pushErr;
         }
-        throw pushErr;
       }
     } finally {
       try {
@@ -398,7 +434,49 @@ export class LocalGitAdapter implements GitAdapter {
     }
   }
 
+  async push(): Promise<{ pushed: boolean; commits: number }> {
+    if (!this.worktreeManager?.isReady()) {
+      throw new Error('Worktree not available for push');
+    }
+    const wt = this.worktreeManager.getGit();
+    const branch = await this.getDefaultBranch();
+
+    // Count commits ahead of origin
+    let count = 0;
+    try {
+      const log = await wt.log([`origin/${branch}..HEAD`]);
+      count = log.total;
+    } catch {
+      // origin ref may not exist
+    }
+    if (count === 0) return { pushed: false, commits: 0 };
+
+    // Fetch latest, push
+    await wt.fetch('origin');
+    await wt.raw(['push', 'origin', `HEAD:${branch}`]);
+    await this.git.fetch('origin').catch(() => { /* best-effort */ });
+    await this.git.raw(['update-ref', `refs/heads/${branch}`, `origin/${branch}`]).catch(() => { /* best-effort */ });
+
+    return { pushed: true, commits: count };
+  }
+
   async getRepoStatus(): Promise<RepoStatus> {
+    const base = {
+      pushOnWrite: this.pushOnWrite,
+      unpushedCommits: 0,
+      gpgWarning: this.worktreeManager?.gpgWarning,
+    };
+
+    // Count unpushed commits when in local-only mode
+    if (!this.pushOnWrite && this.worktreeManager?.isReady()) {
+      try {
+        const wt = this.worktreeManager.getGit();
+        const branch = await this.getDefaultBranch();
+        const log = await wt.log([`origin/${branch}..HEAD`]).catch(() => null);
+        base.unpushedCommits = log?.total ?? 0;
+      } catch { /* origin ref may not exist yet */ }
+    }
+
     try {
       const status = await this.git.status();
       return {
@@ -409,6 +487,7 @@ export class LocalGitAdapter implements GitAdapter {
         conflicted: status.conflicted.length > 0,
         conflictedFiles: status.conflicted,
         worktreeActive: this.worktreeManager?.isReady() ?? false,
+        ...base,
       };
     } catch {
       return {
@@ -419,6 +498,7 @@ export class LocalGitAdapter implements GitAdapter {
         conflicted: false,
         conflictedFiles: [],
         worktreeActive: this.worktreeManager?.isReady() ?? false,
+        ...base,
       };
     }
   }

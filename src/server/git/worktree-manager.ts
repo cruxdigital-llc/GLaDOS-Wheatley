@@ -7,23 +7,31 @@
  */
 
 import { resolve, join } from 'node:path';
-import { access, rm } from 'node:fs/promises';
+import { access, rm, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import simpleGit, { type SimpleGit } from 'simple-git';
+
+const execFileAsync = promisify(execFile);
 
 export interface WorktreeManagerOptions {
   /** Path to the main git repository. */
   repoPath: string;
   /** Override worktree location. Default: {repoPath}/.wheatley-worktree */
   worktreePath?: string;
+  /** Whether the adapter pushes on every write. Affects credential setup. */
+  pushOnWrite?: boolean;
 }
 
 export class WorktreeManager {
   private readonly repoPath: string;
   private readonly worktreePath: string;
   private readonly mainGit: SimpleGit;
+  private readonly pushOnWrite: boolean;
   private worktreeGit: SimpleGit | null = null;
   private _ready = false;
   private initPromise: Promise<void> | null = null;
+  private _gpgWarning: string | undefined;
 
   constructor(options: WorktreeManagerOptions) {
     this.repoPath = resolve(options.repoPath);
@@ -31,6 +39,12 @@ export class WorktreeManager {
       ? resolve(options.worktreePath)
       : join(this.repoPath, '.wheatley-worktree');
     this.mainGit = simpleGit(this.repoPath);
+    this.pushOnWrite = options.pushOnWrite ?? false;
+  }
+
+  /** Warning if GPG signing is required but unavailable. */
+  get gpgWarning(): string | undefined {
+    return this._gpgWarning;
   }
 
   /** True if the worktree is initialized and usable. */
@@ -101,6 +115,14 @@ export class WorktreeManager {
     // Copy git user config from main repo into worktree
     await this.copyUserConfig();
 
+    // Configure credentials for push (only when push is enabled)
+    if (this.pushOnWrite) {
+      await this.configureCredentials();
+    }
+
+    // Detect GPG signing requirement
+    await this.detectGPGRequirement();
+
     this._ready = true;
   }
 
@@ -159,6 +181,66 @@ export class WorktreeManager {
     } catch { /* no user.email configured */ }
     email = email ?? env('GIT_AUTHOR_EMAIL') ?? env('GIT_COMMITTER_EMAIL') ?? 'wheatley@localhost';
     await this.worktreeGit.addConfig('user.email', email);
+  }
+
+  /**
+   * Configure git credential helper for HTTPS push when push is enabled.
+   * Detects SSH remotes and skips HTTPS credential setup for those.
+   */
+  private async configureCredentials(): Promise<void> {
+    if (!this.worktreeGit) return;
+
+    try {
+      const remoteUrl = (await this.mainGit.remote(['get-url', 'origin']) ?? '').trim();
+      const isSSH = remoteUrl.startsWith('git@') || remoteUrl.startsWith('ssh://');
+
+      if (isSSH) {
+        // SSH remotes use mounted keys — no credential helper needed
+        return;
+      }
+
+      const token = process.env['GITHUB_TOKEN']?.trim() || process.env['GITLAB_TOKEN']?.trim();
+      const credUrl = process.env['GIT_CREDENTIALS_URL']?.trim();
+
+      if (token && remoteUrl) {
+        try {
+          const host = new URL(remoteUrl).hostname;
+          const credLine = `https://x-access-token:${token}@${host}\n`;
+          await writeFile('/root/.git-credentials', credLine, 'utf-8');
+          await this.worktreeGit.addConfig('credential.helper', 'store');
+        } catch {
+          // URL parsing failed — skip credential setup
+        }
+      } else if (credUrl) {
+        await writeFile('/root/.git-credentials', credUrl + '\n', 'utf-8');
+        await this.worktreeGit.addConfig('credential.helper', 'store');
+      }
+    } catch {
+      // Best-effort credential configuration
+    }
+  }
+
+  /**
+   * Detect if the repo requires GPG-signed commits and whether GPG is available.
+   */
+  private async detectGPGRequirement(): Promise<void> {
+    try {
+      const gpgSign = (await this.mainGit.raw(['config', 'commit.gpgsign']).catch(() => '')).trim();
+      if (gpgSign !== 'true') return;
+
+      // GPG signing is required — check if gpg is available
+      try {
+        await execFileAsync('gpg', ['--version']);
+        // GPG available — configure in worktree
+        if (this.worktreeGit) {
+          await this.worktreeGit.addConfig('commit.gpgsign', 'true');
+        }
+      } catch {
+        this._gpgWarning = 'Repository requires GPG signing but gpg is not available. Commits will fail.';
+      }
+    } catch {
+      // No gpg config — nothing to do
+    }
   }
 
   private async detectDefaultBranch(): Promise<string> {

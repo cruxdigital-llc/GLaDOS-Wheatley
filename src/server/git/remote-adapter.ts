@@ -248,6 +248,8 @@ export class RemoteGitAdapter implements GitAdapter {
       conflicted: false,
       conflictedFiles: [],
       worktreeActive: false,
+      pushOnWrite: true,
+      unpushedCommits: 0,
     };
   }
 
