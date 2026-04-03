@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(bash ../GLaDOS/bin/glados-install.sh --mode claude --target . --verbose)",
       "Bash(git config:*)",
@@ -14,7 +13,20 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(docker compose:*)",
       "mcp__Desktop_Commander__list_directory",
-      "mcp__Desktop_Commander__read_file"
-    ]
+      "mcp__Desktop_Commander__read_file",
+      "Bash(where.exe gh:*)",
+      "Bash(cmd.exe //c \"where gh\")",
+      "Read(//c/Program Files/GitHub CLI//**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Read(//c/Users/jedix/AppData/Local/Programs/**)",
+      "Read(//c/Users/jedix/scoop/shims/**)",
+      "Bash(powershell.exe -Command \"\\(Get-Command gh -ErrorAction SilentlyContinue\\).Source\")",
+      "Bash(powershell.exe -Command \"\\(Get-Command gh\\).Source\")",
+      "Bash(ls /c/Users/jedix/scoop/shims/gh*)",
+      "Read(//c/Users/jedix/AppData/Local/Microsoft/WinGet/**)",
+      "Read(//c/Users/jedix/AppData/**)",
+      "Bash(find /c/Users/jedix/Workspace/GLaDOS-Wheatley -iname *spec_log* -o -iname *log* -path */product-knowledge/*)"
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }

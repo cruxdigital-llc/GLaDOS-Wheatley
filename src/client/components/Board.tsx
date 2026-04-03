@@ -327,13 +327,13 @@ export function Board() {
   );
 
   const executeTransitionNow = useCallback(
-    (cardId: string, cardTitle: string, from: BoardPhase, to: BoardPhase, originalColumns: BoardColumn[]) => {
+    (cardId: string, cardTitle: string, from: BoardPhase, to: BoardPhase, originalColumns: BoardColumn[], existingSpecDir?: string) => {
       // Apply optimistic update
       setOptimisticColumns(moveCardOptimistically(originalColumns, cardId, to));
       setTransitioningCardId(cardId);
 
       transitionMutation.mutate(
-        { itemId: cardId, from, to },
+        { itemId: cardId, from, to, existingSpecDir },
         {
           onSuccess: (data) => {
             // Server state wins; clear optimistic override
@@ -377,7 +377,7 @@ export function Board() {
         return;
       }
 
-      executeTransitionNow(cardId, card?.title ?? cardId, fromPhase, toPhase, sourceColumns);
+      executeTransitionNow(cardId, card?.title ?? cardId, fromPhase, toPhase, sourceColumns, card?.specEntry?.dirName);
     },
     [activeBoard, optimisticColumns, executeTransitionNow],
   );
@@ -386,8 +386,9 @@ export function Board() {
     if (!pendingTransition) return;
     const { cardId, cardTitle, from, to } = pendingTransition;
     const sourceColumns = optimisticColumns ?? activeBoard?.columns ?? [];
+    const card = sourceColumns.flatMap((c) => c.cards).find((c) => c.id === cardId);
     setPendingTransition(null);
-    executeTransitionNow(cardId, cardTitle, from, to, sourceColumns);
+    executeTransitionNow(cardId, cardTitle, from, to, sourceColumns, card?.specEntry?.dirName);
   }, [pendingTransition, activeBoard, optimisticColumns, executeTransitionNow]);
 
   const handleCancelTransition = useCallback(() => {

@@ -23,9 +23,10 @@ export function transitionRoutes(app: FastifyInstance, transitionService: Transi
       from?: unknown;
       to?: unknown;
       branch?: unknown;
+      existingSpecDir?: unknown;
     };
   }>('/api/transitions', async (request, reply) => {
-    const { itemId, from, to, branch } = request.body ?? {};
+    const { itemId, from, to, branch, existingSpecDir } = request.body ?? {};
 
     // Validate required fields
     if (typeof itemId !== 'string' || !itemId.trim()) {
@@ -66,6 +67,7 @@ export function transitionRoutes(app: FastifyInstance, transitionService: Transi
         from,
         to,
         typeof branch === 'string' ? branch : undefined,
+        typeof existingSpecDir === 'string' ? existingSpecDir : undefined,
       );
       return reply.status(200).send(result);
     } catch (err) {

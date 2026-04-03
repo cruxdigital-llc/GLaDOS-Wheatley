@@ -13,14 +13,15 @@ interface TransitionVariables {
   from: string;
   to: string;
   branch?: string;
+  existingSpecDir?: string;
 }
 
 export function useExecuteTransition(branch?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ itemId, from, to }: TransitionVariables) =>
-      executeTransition(itemId, from, to, branch),
+    mutationFn: ({ itemId, from, to, existingSpecDir }: TransitionVariables) =>
+      executeTransition(itemId, from, to, branch, existingSpecDir),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['board', branch] });
     },

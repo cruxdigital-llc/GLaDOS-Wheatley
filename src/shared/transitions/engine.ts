@@ -46,9 +46,10 @@ export function getTransitionActions(
   itemId: string,
   from: BoardPhase,
   to: BoardPhase,
+  existingSpecDir?: string,
 ): TransitionAction[] {
   const key = `${from}→${to}`;
-  const specDir = buildSpecDir(itemId);
+  const specDir = existingSpecDir ? `specs/${existingSpecDir}` : buildSpecDir(itemId);
 
   switch (key) {
     case 'unclaimed→planning':
