@@ -61,91 +61,38 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 - [ ] 14.3.2 Docker Compose health checks and restart policies for production deployments
 - [ ] 14.3.3 Container image size optimization (multi-stage build review, dependency pruning)
 
-## Phase 15: Conformance & Onboarding
+## Phase 15: UX & Usability
+
+**Goal**: Make the board usable at scale by reducing visual noise and supporting real developer workflows.
+
+### 15.1 Board Grouping & Collapse
+
+- [ ] 15.1.1 Group cards in Unassigned column by Phase > Section (collapsible tree)
+- [ ] 15.1.2 Show item counts per group; expand on click to reveal individual cards
+- [ ] 15.1.3 Persist expand/collapse state in localStorage
+
+### 15.2 Card Chrome Reduction
+
+- [ ] 15.2.1 Board cards show only: title, phase badge, assignee — move item IDs, spec paths, and "Assign to me" to detail panel
+- [ ] 15.2.2 Truncate long titles on board cards with ellipsis; full title in detail panel and tooltip
+
+### 15.3 Ad-Hoc Spec Support
+
+- [ ] 15.3.1 Detect spec directories that don't match any roadmap item; show them in an "Unplanned" section on the board
+- [ ] 15.3.2 "Add to Roadmap" action on unplanned cards: creates a roadmap entry retroactively
+- [ ] 15.3.3 Allow creating a new spec directory from the board without requiring a roadmap entry first
+
+## Phase 16: Conformance & Onboarding
 
 **Goal**: Guide users when repo artifacts don't conform to the SDA standard and help them adopt Wheatley on existing projects.
 
-### 15.1 ROADMAP.md Conformance Warnings
+### 16.1 ROADMAP.md Conformance Warnings
 
-- [ ] 15.1.1 Surface conformance warnings in the board UI when ROADMAP.md doesn't match the SDA grammar
-- [ ] 15.1.2 Show actionable suggestions (e.g., "ROADMAP.md uses flat checkboxes — expected phase/section/task hierarchy")
-- [ ] 15.1.3 Offer a one-click "Generate compatible ROADMAP.md" action that restructures the existing roadmap
-- [ ] 15.1.4 Link to SDA standard and GLaDOS profile docs from the warning banner
+- [ ] 16.1.1 Surface conformance warnings in the board UI when ROADMAP.md doesn't match the SDA grammar
+- [ ] 16.1.2 Show actionable suggestions (e.g., "ROADMAP.md uses flat checkboxes — expected phase/section/task hierarchy")
+- [ ] 16.1.3 Link to SDA standard and GLaDOS profile docs from the warning banner
 
-### 15.2 Completed Specs on Timeline
+### 16.2 Spec Log Integration
 
-- [ ] 15.2.1 Include finished spec directories in the timeline view (not just active phase transitions)
-- [ ] 15.2.2 Show spec completion dates derived from trace logs (README.md session entries) or git commit dates
-- [ ] 15.2.3 Visual distinction between active specs and completed/archived specs on the timeline
-
-### 15.3 Spec Log Integration
-
-- [ ] 15.3.1 Auto-populate SPEC_LOG.md entries when a spec reaches "done" phase
-- [ ] 15.3.2 Display SPEC_LOG.md contents in a project history view in the UI
-- [ ] 15.3.3 Archive completed spec directories after logging (move to `specs/.archive/` or delete, configurable)
-
-## Phase 16: API Documentation & Data Portability
-
-**Goal**: Make Wheatley easy to integrate with external tools and provide data import/export.
-
-### 16.1 OpenAPI Documentation
-
-- [ ] 16.1.1 Generate OpenAPI 3.1 spec from Fastify route definitions (fastify-swagger or manual)
-- [ ] 16.1.2 Serve Swagger UI at `/docs` for interactive API exploration
-- [ ] 16.1.3 Per-endpoint request/response schema with examples
-- [ ] 16.1.4 API versioning strategy (URL prefix `/api/v1/` or Accept header)
-
-### 16.2 Data Export
-
-- [ ] 16.2.1 CSV export: download board state as CSV (cards, phases, metadata, claims)
-- [ ] 16.2.2 JSON export: full board snapshot as machine-readable JSON
-- [ ] 16.2.3 Archive/snapshot: create timestamped board snapshot for historical tracking
-
-### 16.3 Data Import
-
-- [ ] 16.3.1 CSV/JSON import: bulk-create cards from uploaded file with validation
-- [ ] 16.3.2 Jira import: parse Jira CSV export and map to Wheatley card model
-- [ ] 16.3.3 Import preview: show what will be created before committing changes
-
-## Phase 17: External Integrations & Extensibility
-
-**Goal**: Enable third-party integrations through webhooks and a plugin system.
-
-### 17.1 Webhook Management
-
-- [ ] 17.1.1 Outbound webhook management UI: add, edit, test, delete webhook subscriptions
-- [ ] 17.1.2 Webhook payload signing: HMAC-SHA256 signature in `X-Wheatley-Signature` header
-- [ ] 17.1.3 Webhook retry: exponential backoff on delivery failure (max 3 retries)
-- [ ] 17.1.4 Inbound webhook API: accept events from external tools to update board state
-- [ ] 17.1.5 Zapier/n8n compatible triggers: standardized event payloads for no-code automation
-
-### 17.2 Plugin System
-
-- [ ] 17.2.1 Plugin interface: define lifecycle hooks (onCardCreate, onTransition, onClaim, etc.)
-- [ ] 17.2.2 Plugin loader: discover and load plugins from `plugins/` directory or npm packages
-- [ ] 17.2.3 Built-in plugin: auto-label cards based on spec directory content
-- [ ] 17.2.4 Built-in plugin: Slack channel sync (mirror board changes to a Slack channel)
-
-## Phase 18: Analytics, Reporting & Insights
-
-**Goal**: Provide data-driven insights into project velocity, bottlenecks, and team productivity.
-
-### 18.1 Board Analytics
-
-- [ ] 18.1.1 Cycle time calculation: average time cards spend in each phase
-- [ ] 18.1.2 Throughput chart: cards completed per day/week/sprint (line chart)
-- [ ] 18.1.3 Phase distribution chart: current cards per phase (bar/pie chart)
-- [ ] 18.1.4 Cumulative flow diagram: stacked area chart of cards across phases over time
-
-### 18.2 Team Metrics
-
-- [ ] 18.2.1 Per-agent/user workload: cards claimed, completed, average cycle time
-- [ ] 18.2.2 Activity heatmap: contribution calendar showing commits/claims per day
-- [ ] 18.2.3 Bottleneck detection: flag phases where cards accumulate with high average age
-
-### 18.3 Reporting
-
-- [ ] 18.3.1 Scheduled reports: configurable weekly/monthly email digest of board metrics
-- [ ] 18.3.2 PDF report generation: downloadable summary with charts and key metrics
-- [ ] 18.3.3 Dashboard view: dedicated analytics page with configurable widget grid
-- [ ] 18.3.4 Custom date range selector for all analytics views
+- [ ] 16.2.1 Auto-populate SPEC_LOG.md entries when a spec reaches "done" phase
+- [ ] 16.2.2 Archive completed spec directories after logging (move to `specs/.archive/` or delete, configurable)
