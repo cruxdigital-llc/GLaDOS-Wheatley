@@ -19,31 +19,31 @@ To modify: Edit this file directly. GLaDOS will read the current state before ma
 
 ### 13.1 Spec Directory Naming
 
-- [ ] 13.1.1 Fix double-prefixing bug: transition engine wraps existing spec dir names in another date prefix (e.g., `specs/2026-04-03_feature_2026-03-24_feature_foo/`)
-- [ ] 13.1.2 When card already has a spec directory, use it directly instead of generating a new one
+- [x] 13.1.1 Fix double-prefixing bug: transition engine wraps existing spec dir names in another date prefix (e.g., `specs/2026-04-03_feature_2026-03-24_feature_foo/`)
+- [x] 13.1.2 When card already has a spec directory, use it directly instead of generating a new one
 
 ### 13.2 Phase Detection Accuracy
 
-- [ ] 13.2.1 Audit spec phase detection logic: verify that completed specs (all tasks done, verify passed) show as "done" not stuck in earlier phases
-- [ ] 13.2.2 Handle edge cases: specs with no tasks.md, specs with partial completion, specs missing expected files
-- [ ] 13.2.3 Add phase detection tests against real-world GLaDOS repos (research-agents, CongaLine)
+- [x] 13.2.1 Audit spec phase detection logic: verify that completed specs (all tasks done, verify passed) show as "done" not stuck in earlier phases
+- [x] 13.2.2 Handle edge cases: specs with no tasks.md, specs with partial completion, specs missing expected files
+- [x] 13.2.3 Add phase detection tests against real-world GLaDOS repos (research-agents, CongaLine)
 
 ### 13.3 Resilient Markdown Parsing
 
-- [ ] 13.3.1 Graceful degradation for malformed or non-conforming ROADMAP.md (partial parse instead of failure)
-- [ ] 13.3.2 Diagnostic warnings surfaced in the UI when parsing encounters issues
-- [ ] 13.3.3 Tolerance for minor formatting variations (trailing whitespace, missing blank lines, alternate checkbox styles)
+- [x] 13.3.1 Graceful degradation for malformed or non-conforming ROADMAP.md (partial parse instead of failure)
+- [x] 13.3.2 Diagnostic warnings surfaced in the UI when parsing encounters issues
+- [x] 13.3.3 Tolerance for minor formatting variations (trailing whitespace, missing blank lines, alternate checkbox styles)
 
 ### 13.4 Card Detail Panel Performance
 
-- [ ] 13.4.1 Open detail panel immediately on card click with skeleton/spinner placeholders
-- [ ] 13.4.2 Load panel sections asynchronously (metadata, spec files, workflows, PRs) with individual loading indicators
-- [ ] 13.4.3 Render each section as it resolves rather than waiting for all data before showing the panel
+- [x] 13.4.1 Open detail panel immediately on card click with skeleton/spinner placeholders
+- [x] 13.4.2 Load panel sections asynchronously (metadata, spec files, workflows, PRs) with individual loading indicators
+- [x] 13.4.3 Render each section as it resolves rather than waiting for all data before showing the panel
 
 ### 13.5 Column Naming & UX Clarity
 
-- [ ] 13.5.1 Clarify column semantics: columns represent "next action needed" not "current state" — update headers or add tooltips
-- [ ] 13.5.2 Configurable column labels: allow repos to define display names for phases in `.wheatley/` config
+- [x] 13.5.1 Clarify column semantics: columns represent "next action needed" not "current state" — update headers or add tooltips
+- [x] 13.5.2 Configurable column labels: allow repos to define display names for phases in `.wheatley/` config
 
 ## Phase 14: Docker & Deployment Hardening
 
