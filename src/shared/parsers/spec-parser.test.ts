@@ -37,7 +37,7 @@ describe('parseSpecDirectories', () => {
     expect(result[0].phase).toBe('implementing');
   });
 
-  it('detects done phase when all tasks complete', () => {
+  it('detects verifying phase when all tasks complete but no verify log', () => {
     const result = parseSpecDirectories([
       {
         dirName: '2026-03-28_feature_complete',
@@ -45,7 +45,7 @@ describe('parseSpecDirectories', () => {
         tasksContent: '- [x] Task 1\n- [x] Task 2\n',
       },
     ]);
-    expect(result[0].phase).toBe('done');
+    expect(result[0].phase).toBe('verifying');
   });
 
   it('detects done phase with readme content too', () => {
@@ -80,10 +80,10 @@ describe('parseSpecDirectories', () => {
     expect(result[0].prefix).toBe('fix');
   });
 
-  it('handles unclaimed spec (only README)', () => {
+  it('detects planning phase when only README exists', () => {
     const result = parseSpecDirectories([
       { dirName: '2026-03-28_feature_new-thing', files: ['README.md'] },
     ]);
-    expect(result[0].phase).toBe('unclaimed');
+    expect(result[0].phase).toBe('planning');
   });
 });

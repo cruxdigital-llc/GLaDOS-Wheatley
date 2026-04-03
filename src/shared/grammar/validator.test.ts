@@ -258,8 +258,8 @@ describe('validateSpecDirectory', () => {
 // --- Phase Detection ---
 
 describe('detectPhaseFromFiles', () => {
-  it('returns unclaimed when only README.md exists', () => {
-    expect(detectPhaseFromFiles(['README.md'])).toBe('unclaimed');
+  it('returns planning when only README.md exists', () => {
+    expect(detectPhaseFromFiles(['README.md'])).toBe('planning');
   });
 
   it('returns unclaimed for empty file list', () => {
@@ -297,17 +297,43 @@ describe('detectPhaseWithContents', () => {
     ).toBe('implementing');
   });
 
-  it('returns done when all tasks are complete', () => {
+  it('returns verifying when all tasks complete but no verify log', () => {
     const tasks = '- [x] Task 1\n- [x] Task 2\n';
     expect(
       detectPhaseWithContents(['README.md', 'tasks.md'], tasks),
+    ).toBe('verifying');
+  });
+
+  it('returns done when all tasks complete and README has verify log', () => {
+    const tasks = '- [x] Task 1\n- [x] Task 2\n';
+    const readme = '# Feature\n\n## Verification\n\nAll tests PASSED.\n';
+    expect(
+      detectPhaseWithContents(['README.md', 'tasks.md'], tasks, readme),
     ).toBe('done');
+  });
+
+  it('returns implementing when tasks.md has no checkbox items', () => {
+    const tasks = '# Tasks\n\nSome notes but no checkboxes.\n';
+    expect(
+      detectPhaseWithContents(['README.md', 'tasks.md'], tasks),
+    ).toBe('implementing');
+  });
+
+  it('handles uppercase X in checkboxes', () => {
+    const tasks = '- [X] Task 1\n- [X] Task 2\n';
+    expect(
+      detectPhaseWithContents(['README.md', 'tasks.md'], tasks),
+    ).toBe('verifying');
   });
 
   it('falls back to file-only detection when no content provided', () => {
     expect(
       detectPhaseWithContents(['README.md', 'tasks.md']),
     ).toBe('implementing');
+  });
+
+  it('returns planning when only README.md exists', () => {
+    expect(detectPhaseWithContents(['README.md'])).toBe('planning');
   });
 
   it('returns unclaimed for empty files', () => {
