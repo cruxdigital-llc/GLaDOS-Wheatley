@@ -9,7 +9,10 @@ import type { WorkflowRunner, WorkflowType, WorkflowContext, WorkflowRun } from 
 
 export class NullRunner implements WorkflowRunner {
   async start(_type: WorkflowType, _context: WorkflowContext): Promise<string> {
-    throw new Error('Workflows not configured');
+    throw new Error(
+      'GLaDOS workflows are not configured. Set WHEATLEY_GLADOS_CMD environment variable ' +
+      '(e.g., WHEATLEY_GLADOS_CMD=claude) and restart the server.',
+    );
   }
 
   async getState(_runId: string): Promise<WorkflowRun | null> {

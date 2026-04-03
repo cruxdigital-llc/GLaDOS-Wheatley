@@ -85,9 +85,10 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
       return reply.status(201).send({ runId, state: state?.state ?? 'queued' });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start workflow';
-      return reply.status(409).send({
-        statusCode: 409,
-        error: 'Conflict',
+      const isNotConfigured = message.includes('not configured');
+      return reply.status(isNotConfigured ? 501 : 409).send({
+        statusCode: isNotConfigured ? 501 : 409,
+        error: isNotConfigured ? 'Not Implemented' : 'Conflict',
         message,
       });
     }
