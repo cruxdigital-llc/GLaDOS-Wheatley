@@ -194,6 +194,13 @@ export function Board() {
     filterToURL(filter);
   }, [filter]);
 
+  // Auto-dismiss transition errors after 8 seconds
+  useEffect(() => {
+    if (!transitionError) return;
+    const timer = setTimeout(() => setTransitionError(null), 8000);
+    return () => clearTimeout(timer);
+  }, [transitionError]);
+
   // Auto-populate username from git config if user hasn't set one
   useEffect(() => {
     if (!currentUser && gitIdentity?.name) {
