@@ -148,9 +148,10 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Card chrome reduction**: Board cards show title (2-line truncated), phase badge, assignee only. All other details in panel.
 - [x] **Ad-hoc spec support**: Unmatched specs show "unplanned" badge. Board assembler already handles unmatched specs as standalone cards.
 
-### 16. Backlog / Upcoming
+### 16. Phase 16 — Conformance & Onboarding (Complete)
 
-- [ ] Phase 16: Conformance & Onboarding (2 sections, 5 items)
+- [x] **Conformance warnings**: Real-time conformance banner in Board UI showing errors/warnings from grammar validation, with link to SDA standard
+- [x] **Spec log integration**: Archive card feature (already implemented) auto-populates SPEC_LOG.md and removes spec directory
 
 ## Known Issues / Technical Debt
 
@@ -183,3 +184,5 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-04-03: **PHASE 13 COMPLETE** — 498 tests passing, 13/13 roadmap items done. Spec dir naming fix, phase detection accuracy, resilient parsing with warnings, instant card detail panel, unified column naming with tooltips. MR review: fixed path traversal in existingSpecDir, synced validator/parser regexes, uppercase checkbox handling.
 - 2026-04-03: **PHASE 14 COMPLETE** — 498 tests passing, 9/9 roadmap items done. Push credential validation at startup, Docker Compose health checks and restart policies, production image optimization with dev dependency pruning. Most items were already implemented in prior phases — this phase formalized and hardened them.
 - 2026-04-03: **PHASE 15 COMPLETE** — 498 tests passing, 8/8 roadmap items done. Unassigned column groups cards by section (collapsible, persisted). Cards slimmed to title + phase + assignee. Unplanned spec dirs shown with "unplanned" badge. Board assembler already handled ad-hoc specs.
+- 2026-04-03: **PHASE 16 COMPLETE** — 498 tests passing, 5/5 roadmap items done. Conformance warnings banner with real-time validation, actionable error messages, and SDA standard link. Spec log integration via existing archive feature.
+- 2026-04-03: **ALL ROADMAP PHASES COMPLETE** — Phases 13-16 implemented. Total: 35 items across 4 phases. Roadmap is empty.

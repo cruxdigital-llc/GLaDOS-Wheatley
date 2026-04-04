@@ -13,6 +13,7 @@ import {
   fetchBranchHealth,
   fetchRepoStatus,
   fetchGitIdentity,
+  fetchConformance,
   type ConsolidatedBoardQuery,
 } from '../api.js';
 
@@ -71,5 +72,14 @@ export function useGitIdentity() {
     queryKey: ['identity'],
     queryFn: fetchGitIdentity,
     staleTime: 300_000, // Identity rarely changes — cache 5 min
+  });
+}
+
+export function useConformance(branch?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['conformance', branch],
+    queryFn: () => fetchConformance(branch),
+    staleTime: 120_000, // Re-check conformance every 2 min
+    enabled,
   });
 }

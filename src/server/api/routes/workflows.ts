@@ -12,7 +12,8 @@ import type { FastifyInstance } from 'fastify';
 import type { WorkflowRunner, WorkflowType } from '../../workflows/types.js';
 
 const VALID_TYPES = new Set<string>(['plan', 'spec', 'implement', 'verify']);
-const SAFE_CARD_ID_RE = /^\d+\.\d+\.\d+$/;
+// Card IDs can be roadmap item IDs (N.N.N) or spec directory names (date_prefix_name)
+const SAFE_CARD_ID_RE = /^(\d+\.\d+\.\d+|\d{4}-\d{2}-\d{2}_[\w-]+)$/;
 const RUN_ID_RE = /^wf-\d+-[a-f0-9]+$/;
 
 export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner): void {
@@ -84,9 +85,10 @@ export function workflowRunRoutes(app: FastifyInstance, runner: WorkflowRunner):
       return reply.status(201).send({ runId, state: state?.state ?? 'queued' });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start workflow';
-      return reply.status(409).send({
-        statusCode: 409,
-        error: 'Conflict',
+      const isNotConfigured = message.includes('not configured');
+      return reply.status(isNotConfigured ? 501 : 409).send({
+        statusCode: isNotConfigured ? 501 : 409,
+        error: isNotConfigured ? 'Not Implemented' : 'Conflict',
         message,
       });
     }

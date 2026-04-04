@@ -10,9 +10,9 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query';
 import type { BoardCard, BoardColumn, BoardPhase } from '../../shared/grammar/types.js';
 import { VALID_TRANSITIONS } from '../../shared/transitions/types.js';
-import { useBoard, useCardDetail, useConsolidatedBoard, useBranchHealth, useGitIdentity } from '../hooks/use-board.js';
+import { useBoard, useCardDetail, useConsolidatedBoard, useBranchHealth, useGitIdentity, useConformance } from '../hooks/use-board.js';
 import { useSSE } from '../hooks/use-sse.js';
-import { triggerSync, createCard, startWorkflow } from '../api.js';
+import { triggerSync, createCard, startWorkflow, fixConformance } from '../api.js';
 import { CreateCardModal } from './CreateCardModal.js';
 import { useExecuteTransition } from '../hooks/use-transitions.js';
 import { Column } from './Column.js';
@@ -184,6 +184,7 @@ export function Board() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: gitIdentity } = useGitIdentity();
+  const { data: conformance } = useConformance(branch);
   const [syncing, setSyncing] = useState(false);
 
   // Connect to SSE for real-time updates
@@ -761,6 +762,51 @@ export function Board() {
               {activeBoard.warnings.length} parsing warning{activeBoard.warnings.length > 1 ? 's' : ''}:
               {' '}{activeBoard.warnings.map((w) => w.message).join('; ')}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Conformance warnings banner */}
+      {conformance && !conformance.conforming && (
+        <div className="bg-orange-50 dark:bg-orange-900/20 border-b border-orange-200 dark:border-orange-800 px-4 py-2">
+          <div className="flex items-center justify-between text-sm text-orange-700 dark:text-orange-300">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="shrink-0">&#9888;</span>
+              <span className="truncate">
+                {conformance.summary.errors} conformance error{conformance.summary.errors !== 1 ? 's' : ''}
+                {conformance.summary.warnings > 0 && `, ${conformance.summary.warnings} warning${conformance.summary.warnings !== 1 ? 's' : ''}`}
+                {' '}&mdash;{' '}
+                {conformance.violations.slice(0, 2).map((v) => v.message).join('; ')}
+                {conformance.violations.length > 2 && ` (+${conformance.violations.length - 2} more)`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const result = await fixConformance(branch);
+                    if (result.fixed > 0) {
+                      void queryClient.invalidateQueries({ queryKey: ['conformance'] });
+                      void queryClient.invalidateQueries({ queryKey: ['board'] });
+                    }
+                  } catch {
+                    // Fix failed — user can try manually
+                  }
+                }}
+                className="text-xs px-2 py-1 rounded bg-orange-600 text-white hover:bg-orange-700 transition-colors font-medium"
+              >
+                Auto-fix
+              </button>
+              <a
+                href="https://github.com/cruxdigital-llc/GLaDOS/blob/main/standards/sda-standard.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-orange-500 hover:text-orange-700 underline"
+              >
+                SDA Standard
+              </a>
+            </div>
           </div>
         </div>
       )}

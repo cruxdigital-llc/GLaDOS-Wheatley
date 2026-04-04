@@ -95,6 +95,39 @@ export async function fetchBoard(branch?: string): Promise<BoardState> {
   return fetchJson<BoardState>(`${API_BASE}/board${params}`);
 }
 
+export interface ConformanceReport {
+  conforming: boolean;
+  violations: Array<{
+    file: string;
+    severity: 'error' | 'warning';
+    message: string;
+  }>;
+  summary: {
+    filesChecked: number;
+    errors: number;
+    warnings: number;
+  };
+}
+
+export async function fetchConformance(branch?: string): Promise<ConformanceReport> {
+  const params = branch ? `?branch=${encodeURIComponent(branch)}` : '';
+  return fetchJson<ConformanceReport>(`${API_BASE}/conformance${params}`);
+}
+
+export interface AutoFixResult {
+  fixed: number;
+  actions: string[];
+  remaining: ConformanceReport;
+}
+
+export async function fixConformance(branch?: string): Promise<AutoFixResult> {
+  return fetchJson<AutoFixResult>(`${API_BASE}/conformance/fix`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ branch }),
+  });
+}
+
 export async function fetchCardDetail(
   id: string,
   branch?: string,
