@@ -19,8 +19,15 @@ services:
     build:
       context: .
       target: development
+    restart: on-failure:5
     ports:
       - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     environment:
       - WHEATLEY_MODE=${WHEATLEY_MODE:-local}
       - WHEATLEY_REPO_PATH=/repo
@@ -48,6 +55,7 @@ services:
     build:
       context: .
       target: development
+    restart: on-failure:5
     ports:
       - "5173:5173"
     environment:

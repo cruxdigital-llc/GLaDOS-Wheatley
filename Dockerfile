@@ -16,13 +16,15 @@ COPY src/ ./src/
 FROM base AS build
 RUN npm run build
 
-# Production
+# Production — minimal image with only runtime dependencies
 FROM node:22-alpine AS production
 RUN apk add --no-cache git
 WORKDIR /app
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
+COPY --from=build /app/dist ./dist
+# Install only production dependencies (prune devDependencies)
+COPY --from=build /app/package-lock.json* ./
+RUN npm ci --omit=dev --ignore-scripts 2>/dev/null || npm install --omit=dev --ignore-scripts
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
