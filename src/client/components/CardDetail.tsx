@@ -16,10 +16,32 @@ import { PRPanel } from './PRPanel.js';
 import { WorkflowPanel } from './WorkflowPanel.js';
 
 interface CardDetailProps {
-  detail: CardDetailResponse;
+  detail: CardDetailResponse | null;
+  loading?: boolean;
   branch?: string;
   currentUser?: string;
   onClose: () => void;
+}
+
+function SkeletonBlock({ lines = 3 }: { lines?: number }) {
+  return (
+    <div className="animate-pulse space-y-2">
+      {Array.from({ length: lines }).map((_, i) => (
+        <div key={i} className={`h-3 bg-gray-200 dark:bg-gray-700 rounded ${i === lines - 1 ? 'w-2/3' : 'w-full'}`} />
+      ))}
+    </div>
+  );
+}
+
+function SectionSpinner({ label }: { label: string }) {
+  return (
+    <div className="px-6 py-4 border-b dark:border-gray-700">
+      <div className="flex items-center gap-2 text-sm text-gray-400">
+        <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+        <span>Loading {label}...</span>
+      </div>
+    </div>
+  );
 }
 
 /** Editable spec file names. */
@@ -27,7 +49,34 @@ const EDITABLE_FILES = new Set([
   'README.md', 'spec.md', 'plan.md', 'requirements.md', 'tasks.md',
 ]);
 
-export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailProps) {
+export function CardDetail({ detail, loading, branch, currentUser, onClose }: CardDetailProps) {
+  // Show skeleton panel immediately while data loads
+  if (loading || !detail) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex justify-end z-50" onClick={onClose}>
+        <div className="w-full max-w-2xl bg-white dark:bg-gray-900 shadow-xl overflow-y-auto flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-700 px-6 py-4 z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="animate-pulse">
+                  <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                </div>
+              </div>
+              <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none ml-4">&times;</button>
+            </div>
+          </div>
+          <SectionSpinner label="metadata" />
+          <SectionSpinner label="pull requests" />
+          <SectionSpinner label="workflows" />
+          <div className="px-6 py-4">
+            <SkeletonBlock lines={5} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const { card, specContents } = detail;
   const queryClient = useQueryClient();
   const [editingFile, setEditingFile] = useState<string | null>(null);
@@ -87,9 +136,9 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
     const line = lines[lineIndex];
     if (!line) return;
 
-    // Toggle [x] <-> [ ]
-    if (line.includes('- [x]')) {
-      lines[lineIndex] = line.replace('- [x]', '- [ ]');
+    // Toggle [x]/[X] <-> [ ]
+    if (/- \[[xX]\]/.test(line)) {
+      lines[lineIndex] = line.replace(/- \[[xX]\]/, '- [ ]');
     } else if (line.includes('- [ ]')) {
       lines[lineIndex] = line.replace('- [ ]', '- [x]');
     } else {
@@ -114,10 +163,10 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
       return (
         <div className="bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 rounded-lg p-4 text-sm text-gray-800 dark:text-gray-200 space-y-0.5">
           {lines.map((line, idx) => {
-            const isChecked = line.includes('- [x]');
-            const isCheckbox = line.includes('- [x]') || line.includes('- [ ]');
+            const isChecked = /- \[[xX]\]/.test(line);
+            const isCheckbox = /- \[[ xX]\]/.test(line);
             if (isCheckbox) {
-              const label = line.replace(/^(\s*)-\s*\[[ x]\]\s*/, '');
+              const label = line.replace(/^(\s*)-\s*\[[ xX]\]\s*/, '');
               return (
                 <label key={idx} className="flex items-start gap-2 cursor-pointer hover:bg-gray-100 px-1 py-0.5 rounded">
                   <input
@@ -144,8 +193,8 @@ export function CardDetail({ detail, branch, currentUser, onClose }: CardDetailP
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex justify-end z-50">
-      <div className="w-full max-w-2xl bg-white dark:bg-gray-900 shadow-xl overflow-y-auto flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex justify-end z-50" onClick={onClose}>
+      <div className="w-full max-w-2xl bg-white dark:bg-gray-900 shadow-xl overflow-y-auto flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="sticky top-0 bg-white dark:bg-gray-900 border-b dark:border-gray-700 px-6 py-4 z-10">
           <div className="flex items-center justify-between">

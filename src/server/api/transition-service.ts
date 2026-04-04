@@ -89,13 +89,14 @@ export class TransitionService {
     from: BoardPhase,
     to: BoardPhase,
     branch?: string,
+    existingSpecDir?: string,
   ): Promise<TransitionResult> {
     const validationResult = validateTransition(from, to);
     if (!validationResult.valid) {
       throw new InvalidTransitionError(from, to, validationResult.reason!);
     }
 
-    const actions = getTransitionActions(itemId, from, to);
+    const actions = getTransitionActions(itemId, from, to, existingSpecDir);
     const message = `transition: ${itemId} ${from}\u2192${to}`;
 
     for (const action of actions) {

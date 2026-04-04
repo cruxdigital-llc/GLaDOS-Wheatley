@@ -34,10 +34,10 @@ function hasControlChar(s: string): boolean {
 
 // --- ROADMAP.md Validator ---
 
-const PHASE_HEADING_RE = /^## Phase (\d+): (.+)$/;
-const GOAL_RE = /^\*\*Goal\*\*: (.+)$/;
-const SECTION_HEADING_RE = /^### (\d+\.\d+) (.+)$/;
-const TASK_ITEM_RE = /^- \[([ x])\] (\d+\.\d+\.\d+) (.+)$/;
+const PHASE_HEADING_RE = /^## Phase (\d+):\s*(.+)$/;
+const GOAL_RE = /^\*\*Goal\*\*:\s*(.+)$/;
+const SECTION_HEADING_RE = /^### (\d+\.\d+)\s+(.+)$/;
+const TASK_ITEM_RE = /^-\s*\[([ xX])\]\s*(\d+\.\d+\.\d+)\s+(.+)$/;
 
 export function validateRoadmap(content: string): ValidationResult {
   const errors: ValidationError[] = [];
@@ -228,6 +228,7 @@ export function detectPhaseFromFiles(files: string[]): Exclude<BoardPhase, 'veri
   if (has('tasks.md')) return 'implementing';
   if (has('spec.md')) return 'speccing';
   if (has('plan.md') || has('requirements.md')) return 'planning';
+  if (has('README.md')) return 'planning';
   return 'unclaimed';
 }
 
@@ -247,16 +248,29 @@ export function detectPhaseWithContents(
       // No content provided — can't determine completion, assume implementing
       return 'implementing';
     }
-    const taskLines = tasksContent.split('\n').filter((l) => l.match(/^- \[([ x])\]/));
-    const allComplete = taskLines.length > 0 && taskLines.every((l) => l.includes('[x]'));
+    // Match checkbox lines: - [x], - [X], - [ ] with optional leading whitespace
+    const taskLines = tasksContent.split('\n').filter((l) => /^\s*- \[[ xX]\]/.test(l));
+
+    if (taskLines.length === 0) {
+      // tasks.md exists but has no checkbox items — treat as implementing
+      return 'implementing';
+    }
+
+    const allComplete = taskLines.every((l) => /^\s*- \[[xX]\]/.test(l));
 
     if (allComplete) {
-      return 'done';
+      // Check for verify log in README.md to distinguish verifying vs done
+      if (readmeContent && /#{2,3} Verify|#{2,3} Verification|verified|PASSED/i.test(readmeContent)) {
+        return 'done';
+      }
+      // All tasks complete but no verify log — verifying phase
+      return 'verifying';
     }
     return 'implementing';
   }
   if (has('spec.md')) return 'speccing';
   if (has('plan.md') || has('requirements.md')) return 'planning';
+  if (has('README.md')) return 'planning';
   return 'unclaimed';
 }
 

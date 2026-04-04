@@ -23,9 +23,10 @@ export function transitionRoutes(app: FastifyInstance, transitionService: Transi
       from?: unknown;
       to?: unknown;
       branch?: unknown;
+      existingSpecDir?: unknown;
     };
   }>('/api/transitions', async (request, reply) => {
-    const { itemId, from, to, branch } = request.body ?? {};
+    const { itemId, from, to, branch, existingSpecDir } = request.body ?? {};
 
     // Validate required fields
     if (typeof itemId !== 'string' || !itemId.trim()) {
@@ -61,11 +62,26 @@ export function transitionRoutes(app: FastifyInstance, transitionService: Transi
     }
 
     try {
+      // Validate existingSpecDir to prevent path traversal
+      let validatedSpecDir: string | undefined;
+      if (typeof existingSpecDir === 'string' && existingSpecDir.trim()) {
+        const SPEC_DIR_RE = /^\d{4}-\d{2}-\d{2}_(feature|fix)_[\w-]+$/;
+        if (!SPEC_DIR_RE.test(existingSpecDir) || existingSpecDir.includes('..') || existingSpecDir.includes('/')) {
+          return reply.status(400).send({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: '"existingSpecDir" contains invalid characters or does not match spec directory naming convention',
+          });
+        }
+        validatedSpecDir = existingSpecDir;
+      }
+
       const result = await transitionService.executeTransition(
         itemId,
         from,
         to,
         typeof branch === 'string' ? branch : undefined,
+        validatedSpecDir,
       );
       return reply.status(200).send(result);
     } catch (err) {

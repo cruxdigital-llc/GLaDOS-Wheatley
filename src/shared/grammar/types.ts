@@ -67,10 +67,21 @@ export interface RoadmapSection {
   items: RoadmapItem[];
 }
 
+export interface ParseWarning {
+  /** Which file the warning comes from */
+  file: string;
+  /** Human-readable warning message */
+  message: string;
+  /** Line number (1-indexed) if applicable */
+  line?: number;
+}
+
 export interface ParsedRoadmap {
   phases: RoadmapPhase[];
   /** Flat list of all items across all phases */
   allItems: RoadmapItem[];
+  /** Warnings encountered during parsing */
+  warnings?: ParseWarning[];
 }
 
 // --- specs/ directory types ---
@@ -191,6 +202,8 @@ export interface BoardState {
     claimedCount: number;
     completedCount: number;
   };
+  /** Parse warnings from roadmap/status/claims parsing */
+  warnings?: ParseWarning[];
 }
 
 // --- Agent activity types ---

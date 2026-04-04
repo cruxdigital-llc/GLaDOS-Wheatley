@@ -327,13 +327,13 @@ export function Board() {
   );
 
   const executeTransitionNow = useCallback(
-    (cardId: string, cardTitle: string, from: BoardPhase, to: BoardPhase, originalColumns: BoardColumn[]) => {
+    (cardId: string, cardTitle: string, from: BoardPhase, to: BoardPhase, originalColumns: BoardColumn[], existingSpecDir?: string) => {
       // Apply optimistic update
       setOptimisticColumns(moveCardOptimistically(originalColumns, cardId, to));
       setTransitioningCardId(cardId);
 
       transitionMutation.mutate(
-        { itemId: cardId, from, to },
+        { itemId: cardId, from, to, existingSpecDir },
         {
           onSuccess: (data) => {
             // Server state wins; clear optimistic override
@@ -377,7 +377,7 @@ export function Board() {
         return;
       }
 
-      executeTransitionNow(cardId, card?.title ?? cardId, fromPhase, toPhase, sourceColumns);
+      executeTransitionNow(cardId, card?.title ?? cardId, fromPhase, toPhase, sourceColumns, card?.specEntry?.dirName);
     },
     [activeBoard, optimisticColumns, executeTransitionNow],
   );
@@ -386,8 +386,9 @@ export function Board() {
     if (!pendingTransition) return;
     const { cardId, cardTitle, from, to } = pendingTransition;
     const sourceColumns = optimisticColumns ?? activeBoard?.columns ?? [];
+    const card = sourceColumns.flatMap((c) => c.cards).find((c) => c.id === cardId);
     setPendingTransition(null);
-    executeTransitionNow(cardId, cardTitle, from, to, sourceColumns);
+    executeTransitionNow(cardId, cardTitle, from, to, sourceColumns, card?.specEntry?.dirName);
   }, [pendingTransition, activeBoard, optimisticColumns, executeTransitionNow]);
 
   const handleCancelTransition = useCallback(() => {
@@ -751,6 +752,19 @@ export function Board() {
         </div>
       </header>
 
+      {/* Parse warnings banner */}
+      {activeBoard?.warnings && activeBoard.warnings.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-4 py-2">
+          <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
+            <span>&#9888;</span>
+            <span>
+              {activeBoard.warnings.length} parsing warning{activeBoard.warnings.length > 1 ? 's' : ''}:
+              {' '}{activeBoard.warnings.map((w) => w.message).join('; ')}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Collapsible Filter Drawer */}
       <FilterDrawer
         isOpen={filterOpen}
@@ -856,8 +870,8 @@ export function Board() {
       </main>
 
       {/* Card Detail Panel */}
-      {selectedCardId && cardDetail && (
-        <CardDetail detail={cardDetail} branch={branch} currentUser={currentUser} onClose={handleCloseDetail} />
+      {selectedCardId && (
+        <CardDetail detail={cardDetail ?? null} loading={!cardDetail} branch={branch} currentUser={currentUser} onClose={handleCloseDetail} />
       )}
 
       {/* Claim Conflict Modal */}

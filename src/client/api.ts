@@ -150,6 +150,7 @@ export interface TransitionRequest {
   from: string;
   to: string;
   branch?: string;
+  existingSpecDir?: string;
 }
 
 export interface TransitionResult {
@@ -164,9 +165,11 @@ export async function executeTransition(
   from: string,
   to: string,
   branch?: string,
+  existingSpecDir?: string,
 ): Promise<TransitionResult> {
   const body: TransitionRequest = { itemId, from, to };
   if (branch) body.branch = branch;
+  if (existingSpecDir) body.existingSpecDir = existingSpecDir;
 
   const response = await fetch(`${API_BASE}/transitions`, {
     method: 'POST',

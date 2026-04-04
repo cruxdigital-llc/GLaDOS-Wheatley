@@ -127,11 +127,19 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Transition Integration**: workflowSuggestion in transition API response triggers launch panel
 - [x] **Config API**: GET /api/config/workflows endpoint
 
-### 13. Backlog / Upcoming
+### 13. Phase 13 — Correctness & Bug Fixes (Complete)
 
-- [ ] Phase 12: API Documentation, Export & Integration (4 features, 18 items)
-- [ ] Phase 14: Board Accuracy & Onboarding (3 features, 10 items) — phase detection, ROADMAP conformance warnings, completed specs on timeline
-- [ ] Phase 15: Analytics, Reporting & Insights (3 features, 11 items)
+- [x] **Spec directory naming**: Fixed double-prefixing bug, reuse existing spec dirs on transition
+- [x] **Phase detection accuracy**: Distinguish verifying vs done, handle edge cases, uppercase X support
+- [x] **Resilient markdown parsing**: Graceful degradation, parse warnings in UI, flexible formatting
+- [x] **Card detail panel performance**: Instant panel open with skeleton loading, click-outside-to-close
+- [x] **Column naming**: Unified display names, phase tooltips, configurable label support
+
+### 14. Backlog / Upcoming
+
+- [ ] Phase 14: Docker & Deployment Hardening (3 sections, 9 items)
+- [ ] Phase 15: UX & Usability (3 sections, 8 items) — board grouping/collapse, card chrome reduction, ad-hoc specs
+- [ ] Phase 16: Conformance & Onboarding (2 sections, 5 items)
 
 ## Known Issues / Technical Debt
 
@@ -160,3 +168,5 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-03-31: Resilient Markdown Parsing feature planned — 10 structural mismatches identified between CongaLine's GLaDOS markdown and Wheatley's parsers. Adding fallback parsing with diagnostic warnings.
 - 2026-03-31: **Auth Paradigm Completion** — 474 tests passing. Fixed 4 auth gaps: local mode git identity from `git config`, client JWT Bearer header loop, repo-level access verification (GitHub collaborator/GitLab member checks), provider auto-detection warnings. PR #16 on `fix/auth-gaps` targeting `chore/mode-cleanup`.
 - 2026-04-02: **Autonomous Workflow Execution** — 494 tests passing. Unified WorkflowLaunchPanel for all workflow types, per-workflow params (plan: Feature Name/Goal/Personas, spec: Focus Areas, implement: Approach Notes, verify: Verification Focus), configurable preamble/postamble in `.wheatley/workflows.json`, autonomousContext templates with {{placeholder}} resolution, workflowSuggestion from transitions. PR #21 on `feat/interactive-workflows`.
+- 2026-04-02: Roadmap trimmed from 6 phases (64 items) to 4 phases (32 items) — removed speculative PM-tool features, added UX & Usability phase.
+- 2026-04-03: **PHASE 13 COMPLETE** — 498 tests passing, 13/13 roadmap items done. Spec dir naming fix, phase detection accuracy, resilient parsing with warnings, instant card detail panel, unified column naming with tooltips. MR review: fixed path traversal in existingSpecDir, synced validator/parser regexes, uppercase checkbox handling.

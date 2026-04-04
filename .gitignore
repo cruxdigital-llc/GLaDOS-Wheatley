@@ -41,3 +41,4 @@ coverage/
 
 # Wheatley isolated worktree for git writes
 .wheatley-worktree/
+.claude/plans/
