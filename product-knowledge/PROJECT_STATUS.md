@@ -142,9 +142,14 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - [x] **Commit-only mode**: Local writes without push, UI indicator, WHEATLEY_PUSH_ON_WRITE env var
 - [x] **Docker polish**: Health checks, restart policies, production image size optimization
 
-### 15. Backlog / Upcoming
+### 15. Phase 15 — UX & Usability (Complete)
 
-- [ ] Phase 15: UX & Usability (3 sections, 8 items) — board grouping/collapse, card chrome reduction, ad-hoc specs
+- [x] **Board grouping & collapse**: Unassigned column groups cards by section with collapsible headers, counts, localStorage persistence
+- [x] **Card chrome reduction**: Board cards show title (2-line truncated), phase badge, assignee only. All other details in panel.
+- [x] **Ad-hoc spec support**: Unmatched specs show "unplanned" badge. Board assembler already handles unmatched specs as standalone cards.
+
+### 16. Backlog / Upcoming
+
 - [ ] Phase 16: Conformance & Onboarding (2 sections, 5 items)
 
 ## Known Issues / Technical Debt
@@ -177,3 +182,4 @@ See [product-knowledge/TECH_STACK.md](TECH_STACK.md) for full details.
 - 2026-04-02: Roadmap trimmed from 6 phases (64 items) to 4 phases (32 items) — removed speculative PM-tool features, added UX & Usability phase.
 - 2026-04-03: **PHASE 13 COMPLETE** — 498 tests passing, 13/13 roadmap items done. Spec dir naming fix, phase detection accuracy, resilient parsing with warnings, instant card detail panel, unified column naming with tooltips. MR review: fixed path traversal in existingSpecDir, synced validator/parser regexes, uppercase checkbox handling.
 - 2026-04-03: **PHASE 14 COMPLETE** — 498 tests passing, 9/9 roadmap items done. Push credential validation at startup, Docker Compose health checks and restart policies, production image optimization with dev dependency pruning. Most items were already implemented in prior phases — this phase formalized and hardened them.
+- 2026-04-03: **PHASE 15 COMPLETE** — 498 tests passing, 8/8 roadmap items done. Unassigned column groups cards by section (collapsible, persisted). Cards slimmed to title + phase + assignee. Unplanned spec dirs shown with "unplanned" badge. Board assembler already handled ad-hoc specs.

@@ -163,17 +163,22 @@ export function Card({
         </div>
       )}
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
+        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight line-clamp-2" title={card.title}>
           {card.title}
         </h3>
-        {card.source === 'spec' && (
+        {card.source === 'spec' && !card.roadmapItem && (
+          <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 dark:bg-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-700" title="Spec directory not linked to any roadmap item">
+            unplanned
+          </span>
+        )}
+        {card.source === 'spec' && card.roadmapItem && (
           <span className="shrink-0 text-xs px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">
             spec
           </span>
         )}
       </div>
 
-      <div className="mt-2 flex items-center gap-2 flex-wrap">
+      <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${phaseColor}`}>
           {phaseDisplayName(card.phase)}
         </span>
@@ -182,39 +187,10 @@ export function Card({
             {card.metadata.priority}
           </span>
         )}
-        <span className="text-xs text-gray-400 dark:text-gray-500">{card.id}</span>
-      </div>
-
-      {/* Metadata: labels and due date */}
-      {(card.metadata?.labels?.length || card.metadata?.due) && (
-        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-          {card.metadata.labels?.slice(0, 2).map((label) => (
-            <span
-              key={label}
-              className="text-xs px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700"
-            >
-              {label}
-            </span>
-          ))}
-          {card.metadata.due && (
-            <span
-              className={`text-xs px-1.5 py-0.5 rounded ${
-                card.metadata.due < new Date().toISOString().slice(0, 10)
-                  ? 'bg-red-50 text-red-600 border border-red-200'
-                  : 'text-gray-500'
-              }`}
-            >
-              {card.metadata.due}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Claimant badge */}
-      {card.claim && (
-        <div className="mt-2 flex flex-col gap-0.5">
+        {/* Assignee badge — compact */}
+        {card.claim && (
           <span
-            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border w-fit font-medium ${
+            className={`text-xs px-1.5 py-0.5 rounded-full border font-medium ${
               isOwnClaim
                 ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-700'
                 : 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
@@ -222,57 +198,12 @@ export function Card({
           >
             {isOwnClaim ? 'You' : card.claim.claimant}
           </span>
-          <span className="text-xs text-gray-400 dark:text-gray-500">{formatClaimTime(card.claim.claimedAt)}</span>
-        </div>
-      )}
-
-      {/* Claim / Release buttons */}
-      <div className="mt-2 flex gap-2">
-        {canClaim && (
-          <button
-            type="button"
-            onClick={handleClaim}
-            disabled={claimMutation.isPending}
-            className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 dark:border-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {claimMutation.isPending ? 'Assigning…' : 'Assign to me'}
-          </button>
-        )}
-        {isOwnClaim && (
-          <button
-            type="button"
-            onClick={handleRelease}
-            disabled={releaseMutation.isPending}
-            className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 dark:border-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {releaseMutation.isPending ? 'Unassigning…' : 'Unassign'}
-          </button>
         )}
       </div>
 
-      {/* Branch badges — shown in consolidated view when card appears on multiple branches */}
-      {card.branches && card.branches.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {card.branches.map((b) => (
-            <span
-              key={b}
-              className="text-xs px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200"
-            >
-              {b}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {card.statusTask && (
-        <div className="mt-1 text-xs text-gray-400 truncate">
-          {card.statusTask.description}
-        </div>
-      )}
-
       {/* GLaDOS workflow status badge */}
       {isWorkflowRunning && (
-        <div className="mt-2">
+        <div className="mt-1.5">
           <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 animate-pulse">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-500" />
             GLaDOS Running...

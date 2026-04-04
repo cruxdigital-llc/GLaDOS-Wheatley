@@ -5,10 +5,62 @@
  * Supports HTML5 drag-and-drop as a drop target for phase transitions.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import type { BoardColumn as BoardColumnType, BoardCard, BoardPhase } from '../../shared/grammar/types.js';
 import { Card } from './Card.js';
 import { phaseDisplayName } from '../../shared/display-names.js';
+
+interface CardGroup {
+  key: string;
+  label: string;
+  cards: BoardCard[];
+}
+
+/** Group cards by their roadmap phase > section for collapsible display. */
+function groupCardsBySection(cards: BoardCard[]): CardGroup[] {
+  const groups = new Map<string, CardGroup>();
+
+  for (const card of cards) {
+    const sectionTitle = card.roadmapItem?.sectionTitle;
+    const phaseTitle = card.roadmapItem?.phaseTitle;
+
+    if (sectionTitle && phaseTitle) {
+      const key = `${phaseTitle}::${sectionTitle}`;
+      if (!groups.has(key)) {
+        groups.set(key, { key, label: sectionTitle, cards: [] });
+      }
+      groups.get(key)!.cards.push(card);
+    } else {
+      // No section info — put in "Other" group
+      const key = '__other__';
+      if (!groups.has(key)) {
+        groups.set(key, { key, label: 'Other', cards: [] });
+      }
+      groups.get(key)!.cards.push(card);
+    }
+  }
+
+  return Array.from(groups.values());
+}
+
+/** Load collapsed group state from localStorage. */
+function loadCollapsedGroups(): Set<string> {
+  try {
+    const stored = localStorage.getItem('wheatley_collapsed_groups');
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+/** Save collapsed group state to localStorage. */
+function saveCollapsedGroups(collapsed: Set<string>): void {
+  try {
+    localStorage.setItem('wheatley_collapsed_groups', JSON.stringify([...collapsed]));
+  } catch {
+    // localStorage unavailable
+  }
+}
 
 const COLUMN_HEADER_COLORS: Record<string, string> = {
   unclaimed: 'border-t-gray-400',
@@ -85,6 +137,27 @@ export function Column({
   const borderColor = COLUMN_HEADER_COLORS[column.phase] ?? 'border-t-gray-400';
   const headerTextColor = COLUMN_HEADER_TEXT[column.phase] ?? 'text-gray-500';
   const [isDragOver, setIsDragOver] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(loadCollapsedGroups);
+
+  const toggleGroup = useCallback((groupKey: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      saveCollapsedGroups(next);
+      return next;
+    });
+  }, []);
+
+  // Group cards by section for the unclaimed column (or if many cards)
+  const shouldGroup = column.phase === 'unclaimed' && column.cards.length > 5;
+  const groups = useMemo(
+    () => shouldGroup ? groupCardsBySection(column.cards) : [],
+    [shouldGroup, column.cards],
+  );
 
   const isDragging = !!draggingCardId;
   const isValidTarget = isDragging && validDropTargets?.has(column.phase);
@@ -184,6 +257,45 @@ export function Column({
           <p className="text-xs text-center py-4" style={{ color: 'var(--color-text-muted)' }}>
             {isDragOver ? 'Drop here' : 'No items'}
           </p>
+        ) : shouldGroup ? (
+          /* Grouped view for unclaimed columns with many cards */
+          groups.map((group) => {
+            const isGroupCollapsed = collapsedGroups.has(group.key);
+            return (
+              <div key={group.key} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.key)}
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="truncate">{group.label}</span>
+                  <span className="flex items-center gap-1 shrink-0 ml-2">
+                    <span className="text-gray-400">{group.cards.length}</span>
+                    <span className="text-gray-400">{isGroupCollapsed ? '▸' : '▾'}</span>
+                  </span>
+                </button>
+                {!isGroupCollapsed && (
+                  <div className="p-1.5 space-y-1.5">
+                    {group.cards.map((card) => (
+                      <Card
+                        key={card.id}
+                        card={card}
+                        onClick={onCardClick}
+                        currentUser={currentUser}
+                        branch={branch}
+                        onConflict={onConflict}
+                        isDragging={card.id === draggingCardId}
+                        onDragStart={onCardDragStart}
+                        onDragEnd={onCardDragEnd}
+                        isFocused={card.id === focusedCardId}
+                        isTransitioning={card.id === transitioningCardId}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
         ) : (
           column.cards.map((card) => (
             <Card
